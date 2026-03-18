@@ -119,6 +119,26 @@
 
 .suspect-card {
   text-align: left;
+  position: relative;
+}
+
+.suspect-status {
+  display: block;
+  font-size: 0.78rem;
+  margin-top: var(--space-xs);
+}
+
+.status--muted {
+  color: var(--text-muted);
+}
+
+.status--progress {
+  color: var(--text-secondary);
+}
+
+.status--new {
+  color: var(--accent-gold);
+  font-weight: 600;
 }
 
 .testimony-area {
@@ -128,6 +148,54 @@
 .testimony-prompt {
   color: var(--text-secondary);
   margin-bottom: var(--space-md);
+}
+
+/* ━━ 대화 기록 (재방문 시 맥락 보존) ━━ */
+.testimony-history {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  border-left: 2px solid var(--border-highlight);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.testimony-history__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-sm);
+}
+
+.testimony-history__item {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-narrative);
+}
+
+.testimony-history__item:last-child {
+  margin-bottom: 0;
+}
+
+/* ━━ 질문 소진 / 새 질문 알림 ━━ */
+.testimony-exhausted {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: var(--space-md);
+}
+
+.testimony-new-hint {
+  color: var(--accent-gold);
+  font-size: 0.88rem;
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(212, 168, 87, 0.08);
+  border-radius: var(--border-radius);
+  border-left: 2px solid var(--accent-gold);
 }
 
 /* ━━ Portrait ━━ */

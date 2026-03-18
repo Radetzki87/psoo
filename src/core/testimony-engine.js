@@ -63,3 +63,27 @@ export function generateQuestions(suspectId, notebook, gameState, questionRules)
 
   return questions.slice(0, 4);
 }
+
+/**
+ * 용의자의 탐문 상태 라벨을 반환.
+ * @param {string} status - GameState.getSuspectStatus()의 반환값
+ * @param {number} availableCount - 현재 가능한 질문 수
+ * @param {number} askedCount - 지금까지 물어본 질문 수
+ * @returns {{ text: string, cssClass: string }}
+ */
+export function getSuspectStatusLabel(status, availableCount, askedCount) {
+  switch (status) {
+    case 'unvisited':
+      return { text: '', cssClass: '' };
+    case 'heard_initial':
+      return { text: '이야기를 들었다', cssClass: 'status--muted' };
+    case 'in_progress':
+      return { text: `탐문 중 (${availableCount}개 질문 가능)`, cssClass: 'status--progress' };
+    case 'new_available':
+      return { text: '새로운 질문이 있다', cssClass: 'status--new' };
+    case 'exhausted':
+      return { text: '더 물을 것이 없다', cssClass: 'status--muted' };
+    default:
+      return { text: '', cssClass: '' };
+  }
+}

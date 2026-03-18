@@ -1,7 +1,7 @@
 import { EventBus } from './utils/events.js';
 import { GameState } from './state/game-state.js';
 import { Renderer } from './ui/renderer.js';
-import { detectContradiction } from './core/testimony-engine.js';
+import { detectContradiction, generateQuestions } from './core/testimony-engine.js';
 import { judgeAccusation } from './core/accusation.js';
 
 const bus = new EventBus();
@@ -38,6 +38,8 @@ bus.on('OBJECT_EXAMINE', ({ objectId }) => {
     const evidence = state.currentCase.evidence.find(e => e.id === obj.evidenceId);
     if (evidence && !state.notebook.hasEvidence(evidence.id)) {
       state.notebook.addEvidence(evidence);
+      // 새 증거 발견 → 각 용의자에 새 질문이 열렸는지 갱신
+      state.refreshNewQuestionFlags(generateQuestions);
     }
   }
   renderer.render(state);
@@ -53,7 +55,11 @@ bus.on('EXAMINE_CLOSE', () => {
 bus.on('SUSPECT_SELECT', ({ suspectId }) => {
   state.selectedSuspectId = suspectId;
   if (suspectId) {
-    state.questionedSuspects.add(suspectId);
+    // 방문 시 "새 질문" 플래그를 확인 상태로 전환
+    const si = state.suspectInteraction[suspectId];
+    if (si) {
+      si.lastSeenEvidenceCount = state.notebook.foundEvidence.length;
+    }
   }
   renderer.render(state);
 });
@@ -73,6 +79,8 @@ bus.on('INITIAL_TESTIMONY', ({ suspectId }) => {
     const contradiction = detectContradiction(testimony, state.notebook, state.currentCase.contradictionRules);
     if (contradiction) {
       state.notebook.addContradiction(contradiction);
+      // 모순 감지 → 관련 용의자에 새 질문 플래그 갱신
+      state.refreshNewQuestionFlags(generateQuestions);
     }
   }
   renderer.render(state);
@@ -81,6 +89,7 @@ bus.on('INITIAL_TESTIMONY', ({ suspectId }) => {
 // ━━ 질문 ━━
 bus.on('QUESTION_ASK', ({ suspectId, questionId }) => {
   state.askedQuestions.add(questionId);
+  state.recordQuestion(suspectId);
   const testimonies = state.currentCase.testimonies[suspectId];
   if (!testimonies) return;
 
@@ -104,6 +113,9 @@ bus.on('QUESTION_ASK', ({ suspectId, questionId }) => {
       newQuestions: response.newQuestions
     };
     state.setPhase('CATCH');
+
+    // 짚기 후 심화 질문 플래그 갱신
+    state.refreshNewQuestionFlags(generateQuestions);
     renderer.render(state);
     return;
   }
@@ -123,6 +135,7 @@ bus.on('QUESTION_ASK', ({ suspectId, questionId }) => {
     const contradiction = detectContradiction(testimony, state.notebook, state.currentCase.contradictionRules);
     if (contradiction) {
       state.notebook.addContradiction(contradiction);
+      state.refreshNewQuestionFlags(generateQuestions);
     }
 
     // reveals 처리 (B가 약 불일치 밝힘 등)
