@@ -17,7 +17,7 @@ export class SceneScreen extends BaseScreen {
         examineHtml = `<div class="examine-detail">
           <p class="examine-text">${obj.examineText}</p>
           ${this._renderEvidenceFound(obj, state)}
-          <button class="btn examine-close" data-choice-id="close_examine">돌아간다</button>
+          <button class="btn choice-btn examine-close" data-choice-id="close_examine">돌아간다</button>
         </div>`;
       }
     }
