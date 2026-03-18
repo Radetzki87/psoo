@@ -1,0 +1,444 @@
+{
+  "id": "case_alpha_001",
+  "seed": null,
+  "title": "해변 저택의 밤",
+
+  "setting": {
+    "id": "seaside_mansion",
+    "name": "해변 저택",
+    "atmosphere": "폭풍이 몰아치는 밤. 전화선이 끊겼다.",
+    "rooms": [
+      {
+        "id": "study",
+        "name": "서재",
+        "description": "월넛 책상 위에 반쯤 열린 약 케이스. 옆에 위스키 잔, 얼음이 아직 녹지 않았다. 창밖으로 정원의 어둠이 보인다.",
+        "objects": [
+          {
+            "id": "obj_pill_case",
+            "name": "약 케이스",
+            "lookText": "검은 가죽 케이스가 책상 위에 놓여 있다. 반쯤 열려 있다.",
+            "examineText": "검은 가죽 케이스. 처방전 라벨이 붙어 있으나 이름 부분이 찢겨 나갔다. 안에 세 칸 — 두 칸은 비었고, 한 칸에 흰 알약 두 알.",
+            "evidenceId": "ev_pills"
+          },
+          {
+            "id": "obj_whisky",
+            "name": "위스키 잔",
+            "lookText": "위스키 잔이 책상 모서리에 놓여 있다.",
+            "examineText": "반쯤 남은 위스키. 얼음이 아직 녹지 않았다. 잔 표면에 물방울이 맺혀 있다.",
+            "evidenceId": "ev_whisky"
+          },
+          {
+            "id": "obj_drawer",
+            "name": "책상 서랍",
+            "lookText": "서랍이 살짝 열려 있다.",
+            "examineText": "서랍 안에 접힌 종이 한 장. 차용증이다. '박준혁, 금 삼억원...'",
+            "evidenceId": "ev_iou"
+          }
+        ],
+        "adjacentRooms": ["hallway"]
+      },
+      {
+        "id": "hallway",
+        "name": "복도",
+        "description": "긴 복도. 벽에 가족 사진이 걸려 있다. 피해자는 웃고 있다. 옆 인물의 얼굴은 잘려 나갔다.",
+        "objects": [
+          {
+            "id": "obj_photo",
+            "name": "가족 사진",
+            "lookText": "벽에 걸린 가족 사진. 누군가의 얼굴이 잘려 나갔다.",
+            "examineText": "피해자와 두 사람이 찍힌 사진. 오른쪽 인물의 얼굴 부분이 칼로 도려내졌다. 뒷면에 '2019년 가을, 준혁이 생일'이라고 적혀 있다.",
+            "evidenceId": "ev_photo"
+          }
+        ],
+        "adjacentRooms": ["study", "living_room", "garden"]
+      },
+      {
+        "id": "living_room",
+        "name": "거실",
+        "description": "넓은 거실. TV가 켜져 있고, 소파에 담요가 구겨져 있다. 커피 테이블 위에 와인잔 두 개.",
+        "objects": [
+          {
+            "id": "obj_wine_glasses",
+            "name": "와인잔 두 개",
+            "lookText": "커피 테이블 위에 와인잔이 두 개 놓여 있다. 하나는 비었고 하나에 조금 남아 있다.",
+            "examineText": "두 잔 모두 적포도주 흔적. 한 잔의 입술 자국은 립스틱이 묻어 있다. 다른 잔은 깨끗하다.",
+            "evidenceId": "ev_wine"
+          },
+          {
+            "id": "obj_blanket",
+            "name": "구겨진 담요",
+            "lookText": "소파 위에 담요가 구겨져 있다.",
+            "examineText": "울 담요. 긴 머리카락 한 올이 붙어 있다. 향수 냄새가 희미하게 남아 있다.",
+            "evidenceId": null
+          }
+        ],
+        "adjacentRooms": ["hallway"]
+      },
+      {
+        "id": "garden",
+        "name": "정원",
+        "description": "비가 내린다. 현관에서 정원 끝 담장까지 자갈길이 이어진다. 장미 덤불 사이로 무언가 빛난다.",
+        "objects": [
+          {
+            "id": "obj_footprints",
+            "name": "진흙 발자국",
+            "lookText": "자갈길 옆 진흙에 발자국이 찍혀 있다.",
+            "examineText": "구두 자국. 크기 약 270mm. 자갈길을 피해 장미 덤불 뒤로 이어진다. 담장 쪽으로 가다 사라진다.",
+            "evidenceId": "ev_footprints"
+          },
+          {
+            "id": "obj_shiny",
+            "name": "장미 덤불 사이 빛나는 것",
+            "lookText": "장미 덤불 사이에서 무언가 반짝인다.",
+            "examineText": "약 봉지. 빈 것. 라벨에 '디곡신 0.25mg'이라고 적혀 있다. 피해자의 이름은 없다.",
+            "evidenceId": "ev_prescription_memo"
+          }
+        ],
+        "adjacentRooms": ["hallway"]
+      }
+    ],
+    "map": {
+      "nodes": ["study", "hallway", "living_room", "garden"],
+      "edges": [
+        { "from": "study", "to": "hallway" },
+        { "from": "hallway", "to": "living_room" },
+        { "from": "hallway", "to": "garden" }
+      ],
+      "startRoom": "study"
+    }
+  },
+
+  "victim": {
+    "id": "victim",
+    "name": "김태호",
+    "occupation": "사업가",
+    "age": 68,
+    "description": "해변 저택의 주인. 최근 유산 전액을 자선단체에 기부하겠다고 선언.",
+    "causeOfDeath": "심장약이 독성 약물로 교체되어 복용 후 30분 뒤 심장마비"
+  },
+
+  "suspects": [
+    {
+      "id": "suspect_a",
+      "name": "박준혁",
+      "occupation": "피해자의 조카",
+      "age": 34,
+      "color": "var(--suspect-a)",
+      "portraitState": "calm",
+      "motive": {
+        "type": "inheritance",
+        "description": "유일한 상속인. 피해자의 기부 계획이 실행되면 상속 제로.",
+        "visible": false
+      },
+      "secret": {
+        "text": "도박 빚 3억 원",
+        "relatedEvidence": "ev_iou"
+      },
+      "isCulprit": true
+    },
+    {
+      "id": "suspect_b",
+      "name": "한서연",
+      "occupation": "피해자의 간호사",
+      "age": 29,
+      "color": "var(--suspect-b)",
+      "portraitState": "calm",
+      "motive": {
+        "type": "secret",
+        "description": "의료 과실 기록을 피해자가 알고 있었다.",
+        "visible": true
+      },
+      "secret": {
+        "text": "이전 병원에서 의료 과실로 해고됨",
+        "relatedEvidence": "ev_wine"
+      },
+      "isCulprit": false
+    },
+    {
+      "id": "suspect_c",
+      "name": "이도윤",
+      "occupation": "피해자의 변호사",
+      "age": 52,
+      "color": "var(--suspect-c)",
+      "portraitState": "calm",
+      "motive": {
+        "type": "fear",
+        "description": "피해자의 유산 기부 계획 법률 문서를 작성 중이었다. 기부가 완료되면 대형 고객을 잃는다.",
+        "visible": false
+      },
+      "secret": {
+        "text": "기부 계획의 법률 문서를 일부러 지연시키고 있었다",
+        "relatedEvidence": "ev_footprints"
+      },
+      "isCulprit": false
+    }
+  ],
+
+  "culprit": "suspect_a",
+  "method": "poison",
+  "trick": "time_trick",
+
+  "evidence": [
+    {
+      "id": "ev_pills",
+      "name": "약 케이스",
+      "location": "study",
+      "foundIn": "obj_pill_case",
+      "description": "검은 가죽 케이스. 처방전 라벨 훼손. 알약 2알 잔존.",
+      "interpretations": {
+        "a": { "text": "피해자의 상비약 — 평소 복용하던 심장약", "leadsTo": null },
+        "b": { "text": "누군가 약을 교체 — 라벨을 찢어 원래 약명을 숨김", "leadsTo": "suspect_a" }
+      },
+      "resolvedBy": ["ev_prescription_memo"],
+      "phase": 1,
+      "isKey": true
+    },
+    {
+      "id": "ev_whisky",
+      "name": "위스키 잔",
+      "location": "study",
+      "foundIn": "obj_whisky",
+      "description": "반쯤 남은 위스키. 얼음 미용해.",
+      "interpretations": {
+        "a": { "text": "사건 직후 누군가 따른 것 — 사건이 최근", "leadsTo": null },
+        "b": { "text": "피해자가 약 복용 직후 따른 것 — 사망 시작점 표시", "leadsTo": "suspect_a" }
+      },
+      "resolvedBy": ["ev_pills"],
+      "phase": 1,
+      "isKey": false
+    },
+    {
+      "id": "ev_iou",
+      "name": "차용증",
+      "location": "study",
+      "foundIn": "obj_drawer",
+      "description": "박준혁 명의 차용증. 금 3억 원.",
+      "interpretations": {
+        "a": { "text": "A의 경제적 곤란 — 그러나 살인 동기인지는 불명", "leadsTo": "suspect_a" },
+        "b": { "text": "피해자가 조카의 빚을 알고 있었다 — 기부 계획과 연결?", "leadsTo": "suspect_a" }
+      },
+      "resolvedBy": [],
+      "phase": 1,
+      "isKey": true
+    },
+    {
+      "id": "ev_photo",
+      "name": "훼손된 가족 사진",
+      "location": "hallway",
+      "foundIn": "obj_photo",
+      "description": "가족 사진. 한 인물의 얼굴이 도려내짐. 뒷면에 '준혁이 생일'.",
+      "interpretations": {
+        "a": { "text": "가족 내 갈등 — 도려낸 것은 A?", "leadsTo": "suspect_a" },
+        "b": { "text": "피해자가 A와의 관계를 정리하려 했다", "leadsTo": null }
+      },
+      "resolvedBy": [],
+      "phase": 1,
+      "isKey": false
+    },
+    {
+      "id": "ev_wine",
+      "name": "와인잔의 립스틱",
+      "location": "living_room",
+      "foundIn": "obj_wine_glasses",
+      "description": "두 잔 중 하나에 립스틱 흔적.",
+      "interpretations": {
+        "a": { "text": "B가 피해자와 와인을 마셨다 — 사건 당시 함께 있었다", "leadsTo": "suspect_b" },
+        "b": { "text": "B가 거실에 있었다면 서재에 간 것은 다른 사람", "leadsTo": null }
+      },
+      "resolvedBy": ["ev_footprints"],
+      "phase": 1,
+      "isKey": true
+    },
+    {
+      "id": "ev_footprints",
+      "name": "정원 발자국",
+      "location": "garden",
+      "foundIn": "obj_footprints",
+      "description": "구두 발자국. 270mm. 담장 쪽으로 사라짐.",
+      "interpretations": {
+        "a": { "text": "C의 것 — C는 정원에서 전화했다고 증언", "leadsTo": "suspect_c" },
+        "b": { "text": "누군가 담장 너머로 도주 — 외부인 가능성?", "leadsTo": null }
+      },
+      "resolvedBy": ["ev_wine"],
+      "phase": 2,
+      "isKey": false
+    },
+    {
+      "id": "ev_prescription_memo",
+      "name": "빈 약 봉지",
+      "location": "garden",
+      "foundIn": "obj_shiny",
+      "description": "디곡신 0.25mg 빈 봉지. 피해자 이름 없음.",
+      "interpretations": {
+        "a": { "text": "피해자의 약 — 정원에서 버린 것", "leadsTo": null },
+        "b": { "text": "교체용 약의 원래 포장 — 범인이 정원에 버림", "leadsTo": "suspect_a" }
+      },
+      "resolvedBy": ["ev_pills"],
+      "phase": 2,
+      "isKey": true
+    }
+  ],
+
+  "testimonies": {
+    "suspect_a": {
+      "initial": [
+        {
+          "id": "ta_alibi",
+          "topic": "alibi",
+          "text": "그날 밤 저는 거실에서 TV를 보고 있었습니다. 9시쯤 삼촌이 서재에서 약을 드시는 걸 봤어요. 건강해 보였습니다.",
+          "truthful": false,
+          "lieDetail": "실제로는 21시에 A가 서재에 가서 약을 교체했음"
+        },
+        {
+          "id": "ta_relation",
+          "topic": "relationship",
+          "text": "삼촌과는... 사이가 좋았습니다. 어릴 때부터 저를 아들처럼 키워주셨으니까요.",
+          "truthful": true
+        }
+      ],
+      "onEvidence": {
+        "ev_iou": {
+          "text": "그 차용증은... 사적인 문제입니다. 삼촌한테 빌린 거예요. 곧 갚을 예정이었습니다.",
+          "reaction": "tense"
+        },
+        "ev_pills": {
+          "text": "약은 삼촌이 늘 드시던 심장약 아닌가요? 전 약에 대해 잘 모릅니다.",
+          "reaction": "calm"
+        },
+        "ev_photo": {
+          "text": "...그 사진은 오래된 거예요. 누가 그랬는진 모르겠습니다.",
+          "reaction": "tense"
+        }
+      },
+      "onContradiction": {
+        "time_conflict": {
+          "text": "아... 9시가 아니라 10시였을 수도 있습니다. 정확히 기억이 나지 않아서...",
+          "reaction": "shaken",
+          "senseDescription": "박준혁의 손이 무릎 위에서 움직였다. 시선이 왼쪽 아래로 흘렀다.",
+          "reveals": "ev_time_correction",
+          "newQuestions": ["tq_why_time_change", "tq_where_at_nine"]
+        }
+      }
+    },
+    "suspect_b": {
+      "initial": [
+        {
+          "id": "tb_alibi",
+          "topic": "alibi",
+          "text": "그날 밤이요? 저는 거실에서 책을 읽고 있었습니다. 10시쯤... 피해자분이 서재로 들어가는 걸 봤어요.",
+          "truthful": true
+        },
+        {
+          "id": "tb_medical",
+          "topic": "medical",
+          "text": "피해자분의 건강 상태는 양호했습니다. 심장약만 꾸준히 드시면 문제없었어요.",
+          "truthful": true
+        }
+      ],
+      "onEvidence": {
+        "ev_wine": {
+          "text": "네, 피해자분과 와인을 한 잔 했습니다. 8시쯤이요. 그 뒤로 전 혼자 거실에 있었고요.",
+          "reaction": "calm"
+        },
+        "ev_pills": {
+          "text": "그 케이스... 이상하네요. 라벨이 왜 찢어져 있죠? 제가 드린 약에는 분명 라벨이 온전했는데.",
+          "reaction": "tense"
+        },
+        "ev_prescription_memo": {
+          "text": "디곡신이요? 피해자분의 약은 디곡신이 아니라 아미오다론이었는데... 이건 피해자분 약이 아닙니다.",
+          "reaction": "shaken",
+          "senseDescription": "한서연의 눈이 커졌다. 약 봉지를 다시 한 번 쳐다봤다.",
+          "reveals": "ev_drug_mismatch"
+        }
+      },
+      "onContradiction": {}
+    },
+    "suspect_c": {
+      "initial": [
+        {
+          "id": "tc_alibi",
+          "topic": "alibi",
+          "text": "저는 정원에서 사무실에 전화를 걸고 있었습니다. 비가 와서 일찍 들어왔고요. 8시 반쯤 객실로 갔습니다.",
+          "truthful": true
+        },
+        {
+          "id": "tc_legal",
+          "topic": "legal",
+          "text": "김 선생님의 유산 관련 법률 문서를 정리하고 있었습니다. 기부 계획 관련이요.",
+          "truthful": true
+        }
+      ],
+      "onEvidence": {
+        "ev_footprints": {
+          "text": "정원 발자국이요? 제 것일 수 있습니다. 제가 정원에서 전화했으니까요. 신발은... 270이 맞습니다.",
+          "reaction": "tense"
+        }
+      },
+      "onContradiction": {}
+    }
+  },
+
+  "questionRules": {
+    "evidenceBased": [
+      { "evidenceId": "ev_pills", "suspectId": "suspect_a", "questionId": "q_pills_a", "text": "서재의 약 케이스에 대해 아십니까?" },
+      { "evidenceId": "ev_pills", "suspectId": "suspect_b", "questionId": "q_pills_b", "text": "피해자의 약을 마지막으로 확인한 게 언제입니까?" },
+      { "evidenceId": "ev_iou", "suspectId": "suspect_a", "questionId": "q_iou_a", "text": "이 차용증에 대해 설명해주시겠습니까?" },
+      { "evidenceId": "ev_wine", "suspectId": "suspect_b", "questionId": "q_wine_b", "text": "피해자와 와인을 드셨다고요?" },
+      { "evidenceId": "ev_footprints", "suspectId": "suspect_c", "questionId": "q_foot_c", "text": "정원의 발자국이 당신 것입니까?" },
+      { "evidenceId": "ev_prescription_memo", "suspectId": "suspect_b", "questionId": "q_drug_b", "text": "이 약 봉지를 보시겠습니까?" },
+      { "evidenceId": "ev_photo", "suspectId": "suspect_a", "questionId": "q_photo_a", "text": "복도의 가족 사진에 대해 아십니까?" }
+    ],
+    "contradictionBased": [
+      { "contradictionId": "time_conflict", "suspectId": "suspect_a", "questionId": "q_catch_time", "text": "10시라 하셨는데, 다른 분은 9시라 했습니다." }
+    ],
+    "followUp": {
+      "tq_why_time_change": { "suspectId": "suspect_a", "text": "왜 처음에 9시라고 하셨습니까?" },
+      "tq_where_at_nine": { "suspectId": "suspect_a", "text": "9시에 정확히 어디 계셨습니까?" }
+    }
+  },
+
+  "contradictionRules": [
+    {
+      "id": "time_conflict",
+      "description": "A와 B의 시간 증언 불일치",
+      "condition": {
+        "requires": ["ta_alibi", "tb_alibi"],
+        "check": "A는 '9시에 삼촌이 서재에서 약을 드시는 걸 봤다'고 했으나, B는 '10시에 피해자가 서재로 들어가는 걸 봤다'고 함"
+      },
+      "displayText": "A는 \"9시에 삼촌이 서재에서 약을 드셨다\"고 했으나, B는 \"10시에 서재로 들어가는 걸 봤다\"고 증언",
+      "targetSuspect": "suspect_a"
+    }
+  ],
+
+  "misbelief": {
+    "firstSuspect": "suspect_b",
+    "firstSuspectReason": "간호사 = 약에 접근 가능 + 의료 과실 비밀 + 와인잔 립스틱 = 마지막으로 함께 있었음",
+    "supportingEvidence": ["ev_wine", "ev_pills"],
+    "collapseEvidence": "ev_prescription_memo",
+    "truePathEvidence": ["ev_pills", "ev_iou", "ev_prescription_memo"]
+  },
+
+  "solution": {
+    "culprit": "suspect_a",
+    "requiredEvidence": ["ev_pills", "ev_iou", "ev_prescription_memo"],
+    "narrative": "박준혁은 삼촌의 유산 기부 계획을 알고, 도박 빚 3억을 상속으로 갚으려 했다. 삼촌의 심장약(아미오다론)을 독성이 있는 디곡신으로 교체했다. 디곡신은 과량 시 심장마비를 일으키며, 기존 심장약과 외형이 유사하다.",
+    "trickExplanation": "약효 지연을 이용해 사망 시각을 실제보다 늦게 보이도록 유도. 약 교체는 21시에 했지만, 피해자가 약을 복용한 것은 22시경. A는 21:30부터 거실에서 B와 함께 있었으므로 알리바이가 성립하는 것처럼 보였다.",
+    "evidenceReinterpretation": {
+      "ev_whisky": "얼음이 녹지 않은 위스키는 사건 직후가 아니라, 피해자가 약을 복용한 직후(22시) 따른 것이었다 — 사망은 여러분이 생각한 것보다 늦게 시작되었다.",
+      "ev_pills": "찢긴 라벨은 약 교체 후 원래 약명(아미오다론)이 남아있는 것을 숨기기 위한 것이었다.",
+      "ev_prescription_memo": "정원의 빈 약 봉지는 A가 교체용 디곡신의 포장을 버린 것이다. 장미 덤불 뒤에 숨겼지만 비에 씻겨 나왔다.",
+      "ev_footprints": "발자국은 C의 것이 맞았다. C는 실제로 정원에서 전화했다. 미끼 증거.",
+      "ev_wine": "B가 피해자와 와인을 마신 것은 사실. B는 거실에 있었으므로 서재의 약에 접근할 기회가 없었다."
+    },
+    "wrongAccusationFeedback": {
+      "suspect_b": {
+        "text": "한서연은 피해자의 약이 디곡신이 아니라 아미오다론이라는 것을 즉시 알아챘습니다. 범인이라면 왜 자신의 범행을 드러내는 정보를 자발적으로 제공했겠습니까?",
+        "hint": "약에 대해 모르는 척한 사람이 누구였는지 다시 생각해보십시오."
+      },
+      "suspect_c": {
+        "text": "이도윤의 정원 발자국은 실제로 전화 통화 때 남긴 것이었습니다. 발자국의 존재만으로는 범행과 연결되지 않습니다.",
+        "hint": "약 케이스의 라벨이 왜 찢겨 있었는지에 집중하십시오."
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-card: #1a2235;
+  --bg-overlay: rgba(10, 14, 23, 0.92);
+
+  --text-primary: #e8e0d4;
+  --text-secondary: #8b9bb4;
+  --text-muted: #4a5568;
+
+  --accent-gold: #d4a857;
+  --accent-red: #c45c4a;
+  --accent-green: #5b8a72;
+
+  --suspect-a: #4a9ea8;
+  --suspect-b: #8b5ca8;
+  --suspect-c: #7a8a4a;
+
+  --border-subtle: #1e2a3a;
+  --border-highlight: #2a3a4a;
+
+  --font-narrative: 'Noto Serif KR', 'Nanum Myeongjo', serif;
+  --font-dialogue: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  --font-system: 'JetBrains Mono', 'D2Coding', monospace;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 150ms var(--ease-out);
+  --transition-normal: 300ms var(--ease-out);
+  --transition-slow: 600ms var(--ease-out);
+
+  --max-width: 720px;
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+}

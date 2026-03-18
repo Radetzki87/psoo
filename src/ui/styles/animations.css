@@ -1,0 +1,41 @@
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.screen-transition {
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.screen {
+  animation: fadeIn var(--transition-slow) forwards;
+}
+
+.notebook-overlay {
+  animation: fadeIn var(--transition-fast) forwards;
+}
+
+.evidence-found {
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.contradiction-bar {
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.catch-quote {
+  animation: fadeIn var(--transition-slow) forwards;
+}
+
+.catch-response {
+  animation: fadeIn 800ms var(--ease-out) 400ms both;
+}
+
+.sense-description {
+  animation: fadeIn 600ms var(--ease-out) 200ms both;
+}

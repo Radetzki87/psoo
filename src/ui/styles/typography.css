@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap');
+
+h1, h2, h3 {
+  font-family: var(--font-narrative);
+  font-weight: 400;
+}
+
+.title-main {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--accent-gold);
+}
+
+.title-sub {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.title-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.scene-description,
+.discovery-atmosphere,
+.discovery-desc,
+.discovery-cause {
+  font-family: var(--font-narrative);
+  line-height: 1.8;
+}
+
+.testimony-text {
+  font-family: var(--font-dialogue);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.sense-description {
+  font-family: var(--font-narrative);
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin: var(--space-md) 0;
+}
+
+.evidence-found {
+  color: var(--accent-gold);
+  font-weight: 400;
+  margin: var(--space-md) 0;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(212, 168, 87, 0.08);
+  border-radius: var(--border-radius);
+}
+
+.evidence-found--old {
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.accusation-warning {
+  font-family: var(--font-system);
+  font-size: 0.8rem;
+  color: var(--accent-red);
+  text-align: center;
+  margin-top: var(--space-sm);
+}
+
+.result-verdict {
+  font-family: var(--font-narrative);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  text-align: center;
+  margin: var(--space-lg) 0;
+}
+
+.result-verdict--wrong {
+  color: var(--accent-red);
+}
+
+.result-culprit {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-lg);
+}
+
+.result-narrative p,
+.result-trick p,
+.result-feedback,
+.result-hint {
+  font-family: var(--font-narrative);
+  line-height: 1.8;
+}
+
+.result-hint {
+  color: var(--accent-gold);
+  margin-top: var(--space-md);
+  font-style: italic;
+}
+
+.reinterpret-item {
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--accent-gold);
+}
+
+.reinterpret-item strong {
+  color: var(--accent-gold);
+}
