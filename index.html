@@ -94,7 +94,7 @@ const ANIMALS = [
   { id: 12, name: '사슴',     emoji: '🦌', diet: '초식', habitat: '숲' },
 ];
 
-const IMAGE_BASE_URL = 'assets/animals';
+const IMAGE_BASE_URL = 'imgsrc';
 
 function getAnimalImageUrl(animalId, gender) {
   const num = (animalId - 1) * 2 + (gender === 'male' ? 1 : 2);
