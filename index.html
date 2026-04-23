@@ -1771,18 +1771,21 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
               }}>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {toks.map((t, i) => {
-                    // Determine display gender:
-                    // - Both tokens in hand: fall back to index (0→♂, 1→♀)
-                    // - One in hand, partner placed with gender: show OPPOSITE of partner
-                    // - One in hand, partner placed without gender: default male
+                    // Determine display gender (priority order):
+                    //   1. If this token has an explicit mark, use it
+                    //   2. If partner has a mark, show OPPOSITE
+                    //   3. Both tokens in hand, no marks: fall back to index (0→♂, 1→♀)
+                    //   4. Otherwise default male
                     let gender;
-                    if (toks.length === 2) {
-                      gender = i === 0 ? 'male' : 'female';
+                    if (marks[t.id]) {
+                      gender = marks[t.id];
                     } else {
                       const partnerId = getPartnerToken(t.id, puzzle.pairs);
                       const partnerMark = partnerId && marks[partnerId];
                       if (partnerMark) {
                         gender = partnerMark === 'male' ? 'female' : 'male';
+                      } else if (toks.length === 2) {
+                        gender = i === 0 ? 'male' : 'female';
                       } else {
                         gender = 'male';
                       }
@@ -1791,7 +1794,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                     const symColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
                     return (
                       <div key={t.id} draggable
-                        onDragStart={(e) => onTokenDragStart(e, t.id)}
+                        onDragStart={(e) => onTokenDragStart(e, t.id, gender)}
                         style={{
                           width: 58, height: 58, background: 'var(--bg-card)',
                           border: '1px solid var(--border-medium)', borderRadius: 4,
@@ -2115,12 +2118,15 @@ function reducer(state, action) {
       const cur = state.marks[action.tokenId] || null;
       const next = cur === null ? 'male' : cur === 'male' ? 'female' : null;
       const newMarks = { ...state.marks };
+      // Update partner gender in sync regardless of whether partner is on board or in hand.
+      // This ensures the hand-pool visual gender instantly mirrors the grid tile's toggle.
+      const partnerEditable = partnerId && !partnerIsFixed;
       if (next === null) {
         delete newMarks[action.tokenId];
-        if (partnerId && state.placements[partnerId] && !(state.puzzle.preMarks && state.puzzle.preMarks[partnerId])) delete newMarks[partnerId];
+        if (partnerEditable) delete newMarks[partnerId];
       } else {
         newMarks[action.tokenId] = next;
-        if (partnerId && state.placements[partnerId] && !(state.puzzle.preMarks && state.puzzle.preMarks[partnerId])) {
+        if (partnerEditable) {
           newMarks[partnerId] = next === 'male' ? 'female' : 'male';
         }
       }
@@ -2129,8 +2135,23 @@ function reducer(state, action) {
         partnerTokenId: (partnerId && state.placements[partnerId]) ? partnerId : null,
       };
     }
-    case 'DRAG_START':
-      return { ...state, dragState: { ...state.dragState, tokenId: action.tokenId } };
+    case 'DRAG_START': {
+      const newState = { ...state, dragState: { ...state.dragState, tokenId: action.tokenId } };
+      // If the drag originated from hand with an explicit gender hint, confirm it on the token
+      // AND on the partner (as opposite gender). Do not overwrite existing marks.
+      if (action.assignGender && !state.marks[action.tokenId]) {
+        const newMarks = { ...state.marks };
+        newMarks[action.tokenId] = action.assignGender;
+        // Auto-assign opposite gender to partner if partner is placed and has no mark yet
+        const partnerId = getPartnerToken(action.tokenId, state.puzzle.pairs);
+        const partnerIsFixed = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+        if (partnerId && state.placements[partnerId] && !newMarks[partnerId] && !partnerIsFixed) {
+          newMarks[partnerId] = action.assignGender === 'male' ? 'female' : 'male';
+        }
+        newState.marks = newMarks;
+      }
+      return newState;
+    }
     case 'DRAG_OVER_CELL':
       return { ...state, dragState: { ...state.dragState, over: `${action.row},${action.col}` } };
     case 'DRAG_LEAVE_CELL':
@@ -2313,9 +2334,9 @@ function ZoologicApp() {
     dispatch({ type: 'TOGGLE_MARK', tokenId });
   }, []);
 
-  const handleTokenDragStart = useCallback((e, tokenId) => {
+  const handleTokenDragStart = useCallback((e, tokenId, assignGender) => {
     try { e.dataTransfer.setData('text/plain', tokenId); e.dataTransfer.effectAllowed = 'move'; } catch (_) { }
-    dispatch({ type: 'DRAG_START', tokenId });
+    dispatch({ type: 'DRAG_START', tokenId, assignGender });
   }, []);
 
   const handleCellDrop = useCallback((phase, row, col) => {
