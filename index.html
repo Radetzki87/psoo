@@ -1,0 +1,2235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zoologic v2 — 동물 논리 퍼즐</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-paper: #FAF7F0;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F5F2EA;
+    --ink-primary: #1C1917;
+    --ink-secondary: #44403C;
+    --ink-tertiary: #78716C;
+    --border-soft: #E7E5E4;
+    --border-medium: #D6D3D1;
+    --accent-gold: #B45309;
+    --accent-gold-soft: #D97706;
+    --success-soft: #FEF3C7;
+    --forbidden: #E7E5E4;
+    --danger: #B91C1C;
+    --ok-strict: #B45309;
+    --ok-loose: #92400E;
+    --ok-flexible: #78716C;
+  }
+  * { box-sizing: border-box; }
+  html, body, #root { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
+  body { font-family: 'Outfit', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+  .font-body { font-family: 'Outfit', sans-serif; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; }
+  button:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+  @keyframes cellResolve {
+    0% { transform: scale(0.88); opacity: 0.6; }
+    60% { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes partnerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(180, 83, 9, 0.2); }
+  }
+  @keyframes celebrationWave {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.08); filter: brightness(1.15) saturate(1.1); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  @keyframes fadeInUp {
+    0% { transform: translateY(8px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes progressShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+'use strict';
+
+const { useState, useEffect, useMemo, useCallback, useReducer, useRef } = React;
+
+// =============================================================================
+// SECTION 1 — DATA CONSTANTS
+// =============================================================================
+
+const ANIMALS = [
+  { id: 1,  name: '사자',     emoji: '🦁', diet: '육식', habitat: '사바나' },
+  { id: 2,  name: '얼룩말',   emoji: '🦓', diet: '초식', habitat: '사바나' },
+  { id: 3,  name: '코끼리',   emoji: '🐘', diet: '초식', habitat: '사바나' },
+  { id: 4,  name: '북극곰',   emoji: '🐻‍❄️', diet: '육식', habitat: '극지' },
+  { id: 5,  name: '펭귄',     emoji: '🐧', diet: '육식', habitat: '극지' },
+  { id: 6,  name: '바다표범', emoji: '🦭', diet: '육식', habitat: '극지' },
+  { id: 7,  name: '돌고래',   emoji: '🐬', diet: '육식', habitat: '해양' },
+  { id: 8,  name: '바다거북', emoji: '🐢', diet: '초식', habitat: '해양' },
+  { id: 9,  name: '상어',     emoji: '🦈', diet: '육식', habitat: '해양' },
+  { id: 10, name: '호랑이',   emoji: '🐯', diet: '육식', habitat: '숲' },
+  { id: 11, name: '판다',     emoji: '🐼', diet: '초식', habitat: '숲' },
+  { id: 12, name: '사슴',     emoji: '🦌', diet: '초식', habitat: '숲' },
+];
+
+const IMAGE_BASE_URL = 'assets/animals';
+
+function getAnimalImageUrl(animalId, gender) {
+  const num = (animalId - 1) * 2 + (gender === 'male' ? 1 : 2);
+  return `${IMAGE_BASE_URL}/${num}.webp`;
+}
+
+const HABITAT_TINT = {
+  '사바나': '#FEF3C7',
+  '극지':   '#DBEAFE',
+  '해양':   '#CFFAFE',
+  '숲':     '#DCFCE7',
+};
+
+const ATTR_ICON = {
+  '육식': '🥩', '초식': '🌿',
+  '사바나': '🌾', '극지': '❄️', '해양': '🌊', '숲': '🌲',
+  'male': '♂', 'female': '♀',
+};
+
+const DIM_LABEL = {
+  'habitat': '서식지',
+  'diet': '식성',
+  'gender': '성별',
+};
+
+const VALUE_LABEL = {
+  '사바나': '사바나', '극지': '극지', '해양': '해양', '숲': '숲',
+  '육식': '육식', '초식': '초식',
+  'male': '수컷', 'female': '암컷',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Difficulty Configs V2 — Q1-Q4 design reflected
+// ─────────────────────────────────────────────────────────────────────────────
+const DIFFICULTY_CONFIGS = {
+  Sprout: {
+    n: 4, k: 3, forbiddenCount: 0,
+    animalPoolRestriction: 'same_habitat',
+    ruleCount: [2, 2],
+    ruleDimensions: ['habitat'],
+    countCoverage: [6, 7],           // 8 lines, 75-87%
+    fixedTileCount: [2, 3],
+    maxSolutions: 1,                  // Strict
+    totalBudgetMs: 6000,
+    verifyTimeLimitMs: 800,
+    maxAttempts: 500,
+    label: '새싹', glyph: '🌱',
+    subtitle: '인접과 서식지를 익혀봅니다',
+  },
+  Easy: {
+    n: 5, k: 5, forbiddenCount: [1, 3],
+    animalPoolRestriction: 'any',
+    ruleCount: [2, 3],
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [8, 9],           // 10 lines, 80-90%
+    fixedTileCount: [3, 4],          // increased for symmetry breaking
+    maxSolutions: 10,                 // Loose (≤10) — realistic for k=5
+    totalBudgetMs: 20000,
+    verifyTimeLimitMs: 3000,
+    maxAttempts: 1000,
+    label: '기초', glyph: '🌿',
+    subtitle: '서식지와 식성이 교차합니다',
+  },
+  Medium: {
+    n: 6, k: 7, forbiddenCount: [2, 4],
+    animalPoolRestriction: 'any',
+    ruleCount: [3, 4],
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [12, 12],         // 12 lines, 100% — eliminates info-shortage bottleneck
+    fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 20,                 // Loose (≤20)
+    totalBudgetMs: 25000,
+    verifyTimeLimitMs: 2500,
+    maxAttempts: 2000,
+    label: '중급', glyph: '🌳',
+    subtitle: '규약 3-4개가 교차합니다',
+  },
+  Hard: {
+    n: 7, k: 9, forbiddenCount: [3, 5],
+    animalPoolRestriction: 'any',
+    ruleCount: [3, 4],
+    ruleDimensions: ['habitat', 'diet', 'gender'],
+    countCoverage: [14, 14],         // 14 lines, 100% — eliminates info-shortage bottleneck
+    fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 30,                 // Loose (≤30)
+    totalBudgetMs: 45000,
+    verifyTimeLimitMs: 4000,
+    maxAttempts: 3000,
+    label: '상급', glyph: '🏔',
+    subtitle: '성별 규약까지 더해집니다',
+  },
+};
+
+// =============================================================================
+// SECTION 2 — ENGINE UTILS
+// =============================================================================
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function isAdjacent(c1, c2) {
+  return Math.max(Math.abs(c1.row - c2.row), Math.abs(c1.col - c2.col)) === 1;
+}
+
+function getPartnerToken(tokenId, pairs) {
+  for (const [t1, t2] of pairs) {
+    if (t1 === tokenId) return t2;
+    if (t2 === tokenId) return t1;
+  }
+  return null;
+}
+
+function getTokensInRow(r, tokens) { return tokens.filter(t => t.row === r); }
+function getTokensInCol(c, tokens) { return tokens.filter(t => t.col === c); }
+
+function animalById(id) { return ANIMALS.find(a => a.id === id); }
+
+// =============================================================================
+// SECTION 3 — 4-STAGE GENERATION PIPELINE
+// =============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE A: Design Rule Template — Constraint-First Generation
+// ─────────────────────────────────────────────────────────────────────────────
+function designRuleTemplate(config, animals) {
+  const targetCount = randInt(config.ruleCount[0], config.ruleCount[1]);
+  const dims = config.ruleDimensions;
+  const n = config.n;
+
+  // Enumerate all possible rules
+  const allRules = [];
+  for (let i = 0; i < n; i++) {
+    for (const isRow of [true, false]) {
+      for (const dim of dims) {
+        if (dim === 'habitat') {
+          for (const val of ['사바나', '극지', '해양', '숲']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        } else if (dim === 'diet') {
+          for (const val of ['육식', '초식']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        } else if (dim === 'gender') {
+          for (const val of ['male', 'female']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        }
+      }
+    }
+  }
+
+  // Try random combinations
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const candidate = shuffle(allRules).slice(0, targetCount);
+
+    // Check line uniqueness (no two rules on same line)
+    const lines = new Set();
+    let valid = true;
+    for (const r of candidate) {
+      const key = `${r.isRow ? 'r' : 'c'}${r.idx}`;
+      if (lines.has(key)) { valid = false; break; }
+      lines.add(key);
+    }
+    if (!valid) continue;
+
+    // Check cross-cell feasibility
+    if (!crossCellsFeasible(candidate, animals)) continue;
+
+    return candidate.map((r, i) => ({ ...r, id: `rule-${i}` }));
+  }
+  return null;
+}
+
+function crossCellsFeasible(rules, animals) {
+  // For row rule vs col rule pairs, check if their cross cell can hold any animal
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = i + 1; j < rules.length; j++) {
+      const r1 = rules[i], r2 = rules[j];
+      if (r1.isRow === r2.isRow) continue;
+
+      // They cross at one cell; compute compatible animals
+      const compatible = animals.filter(a => {
+        if (r1.dim !== 'gender' && a[r1.dim] !== r1.val) return false;
+        if (r2.dim !== 'gender' && a[r2.dim] !== r2.val) return false;
+        return true;
+      });
+      // Gender rules don't restrict species; always feasible for species
+      // But if both are species dim (habitat/diet), need at least one compatible animal
+      if (r1.dim !== 'gender' && r2.dim !== 'gender' && compatible.length === 0) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE B: Constrained Adjacent Placement
+// ─────────────────────────────────────────────────────────────────────────────
+function constrainedAdjacentPlacement(config, ruleTemplate, forbiddenCells, animals) {
+  const n = config.n;
+  const k = config.k;
+  const forbidden = new Set(forbiddenCells.map(([r, c]) => `${r},${c}`));
+
+  // Build cell domains (which animals can be placed at each cell, given habitat/diet rules)
+  const cellDomains = {};
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const key = `${r},${c}`;
+      if (forbidden.has(key)) continue;
+
+      let allowed = new Set(animals.map(a => a.id));
+      for (const rule of ruleTemplate) {
+        if (rule.dim === 'gender') continue; // gender rules applied post-placement
+        const inLine = rule.isRow ? (rule.idx === r) : (rule.idx === c);
+        if (inLine) {
+          allowed = new Set([...allowed].filter(id => animalById(id)[rule.dim] === rule.val));
+        }
+      }
+      if (allowed.size > 0) cellDomains[key] = allowed;
+    }
+  }
+
+  // For animal pool restriction
+  let animalPool = animals;
+  if (config.animalPoolRestriction === 'same_habitat') {
+    const habitats = ['사바나', '극지', '해양', '숲'];
+    const viableHabitats = habitats.filter(h => animals.filter(a => a.habitat === h).length >= k);
+    if (viableHabitats.length === 0) return null;
+    const h = viableHabitats[randInt(0, viableHabitats.length - 1)];
+    animalPool = animals.filter(a => a.habitat === h);
+  }
+
+  // Compute per-animal options (list of adjacent cell pairs this animal can occupy)
+  const animalOptions = {};
+  for (const animal of animalPool) {
+    const options = [];
+    const cellsForAnimal = Object.entries(cellDomains)
+      .filter(([_, dom]) => dom.has(animal.id))
+      .map(([key]) => {
+        const [r, c] = key.split(',').map(Number);
+        return { row: r, col: c, key };
+      });
+
+    for (const c1 of cellsForAnimal) {
+      for (const c2 of cellsForAnimal) {
+        if (c1.key >= c2.key) continue; // dedupe
+        if (!isAdjacent(c1, c2)) continue;
+        options.push([c1, c2]);
+      }
+    }
+    animalOptions[animal.id] = options;
+  }
+
+  // Viable animals: those with at least one option
+  const viable = animalPool.filter(a => animalOptions[a.id].length > 0);
+  if (viable.length < k) return null;
+
+  // Try selecting k animals and placing them
+  for (let selAttempt = 0; selAttempt < 20; selAttempt++) {
+    const selected = shuffle(viable).slice(0, k);
+    // Sort by fewest options (MRV)
+    selected.sort((a, b) => animalOptions[a.id].length - animalOptions[b.id].length);
+
+    const used = new Set();
+    const result = [];
+
+    function place(idx) {
+      if (idx === k) return true;
+      const animal = selected[idx];
+      const opts = shuffle(animalOptions[animal.id]);
+      for (const [c1, c2] of opts) {
+        if (used.has(c1.key) || used.has(c2.key)) continue;
+        used.add(c1.key); used.add(c2.key);
+        result.push([animal, c1, c2]);
+        if (place(idx + 1)) return true;
+        result.pop();
+        used.delete(c1.key); used.delete(c2.key);
+      }
+      return false;
+    }
+
+    if (place(0)) {
+      // Convert to tokens/pairs
+      const tokens = [], pairs = [];
+      for (let i = 0; i < result.length; i++) {
+        const [animal, c1, c2] = result[i];
+        const t1 = `t${i * 2}`, t2 = `t${i * 2 + 1}`;
+        tokens.push({ id: t1, animalId: animal.id, row: c1.row, col: c1.col });
+        tokens.push({ id: t2, animalId: animal.id, row: c2.row, col: c2.col });
+        pairs.push([t1, t2]);
+      }
+      return { tokens, pairs };
+    }
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gender Assignment Respecting Gender Rules
+// ─────────────────────────────────────────────────────────────────────────────
+function assignGendersWithRules(pairs, tokens, lineRules) {
+  const genderRules = lineRules.filter(r => r.dim === 'gender');
+
+  // Compute forced genders for tokens in gender-rule lines
+  const forcedGender = {};
+  for (const rule of genderRules) {
+    const lineTokens = rule.isRow
+      ? tokens.filter(t => t.row === rule.idx)
+      : tokens.filter(t => t.col === rule.idx);
+    for (const t of lineTokens) {
+      if (forcedGender[t.id] && forcedGender[t.id] !== rule.val) {
+        return null; // conflict
+      }
+      forcedGender[t.id] = rule.val;
+    }
+  }
+
+  // Assign genders respecting forced and pair-constraint
+  const marks = {};
+  for (const [t1, t2] of pairs) {
+    const f1 = forcedGender[t1];
+    const f2 = forcedGender[t2];
+
+    if (f1 && f2) {
+      if (f1 === f2) return null; // pair can't have same gender
+      marks[t1] = f1; marks[t2] = f2;
+    } else if (f1) {
+      marks[t1] = f1; marks[t2] = f1 === 'male' ? 'female' : 'male';
+    } else if (f2) {
+      marks[t2] = f2; marks[t1] = f2 === 'male' ? 'female' : 'male';
+    } else {
+      if (Math.random() < 0.5) { marks[t1] = 'male'; marks[t2] = 'female'; }
+      else { marks[t1] = 'female'; marks[t2] = 'male'; }
+    }
+  }
+  return marks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE C: Auxiliary Hints — Count hints + Fixed tiles
+// ─────────────────────────────────────────────────────────────────────────────
+function addAuxiliaryHints(placement, config, solution, lineRules, forbiddenCells) {
+  const n = config.n;
+  const tokens = placement.tokens;
+
+  // Identify rule lines (these must have # hints for synergy)
+  const ruleLineKeys = new Set(
+    lineRules.map(r => `${r.isRow ? 'r' : 'c'}${r.idx}`)
+  );
+
+  // All lines
+  const allLines = [];
+  for (let i = 0; i < n; i++) {
+    allLines.push({ isRow: true, idx: i });
+    allLines.push({ isRow: false, idx: i });
+  }
+
+  // Priority: rule lines first, then others
+  const priorityLines = allLines.filter(l =>
+    ruleLineKeys.has(`${l.isRow ? 'r' : 'c'}${l.idx}`)
+  );
+  const otherLines = allLines.filter(l =>
+    !ruleLineKeys.has(`${l.isRow ? 'r' : 'c'}${l.idx}`)
+  );
+
+  // Target count coverage
+  const targetCount = randInt(config.countCoverage[0], config.countCoverage[1]);
+  // Ensure priority lines all included
+  const neededFromOthers = Math.max(0, targetCount - priorityLines.length);
+  const selectedOthers = shuffle(otherLines).slice(0, neededFromOthers);
+  const selectedLines = [...priorityLines, ...selectedOthers];
+
+  // Build # hints (total + optional H1 gender count)
+  const countHints = [];
+  for (let i = 0; i < selectedLines.length; i++) {
+    const line = selectedLines[i];
+    const lineTokens = line.isRow
+      ? getTokensInRow(line.idx, tokens)
+      : getTokensInCol(line.idx, tokens);
+    countHints.push({
+      id: `cnt-${line.isRow ? 'r' : 'c'}${line.idx}`,
+      type: 'total',
+      row: line.isRow ? line.idx : null,
+      col: line.isRow ? null : line.idx,
+      value: lineTokens.length,
+    });
+    // H1 (male count) — adds critical information for pair permutation disambiguation
+    // Skip when line already has gender-only rule (redundant) or empty
+    const hasGenderRule = lineRules.some(r =>
+      r.dim === 'gender' && r.isRow === line.isRow && r.idx === line.idx
+    );
+    if (lineTokens.length > 0 && !hasGenderRule) {
+      const males = lineTokens.filter(t => solution[t.id] === 'male').length;
+      countHints.push({
+        id: `h1-${line.isRow ? 'r' : 'c'}${line.idx}`,
+        type: 'H1',
+        row: line.isRow ? line.idx : null,
+        col: line.isRow ? null : line.idx,
+        value: males,
+      });
+    }
+  }
+
+  // Fixed tiles — simple random selection.
+  // (We deliberately do NOT prioritize rule lines; rule lines that get fully filled
+  // with fixed tiles become "dead" lines with no player deductive work. The Stage D
+  // validation in tryOneGeneration rejects such puzzles, retrying with different
+  // fixed tiles until a valid layout is found.)
+  const fixedCount = randInt(config.fixedTileCount[0], config.fixedTileCount[1]);
+  const fixedTokens = shuffle(tokens).slice(0, fixedCount);
+  const fixedCells = fixedTokens.map(t => ({
+    row: t.row, col: t.col, animalId: t.animalId, gender: solution[t.id],
+  }));
+  const preMarks = Object.fromEntries(fixedTokens.map(t => [t.id, solution[t.id]]));
+
+  return {
+    n: config.n,
+    forbiddenCells,
+    tokens,
+    pairs: placement.pairs,
+    lineRules,
+    countHints,
+    fixedCells,
+    preMarks,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE D: Timeboxed Solution Enumeration
+// ─────────────────────────────────────────────────────────────────────────────
+function enumerateSolutions(instance, animals, maxSolutions, timeLimitMs) {
+  const startTime = performance.now();
+  const n = instance.n;
+  const pairs = instance.pairs;
+  const tokens = instance.tokens;
+  const k = pairs.length;
+
+  const forbidden = new Set(instance.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  const rowRules = {}, colRules = {};
+  for (const r of instance.lineRules) {
+    if (r.isRow) (rowRules[r.idx] = rowRules[r.idx] || []).push(r);
+    else (colRules[r.idx] = colRules[r.idx] || []).push(r);
+  }
+  const fixedByKey = {};
+  for (const ft of instance.fixedCells) fixedByKey[`${ft.row},${ft.col}`] = ft;
+  const rowHints = {}, colHints = {};
+  for (const h of instance.countHints) {
+    if (h.row !== null) (rowHints[h.row] = rowHints[h.row] || []).push(h);
+    else (colHints[h.col] = colHints[h.col] || []).push(h);
+  }
+
+  function cellOk(row, col, animalId, gender) {
+    const key = `${row},${col}`;
+    if (forbidden.has(key)) return false;
+    const ft = fixedByKey[key];
+    if (ft) {
+      if (ft.animalId !== animalId) return false;
+      if (ft.gender !== gender) return false;
+    }
+    const animal = animalById(animalId);
+    const rules = [...(rowRules[row] || []), ...(colRules[col] || [])];
+    for (const rule of rules) {
+      if (rule.dim === 'gender') {
+        if (gender !== rule.val) return false;
+      } else {
+        if (animal[rule.dim] !== rule.val) return false;
+      }
+    }
+    return true;
+  }
+
+  // Per-pair candidates (fixed in advance to speed up)
+  const pairSpecies = pairs.map(([t1]) => tokens.find(t => t.id === t1).animalId);
+
+  const pairCandidates = pairs.map((pair, pairIdx) => {
+    const animalId = pairSpecies[pairIdx];
+    const candidates = [];
+
+    const fixedForSpecies = instance.fixedCells.filter(ft => ft.animalId === animalId);
+
+    if (fixedForSpecies.length === 2) {
+      const [a, b] = fixedForSpecies;
+      if (isAdjacent(a, b) && a.gender !== b.gender) {
+        candidates.push({
+          c1key: `${a.row},${a.col}`, c2key: `${b.row},${b.col}`,
+          c1row: a.row, c1col: a.col, c2row: b.row, c2col: b.col,
+          g1: a.gender, g2: b.gender,
+        });
+      }
+    } else if (fixedForSpecies.length === 1) {
+      const ft = fixedForSpecies[0];
+      const otherG = ft.gender === 'male' ? 'female' : 'male';
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const r2 = ft.row + dr, c2 = ft.col + dc;
+          if (r2 < 0 || r2 >= n || c2 < 0 || c2 >= n) continue;
+          if (!cellOk(r2, c2, animalId, otherG)) continue;
+          candidates.push({
+            c1key: `${ft.row},${ft.col}`, c2key: `${r2},${c2}`,
+            c1row: ft.row, c1col: ft.col, c2row: r2, c2col: c2,
+            g1: ft.gender, g2: otherG,
+          });
+        }
+      }
+    } else {
+      for (let r1 = 0; r1 < n; r1++) {
+        for (let c1 = 0; c1 < n; c1++) {
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const r2 = r1 + dr, c2 = c1 + dc;
+              if (r2 < 0 || r2 >= n || c2 < 0 || c2 >= n) continue;
+              const k1 = `${r1},${c1}`, k2 = `${r2},${c2}`;
+              if (k1 >= k2) continue;
+              for (const [g1, g2] of [['male', 'female'], ['female', 'male']]) {
+                if (!cellOk(r1, c1, animalId, g1)) continue;
+                if (!cellOk(r2, c2, animalId, g2)) continue;
+                candidates.push({
+                  c1key: k1, c2key: k2,
+                  c1row: r1, c1col: c1, c2row: r2, c2col: c2,
+                  g1, g2,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    return candidates;
+  });
+
+  // Early termination if any pair has no candidates
+  for (const cc of pairCandidates) {
+    if (cc.length === 0) return { solutions: [], timedOut: false };
+  }
+
+  // MRV: order pairs by ascending candidate count
+  const pairOrder = pairs.map((_, i) => i).sort((a, b) =>
+    pairCandidates[a].length - pairCandidates[b].length
+  );
+
+  const used = new Set();
+  const assignment = {};  // pairIdx -> candidate
+  const solutions = [];
+  let timedOut = false;
+
+  function computeCounts(asgn) {
+    const rowOcc = {}, rowMale = {}, rowFemale = {};
+    const colOcc = {}, colMale = {}, colFemale = {};
+    for (const pairIdx in asgn) {
+      const a = asgn[pairIdx];
+      rowOcc[a.c1row] = (rowOcc[a.c1row] || 0) + 1;
+      rowOcc[a.c2row] = (rowOcc[a.c2row] || 0) + 1;
+      colOcc[a.c1col] = (colOcc[a.c1col] || 0) + 1;
+      colOcc[a.c2col] = (colOcc[a.c2col] || 0) + 1;
+      const mk1 = a.g1 === 'male' ? rowMale : rowFemale;
+      mk1[a.c1row] = (mk1[a.c1row] || 0) + 1;
+      const mk2 = a.g2 === 'male' ? rowMale : rowFemale;
+      mk2[a.c2row] = (mk2[a.c2row] || 0) + 1;
+      const ck1 = a.g1 === 'male' ? colMale : colFemale;
+      ck1[a.c1col] = (ck1[a.c1col] || 0) + 1;
+      const ck2 = a.g2 === 'male' ? colMale : colFemale;
+      ck2[a.c2col] = (ck2[a.c2col] || 0) + 1;
+    }
+    return { rowOcc, rowMale, rowFemale, colOcc, colMale, colFemale };
+  }
+
+  function checkHintsInProgress(asgn) {
+    const c = computeCounts(asgn);
+    for (const h of instance.countHints) {
+      const isRow = h.row !== null;
+      const idx = isRow ? h.row : h.col;
+      let count;
+      if (h.type === 'total') count = isRow ? (c.rowOcc[idx] || 0) : (c.colOcc[idx] || 0);
+      else if (h.type === 'H1') count = isRow ? (c.rowMale[idx] || 0) : (c.colMale[idx] || 0);
+      else if (h.type === 'H2') count = isRow ? (c.rowFemale[idx] || 0) : (c.colFemale[idx] || 0);
+      else count = 0;
+      if (count > h.value) return false;
+    }
+    return true;
+  }
+
+  function checkHintsFinal(asgn) {
+    const c = computeCounts(asgn);
+    for (const h of instance.countHints) {
+      const isRow = h.row !== null;
+      const idx = isRow ? h.row : h.col;
+      let count;
+      if (h.type === 'total') count = isRow ? (c.rowOcc[idx] || 0) : (c.colOcc[idx] || 0);
+      else if (h.type === 'H1') count = isRow ? (c.rowMale[idx] || 0) : (c.colMale[idx] || 0);
+      else if (h.type === 'H2') count = isRow ? (c.rowFemale[idx] || 0) : (c.colFemale[idx] || 0);
+      else count = 0;
+      if (count !== h.value) return false;
+    }
+    return true;
+  }
+
+  function backtrack(depth) {
+    if (timedOut) return;
+    if (performance.now() - startTime > timeLimitMs) { timedOut = true; return; }
+    if (solutions.length >= maxSolutions + 1) return; // found one more than needed
+
+    if (depth === k) {
+      if (checkHintsFinal(assignment)) {
+        solutions.push({ ...assignment });
+      }
+      return;
+    }
+
+    const pairIdx = pairOrder[depth];
+    const candidates = pairCandidates[pairIdx];
+
+    for (const cand of candidates) {
+      if (used.has(cand.c1key) || used.has(cand.c2key)) continue;
+      used.add(cand.c1key); used.add(cand.c2key);
+      assignment[pairIdx] = cand;
+
+      if (checkHintsInProgress(assignment)) {
+        backtrack(depth + 1);
+      }
+
+      delete assignment[pairIdx];
+      used.delete(cand.c1key); used.delete(cand.c2key);
+
+      if (timedOut || solutions.length > maxSolutions) return;
+    }
+  }
+
+  backtrack(0);
+  return { solutions, timedOut };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Try one generation attempt — returns puzzle object or null
+// ─────────────────────────────────────────────────────────────────────────────
+function tryOneGeneration(levelKey, config, currentMaxSolutions, verifyTimeLimit) {
+  // Stage A
+  const ruleTemplate = designRuleTemplate(config, ANIMALS);
+  if (!ruleTemplate) return null;
+
+  // Forbidden cells
+  const forbiddenCount = Array.isArray(config.forbiddenCount)
+    ? randInt(config.forbiddenCount[0], config.forbiddenCount[1])
+    : config.forbiddenCount;
+  const allCells = [];
+  for (let r = 0; r < config.n; r++)
+    for (let c = 0; c < config.n; c++) allCells.push([r, c]);
+  const forbiddenCells = shuffle(allCells).slice(0, forbiddenCount);
+
+  // Stage B
+  const placement = constrainedAdjacentPlacement(config, ruleTemplate, forbiddenCells, ANIMALS);
+  if (!placement) return null;
+
+  // Validate rule line coverage: every rule line must have ≥1 token
+  // This prevents the confusing "#0 + line rule" combination
+  for (const rule of ruleTemplate) {
+    const tokensInLine = rule.isRow
+      ? placement.tokens.filter(t => t.row === rule.idx)
+      : placement.tokens.filter(t => t.col === rule.idx);
+    if (tokensInLine.length === 0) return null; // retry
+  }
+
+  // Gender assignment respecting rules
+  const solution = assignGendersWithRules(placement.pairs, placement.tokens, ruleTemplate);
+  if (!solution) return null;
+
+  // Stage C
+  const instance = addAuxiliaryHints(placement, config, solution, ruleTemplate, forbiddenCells);
+
+  // Validate rule lines have ≥1 NON-FIXED token.
+  // A rule line is meaningful for the player only if they have to place at least one
+  // tile there to satisfy it. If all tokens on a rule line are fixed tiles, the rule
+  // is already satisfied before play begins — the line is effectively "#0" from the
+  // player's perspective and the rule has no deductive function.
+  const fixedTokenIds = new Set(Object.keys(instance.preMarks || {}));
+  for (const rule of ruleTemplate) {
+    const tokensInLine = rule.isRow
+      ? placement.tokens.filter(t => t.row === rule.idx)
+      : placement.tokens.filter(t => t.col === rule.idx);
+    const nonFixedInLine = tokensInLine.filter(t => !fixedTokenIds.has(t.id));
+    if (nonFixedInLine.length === 0) return null; // retry — no player action required on this line
+  }
+
+  // Stage D
+  const { solutions, timedOut } = enumerateSolutions(
+    instance, ANIMALS, currentMaxSolutions, verifyTimeLimit
+  );
+
+  const solutionCount = solutions.length;
+
+  // Timeout with 0 solutions found: canonical is structurally valid but couldn't be
+  // verified in time. Accept as flexible — at least canonical solution exists.
+  if (solutionCount === 0) {
+    if (!timedOut) return null; // genuine infeasibility (should be rare)
+    return {
+      ...instance,
+      solution,
+      level: levelKey,
+      uniqueness: 'flexible',
+      solutionCount: 0, // unknown; canonical is at least one
+      timedOut: true,
+    };
+  }
+
+  // Too many solutions — reject
+  if (solutionCount > currentMaxSolutions) return null;
+
+  // Classify uniqueness
+  let uniqueness;
+  if (timedOut) {
+    // Found some solutions but didn't fully enumerate — classify as flexible
+    uniqueness = 'flexible';
+  } else if (solutionCount === 1) {
+    uniqueness = 'strict';
+  } else if (solutionCount <= 3) {
+    uniqueness = 'loose';
+  } else {
+    uniqueness = 'flexible';
+  }
+
+  return {
+    ...instance,
+    solution,
+    level: levelKey,
+    uniqueness,
+    solutionCount,
+    timedOut,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Generator — Async with Progressive Relaxation
+// ─────────────────────────────────────────────────────────────────────────────
+async function generatePuzzleAsync(level, onProgress) {
+  const config = DIFFICULTY_CONFIGS[level];
+  const startTime = performance.now();
+  const BUDGET = config.totalBudgetMs;
+  const MAX = config.maxSolutions;
+
+  let attempt = 0;
+  let bestResult = null;
+
+  while (attempt < config.maxAttempts) {
+    const elapsed = performance.now() - startTime;
+    if (elapsed > BUDGET) break;
+
+    // Progressive relaxation: start strict, escalate to full maxSolutions over time
+    // Strict (1) attempts get priority in early budget; we relax as time runs out
+    const pct = elapsed / BUDGET;
+    let currentMaxSol;
+    if (pct < 0.15) currentMaxSol = Math.min(1, MAX);
+    else if (pct < 0.40) currentMaxSol = Math.min(3, MAX);
+    else if (pct < 0.65) currentMaxSol = Math.min(10, MAX);
+    else if (pct < 0.85) currentMaxSol = Math.min(20, MAX);
+    else currentMaxSol = MAX;
+
+    attempt++;
+
+    if (attempt % 3 === 0) {
+      onProgress && onProgress({
+        attempts: attempt,
+        elapsed,
+        budget: BUDGET,
+        currentMaxSolutions: currentMaxSol,
+        level,
+      });
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    let result;
+    try {
+      result = tryOneGeneration(level, config, currentMaxSol, config.verifyTimeLimitMs);
+    } catch (e) {
+      console.error('Generation error:', e);
+      continue;
+    }
+
+    if (!result) continue;
+
+    // Strict (exactly 1 solution) — exit immediately, best possible
+    if (result.solutionCount === 1 && !result.timedOut) {
+      result.generationTime = performance.now() - startTime;
+      result.attemptCount = attempt;
+      return result;
+    }
+
+    // Compare results for bestResult (prefer lower solutionCount, but >0 beats 0)
+    const betterThanBest = (() => {
+      if (!bestResult) return true;
+      // A non-zero count is better than 0 (which is "unknown/canonical only")
+      if (result.solutionCount > 0 && bestResult.solutionCount === 0) return true;
+      if (result.solutionCount === 0 && bestResult.solutionCount > 0) return false;
+      // Both non-zero or both zero: prefer lower count
+      return result.solutionCount < bestResult.solutionCount;
+    })();
+    if (betterThanBest) bestResult = result;
+
+    // Early exit: if we have a Loose result (≤3) after 25% budget, accept
+    if (bestResult && bestResult.solutionCount > 0 && bestResult.solutionCount <= 3 && elapsed > BUDGET * 0.25) {
+      break;
+    }
+    // Early exit: if we have a Flexible result (≤10) after 50% budget, accept
+    if (bestResult && bestResult.solutionCount > 0 && bestResult.solutionCount <= 10 && elapsed > BUDGET * 0.5) {
+      break;
+    }
+    // Early exit: canonical-only (timedOut, solutionCount=0) is valid — accept after 50% budget
+    if (bestResult && bestResult.solutionCount === 0 && elapsed > BUDGET * 0.5) {
+      break;
+    }
+    // Early exit: if we have any valid result after 75% budget, accept
+    if (bestResult && elapsed > BUDGET * 0.75) {
+      break;
+    }
+  }
+
+  if (bestResult) {
+    bestResult.generationTime = performance.now() - startTime;
+    bestResult.attemptCount = attempt;
+    return bestResult;
+  }
+
+  // Last resort: fallback
+  return loadFallback(level);
+}
+
+// =============================================================================
+// SECTION 4 — RUNTIME VALIDATION (Constraint-Based Win)
+// =============================================================================
+
+function evaluateLineRuleRuntime(rule, placements, tokens, marks) {
+  const inLine = (cell) => rule.isRow ? cell.row === rule.idx : cell.col === rule.idx;
+  const placedTokenEntries = Object.entries(placements).filter(([_, cell]) => inLine(cell));
+  if (placedTokenEntries.length === 0) return true; // empty line auto-satisfied
+
+  return placedTokenEntries.every(([tid, _]) => {
+    const t = tokens.find(t => t.id === tid);
+    if (!t) return false;
+    if (rule.dim === 'gender') {
+      return marks[tid] === rule.val;
+    }
+    const animal = animalById(t.animalId);
+    return animal[rule.dim] === rule.val;
+  });
+}
+
+function evaluateCountHintRuntime(hint, placements, tokens, marks) {
+  const lineTokens = Object.entries(placements).filter(([_, cell]) =>
+    hint.row !== null ? cell.row === hint.row : cell.col === hint.col
+  );
+  if (hint.type === 'total') return lineTokens.length === hint.value;
+  if (hint.type === 'H1') return lineTokens.filter(([tid]) => marks[tid] === 'male').length === hint.value;
+  if (hint.type === 'H2') return lineTokens.filter(([tid]) => marks[tid] === 'female').length === hint.value;
+  return true;
+}
+
+function checkAllPairsAdjacent(pairs, placements) {
+  for (const [t1, t2] of pairs) {
+    const p1 = placements[t1], p2 = placements[t2];
+    if (!p1 || !p2) return false;
+    if (!isAdjacent(p1, p2)) return false;
+  }
+  return true;
+}
+
+function checkWinV2(puzzle, placements, marks) {
+  if (!puzzle) return false;
+  const tokens = puzzle.tokens;
+
+  if (Object.keys(placements).length !== tokens.length) return false;
+  if (Object.keys(marks).length !== tokens.length) return false;
+
+  // Pair gender constraint
+  for (const [t1, t2] of puzzle.pairs) {
+    if (!marks[t1] || !marks[t2]) return false;
+    if (marks[t1] === marks[t2]) return false;
+  }
+
+  // Adjacency
+  if (!checkAllPairsAdjacent(puzzle.pairs, placements)) return false;
+
+  // Forbidden cells
+  const fset = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  for (const cell of Object.values(placements)) {
+    if (fset.has(`${cell.row},${cell.col}`)) return false;
+  }
+
+  // Line rules (evaluated at current placement, not canonical)
+  for (const rule of (puzzle.lineRules || [])) {
+    if (!evaluateLineRuleRuntime(rule, placements, tokens, marks)) return false;
+  }
+
+  // Count hints
+  for (const hint of (puzzle.countHints || [])) {
+    if (!evaluateCountHintRuntime(hint, placements, tokens, marks)) return false;
+  }
+
+  // Fixed tiles must retain position + species + gender
+  for (const ft of (puzzle.fixedCells || [])) {
+    const tokenAtCell = Object.entries(placements).find(([_, p]) =>
+      p.row === ft.row && p.col === ft.col
+    );
+    if (!tokenAtCell) return false;
+    const [tid] = tokenAtCell;
+    const t = tokens.find(t => t.id === tid);
+    if (!t || t.animalId !== ft.animalId) return false;
+    if (marks[tid] !== ft.gender) return false;
+  }
+
+  return true;
+}
+
+// =============================================================================
+// SECTION 5 — FALLBACK PUZZLES (safety net)
+// =============================================================================
+
+const FALLBACK_PUZZLES = {
+  Sprout: {
+    n: 4,
+    forbiddenCells: [],
+    tokens: [
+      { id: 't0', animalId: 1, row: 0, col: 0 },
+      { id: 't1', animalId: 1, row: 1, col: 0 },
+      { id: 't2', animalId: 2, row: 2, col: 1 },
+      { id: 't3', animalId: 2, row: 2, col: 2 },
+      { id: 't4', animalId: 3, row: 0, col: 3 },
+      { id: 't5', animalId: 3, row: 1, col: 3 },
+    ],
+    pairs: [['t0', 't1'], ['t2', 't3'], ['t4', 't5']],
+    lineRules: [
+      { id: 'r0', isRow: true, idx: 2, dim: 'habitat', val: '사바나' },
+      { id: 'r1', isRow: false, idx: 3, dim: 'habitat', val: '사바나' },
+    ],
+    countHints: [
+      { id: 'c0', type: 'total', row: 0, col: null, value: 2 },
+      { id: 'c1', type: 'total', row: 1, col: null, value: 2 },
+      { id: 'c2', type: 'total', row: 2, col: null, value: 2 },
+      { id: 'c3', type: 'total', row: null, col: 0, value: 2 },
+      { id: 'c4', type: 'total', row: null, col: 3, value: 2 },
+      { id: 'c5', type: 'total', row: null, col: 1, value: 1 },
+    ],
+    fixedCells: [
+      { row: 0, col: 0, animalId: 1, gender: 'male' },
+      { row: 2, col: 1, animalId: 2, gender: 'female' },
+    ],
+    preMarks: { 't0': 'male', 't2': 'female' },
+    solution: { 't0': 'male', 't1': 'female', 't2': 'female', 't3': 'male', 't4': 'male', 't5': 'female' },
+    level: 'Sprout',
+    uniqueness: 'strict',
+    solutionCount: 1,
+    generationTime: 0,
+    attemptCount: 0,
+  },
+};
+
+function loadFallback(level) {
+  return FALLBACK_PUZZLES[level] || FALLBACK_PUZZLES.Sprout;
+}
+
+// =============================================================================
+// SECTION 6 — UI COMPONENTS
+// =============================================================================
+
+function Header({ onHelp }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '32px 40px 16px' }}>
+      <div>
+        <div className="font-display" style={{ fontSize: 44, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--ink-primary)', lineHeight: 1 }}>
+          Zoologic<span style={{ color: 'var(--accent-gold)', fontStyle: 'italic', fontWeight: 400 }}>.</span>
+          <sup className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginLeft: 6, fontStyle: 'normal' }}>v2</sup>
+        </div>
+        <div className="font-body" style={{ fontSize: 13, color: 'var(--ink-tertiary)', marginTop: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          짝은 이웃 · Pairs must be adjacent
+        </div>
+      </div>
+      <button onClick={onHelp} aria-label="도움말" style={{
+        width: 40, height: 40, borderRadius: 999, border: '1px solid var(--border-medium)',
+        background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--ink-secondary)', fontSize: 18,
+      }} className="font-display">?</button>
+    </div>
+  );
+}
+
+function DifficultySelector({ current, onChange, disabled }) {
+  const levels = ['Sprout', 'Easy', 'Medium', 'Hard'];
+  return (
+    <div style={{ display: 'flex', gap: 8, padding: '8px 40px 20px', flexWrap: 'wrap' }}>
+      {levels.map(lv => {
+        const c = DIFFICULTY_CONFIGS[lv];
+        const active = current === lv;
+        return (
+          <button key={lv} disabled={disabled} onClick={() => onChange(lv)} style={{
+            border: active ? '1px solid var(--ink-primary)' : '1px solid var(--border-medium)',
+            background: active ? 'var(--ink-primary)' : 'var(--bg-card)',
+            color: active ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+            padding: '10px 16px', borderRadius: 2, cursor: disabled ? 'wait' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 180ms cubic-bezier(0.4,0,0.2,1)',
+            opacity: disabled ? 0.5 : 1,
+          }} className="font-body">
+            <span style={{ fontSize: 16 }}>{c.glyph}</span>
+            <span style={{ fontSize: 13, letterSpacing: '0.02em', fontWeight: 500 }}>{c.label}</span>
+            <span className="font-mono" style={{ fontSize: 11, opacity: 0.65 }}>{c.n}×{c.n}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function UniquenessBadge({ uniqueness, solutionCount }) {
+  if (!uniqueness) return null;
+  const configs = {
+    strict: {
+      icon: '✦',
+      label: '유일해',
+      description: '정확히 하나의 답이 존재합니다',
+      color: 'var(--ok-strict)',
+      bg: 'var(--success-soft)',
+    },
+    loose: {
+      icon: '✧',
+      label: `해답 ${solutionCount}개 중 하나`,
+      description: `${solutionCount}개의 유효한 답 중 하나를 찾으면 됩니다`,
+      color: 'var(--ok-loose)',
+      bg: 'var(--bg-subtle)',
+    },
+    flexible: {
+      icon: '〜',
+      label: '규약 만족',
+      description: '모든 규약을 지키는 배치를 찾으세요',
+      color: 'var(--ok-flexible)',
+      bg: 'var(--bg-paper)',
+    },
+  };
+  const c = configs[uniqueness] || configs.flexible;
+  return (
+    <div title={c.description} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px',
+      border: `1px solid ${c.color}`, background: c.bg, color: c.color,
+      borderRadius: 2, fontSize: 10,
+      letterSpacing: '0.06em', textTransform: 'uppercase',
+    }} className="font-body">
+      <span style={{ fontSize: 11 }}>{c.icon}</span>
+      <span>{c.label}</span>
+    </div>
+  );
+}
+
+function StatusBar({ puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  if (!puzzle) return null;
+  const config = DIFFICULTY_CONFIGS[puzzle.level] || DIFFICULTY_CONFIGS.Sprout;
+  return (
+    <div style={{ padding: '0 40px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="font-display" style={{ fontStyle: 'italic', fontSize: 17, color: 'var(--ink-secondary)', fontWeight: 400 }}>
+          {config.subtitle}
+        </div>
+        <UniquenessBadge uniqueness={puzzle.uniqueness} solutionCount={puzzle.solutionCount} />
+      </div>
+      <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <span>배치 <strong style={{ color: placedCount === totalTokens ? 'var(--accent-gold)' : 'var(--ink-primary)' }}>{placedCount}/{totalTokens}</strong></span>
+        <span style={{ margin: '0 10px', color: 'var(--border-medium)' }}>·</span>
+        <span>성별 <strong style={{ color: genderedCount === totalTokens ? 'var(--accent-gold)' : 'var(--ink-primary)' }}>{genderedCount}/{totalTokens}</strong></span>
+        <span style={{ margin: '0 10px', color: 'var(--border-medium)' }}>·</span>
+        <span>인접 <strong style={{ color: adjacencyOk ? 'var(--accent-gold)' : 'var(--danger)' }}>{adjacencyOk ? '✓' : '—'}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+function LineRuleBadge({ rule, ok }) {
+  let icon, label;
+  if (rule.dim === 'gender') {
+    icon = rule.val === 'male' ? '♂' : '♀';
+    label = rule.val === 'male' ? '수컷' : '암컷';
+  } else {
+    icon = ATTR_ICON[rule.val] || '•';
+    label = VALUE_LABEL[rule.val] || rule.val;
+  }
+  const color = ok ? 'var(--accent-gold)' : 'var(--ink-secondary)';
+  const bg = ok ? 'var(--success-soft)' : 'var(--bg-card)';
+  const border = ok ? '1px solid var(--accent-gold)' : '1px solid var(--border-soft)';
+  return (
+    <div title={`이 라인의 모든 동물은 ${label}`} style={{
+      minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: 4, background: bg, border, borderRadius: 2, color,
+      padding: '2px 8px', transition: 'all 220ms cubic-bezier(0.4,0,0.2,1)',
+      fontSize: 14, position: 'relative',
+    }} className="font-mono">
+      <span style={{ fontSize: 16, fontFamily: rule.dim === 'gender' ? "'Fraunces', serif" : 'inherit' }}>{icon}</span>
+      <span style={{ fontSize: 10, letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>{label}</span>
+      {ok && <span style={{ position: 'absolute', top: -5, right: -5, width: 12, height: 12, borderRadius: 999, background: 'var(--accent-gold)', color: 'var(--bg-card)', fontSize: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
+    </div>
+  );
+}
+
+function CountHintBadge({ hint, currentValue, ok, over }) {
+  const icon = hint.type === 'total' ? '#' : (hint.type === 'H1' ? '♂' : '♀');
+  const color = over ? 'var(--danger)' : (ok ? 'var(--accent-gold)' : 'var(--ink-secondary)');
+  const bg = ok ? 'var(--success-soft)' : 'var(--bg-card)';
+  const border = over ? '1px solid var(--danger)' : (ok ? '1px solid var(--accent-gold)' : '1px solid var(--border-soft)');
+  return (
+    <div title={`${hint.type === 'total' ? '총' : hint.type === 'H1' ? '수컷' : '암컷'} ${hint.value}마리`} style={{
+      minWidth: 40, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+      background: bg, border, borderRadius: 2, color, padding: '0 7px',
+      fontSize: 14, transition: 'all 220ms', position: 'relative',
+    }} className="font-mono">
+      <span style={{ fontSize: 14, fontFamily: "'Fraunces', serif", fontWeight: 500 }}>{icon}</span>
+      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: 13 }}>{hint.value}</span>
+    </div>
+  );
+}
+
+function animalImgSrc(animalId, gender) {
+  const g = gender || 'male';
+  const num = (animalId - 1) * 2 + (g === 'male' ? 1 : 2);
+  return `${IMAGE_BASE_URL}/${num}.webp`;
+}
+
+function AttributeOverlay({ animal, cellSize }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(255, 253, 247, 0.92)', backdropFilter: 'blur(2px)',
+      borderRadius: 4, zIndex: 10, padding: 4,
+      animation: 'fadeInUp 180ms cubic-bezier(0.4,0,0.2,1)',
+    }} className="font-body">
+      <div className="font-display" style={{
+        fontSize: Math.max(10, cellSize * 0.16),
+        fontWeight: 600,
+        color: 'var(--ink-primary)',
+        marginBottom: 2,
+        letterSpacing: '-0.01em',
+        textAlign: 'center', lineHeight: 1,
+      }}>{animal.name}</div>
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
+        marginTop: 4,
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '2px 6px', borderRadius: 2,
+          background: HABITAT_TINT[animal.habitat],
+          border: '1px solid var(--border-soft)',
+          fontSize: Math.max(9, cellSize * 0.13), color: 'var(--ink-primary)', fontWeight: 500,
+        }}>
+          <span style={{ fontSize: Math.max(10, cellSize * 0.15) }}>{ATTR_ICON[animal.habitat]}</span>
+          <span>{animal.habitat}</span>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '2px 6px', borderRadius: 2,
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-soft)',
+          fontSize: Math.max(9, cellSize * 0.13), color: 'var(--ink-primary)', fontWeight: 500,
+        }}>
+          <span style={{ fontSize: Math.max(10, cellSize * 0.15) }}>{ATTR_ICON[animal.diet]}</span>
+          <span>{animal.diet}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError }) {
+  const sym = gender === 'male' ? '♂' : gender === 'female' ? '♀' : '?';
+  const symColor = gender === 'male' ? '#1E3A8A' : gender === 'female' ? '#9D174D' : 'var(--ink-tertiary)';
+  const undecided = !gender;
+  const tint = HABITAT_TINT[animal.habitat];
+  const adjacencyBorder = isAdjacentToPartner === false ? '1.5px solid var(--danger)' : undefined;
+
+  // Hover + long-press state for attribute overlay
+  const [hoverActive, setHoverActive] = useState(false);   // only true after delay
+  const [longPressed, setLongPressed] = useState(false);
+  const hoverTimerRef = useRef(null);
+  const pressTimerRef = useRef(null);
+  const pressStartRef = useRef(null);
+  const LONG_PRESS_MS = 350;
+  const HOVER_DELAY_MS = 500;
+
+  const startHover = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setHoverActive(true);
+    }, HOVER_DELAY_MS);
+  }, []);
+
+  const cancelHover = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoverActive(false);
+  }, []);
+
+  const startPress = useCallback(() => {
+    pressStartRef.current = Date.now();
+    pressTimerRef.current = setTimeout(() => {
+      setLongPressed(true);
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const cancelPress = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }, []);
+
+  const endPress = useCallback((e) => {
+    cancelPress();
+    const duration = pressStartRef.current ? Date.now() - pressStartRef.current : 0;
+    pressStartRef.current = null;
+    // Only trigger click if press was short (normal click, not long-press)
+    if (duration < LONG_PRESS_MS && !longPressed) {
+      if (onClick) onClick(e);
+    }
+    setLongPressed(false);
+  }, [onClick, longPressed, cancelPress]);
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
+
+  const showOverlay = hoverActive || longPressed;
+
+  return (
+    <div
+      draggable={!isFixed}
+      onDragStart={(e) => {
+        cancelPress();
+        cancelHover();
+        setLongPressed(false);
+        if (onDragStart) onDragStart(e);
+      }}
+      onMouseEnter={startHover}
+      onMouseLeave={() => { cancelHover(); cancelPress(); setLongPressed(false); }}
+      onMouseDown={() => { cancelHover(); startPress(); }}
+      onMouseUp={endPress}
+      onTouchStart={startPress}
+      onTouchEnd={endPress}
+      onTouchCancel={() => { cancelPress(); setLongPressed(false); }}
+      role="button"
+      style={{
+        width: cellSize, height: cellSize, borderRadius: 4,
+        background: 'var(--bg-card)',
+        border: adjacencyBorder || (isRecent ? '1.5px solid var(--ink-primary)' : '1px solid var(--border-soft)'),
+        boxShadow: isPartnerPulse ? '0 0 0 4px rgba(180,83,9,0.22)' : '0 1px 2px rgba(0,0,0,0.04)',
+        cursor: isFixed ? 'pointer' : 'grab',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative', overflow: 'hidden', userSelect: 'none',
+        transition: 'box-shadow 300ms, border 180ms',
+        animation: isRecent ? 'cellResolve 320ms cubic-bezier(0.4,0,0.2,1)' : 'none',
+      }}
+    >
+      <div style={{ position: 'absolute', inset: 0, background: tint, opacity: 0.22, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', width: '82%', height: '82%', opacity: undecided ? 0.5 : 1, filter: undecided ? 'grayscale(0.7)' : 'none', transition: 'opacity 220ms, filter 220ms', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img
+          src={animalImgSrc(animal.id, gender)}
+          alt={animal.name}
+          draggable={false}
+          onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
+        />
+        <div style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', fontSize: cellSize * 0.48 }}>
+          {animal.emoji}
+        </div>
+      </div>
+      {undecided && !showOverlay && (
+        <div className="font-display" style={{ position: 'absolute', fontSize: cellSize * 0.38, color: 'var(--accent-gold)', fontWeight: 500, fontStyle: 'italic', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>?</div>
+      )}
+      {gender && !showOverlay && (
+        <div className="font-display" style={{
+          position: 'absolute', bottom: 3, right: 4, fontSize: cellSize * 0.22, color: symColor,
+          background: 'var(--bg-card)', borderRadius: 2,
+          width: cellSize * 0.26, height: cellSize * 0.26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500,
+        }}>{sym}</div>
+      )}
+      {isFixed && !showOverlay && (
+        <div title="고정 타일" style={{ position: 'absolute', top: 3, left: 4, width: 7, height: 7, borderRadius: 999, background: 'var(--accent-gold)' }} />
+      )}
+      {showOverlay && <AttributeOverlay animal={animal} cellSize={cellSize} />}
+    </div>
+  );
+}
+
+function ForbiddenCell({ size }) {
+  return (
+    <div style={{ width: size, height: size, background: 'var(--forbidden)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+        <defs>
+          <pattern id="hatchpat" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#D6D3D1" strokeWidth="2" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hatchpat)" />
+      </svg>
+    </div>
+  );
+}
+
+function DropCell({ size, row, col, isDropTarget, userMarked, onDragOver, onDragLeave, onDrop, onClick }) {
+  // When cell is user-marked (X), visually indicate drop is blocked (red tint instead of gold)
+  const bg = userMarked
+    ? (isDropTarget ? 'rgba(185,28,28,0.1)' : 'rgba(120,113,108,0.12)')
+    : (isDropTarget ? 'rgba(180,83,9,0.08)' : 'var(--bg-subtle)');
+  const border = userMarked
+    ? (isDropTarget ? '1.5px dashed var(--danger)' : '1px solid var(--border-medium)')
+    : (isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px dashed var(--border-medium)');
+  return (
+    <div
+      onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={onClick}
+      role="button"
+      style={{
+        width: size, height: size, background: bg, borderRadius: 4, border,
+        transition: 'all 140ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', position: 'relative',
+      }}
+    >
+      {userMarked ? (
+        <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+          <line x1="5" y1="5" x2="19" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="19" y1="5" x2="5" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      ) : (
+        <div style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--border-medium)' }} />
+      )}
+    </div>
+  );
+}
+
+function PairAdjacencyLine({ from, to, cellSize, gap, valid }) {
+  const cx = (c) => c * (cellSize + gap) + cellSize / 2;
+  const cy = (r) => r * (cellSize + gap) + cellSize / 2;
+  const x1 = cx(from.col), y1 = cy(from.row);
+  const x2 = cx(to.col), y2 = cy(to.row);
+  return (
+    <line x1={x1} y1={y1} x2={x2} y2={y2}
+      stroke={valid ? '#16A34A' : 'var(--danger)'}
+      strokeWidth="2" strokeDasharray="3 3" opacity="0.7" strokeLinecap="round" />
+  );
+}
+
+function Grid({ puzzle, placements, marks, userForbidden, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState }) {
+  const n = puzzle.n;
+  const maxBoard = 560;
+  const cellSize = Math.floor(Math.min(maxBoard / n, 86));
+  const gap = 6;
+  const boardPad = 20;
+  const rowHintWidth = 140;
+  const colHintHeight = 108;
+
+  const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  const placedMap = {};
+  for (const [tokenId, cell] of Object.entries(placements)) {
+    if (cell) placedMap[`${cell.row},${cell.col}`] = tokenId;
+  }
+
+  const rowRules = {}, colRules = {};
+  for (const r of (puzzle.lineRules || [])) {
+    if (r.isRow) (rowRules[r.idx] = rowRules[r.idx] || []).push(r);
+    else (colRules[r.idx] = colRules[r.idx] || []).push(r);
+  }
+  const rowCountHints = {}, colCountHints = {};
+  for (const h of (puzzle.countHints || [])) {
+    if (h.row !== null) (rowCountHints[h.row] = rowCountHints[h.row] || []).push(h);
+    else (colCountHints[h.col] = colCountHints[h.col] || []).push(h);
+  }
+
+  // Evaluate rules & counts runtime
+  const ruleOk = {};
+  for (const r of (puzzle.lineRules || [])) {
+    ruleOk[r.id] = evaluateLineRuleRuntime(r, placements, puzzle.tokens, marks);
+  }
+  const countOk = {}, countOver = {};
+  for (const h of (puzzle.countHints || [])) {
+    const lineEntries = Object.entries(placements).filter(([_, cell]) =>
+      h.row !== null ? cell.row === h.row : cell.col === h.col
+    );
+    let current;
+    if (h.type === 'total') current = lineEntries.length;
+    else if (h.type === 'H1') current = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
+    else if (h.type === 'H2') current = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
+    countOk[h.id] = current === h.value;
+    countOver[h.id] = current > h.value;
+  }
+
+  const pairAdj = {};
+  for (const [t1, t2] of puzzle.pairs) {
+    const p1 = placements[t1], p2 = placements[t2];
+    if (p1 && p2) pairAdj[t1] = pairAdj[t2] = isAdjacent(p1, p2);
+  }
+
+  const cellContent = (r, c, idx) => {
+    const key = `${r},${c}`;
+    if (forbiddenSet.has(key)) return <ForbiddenCell size={cellSize} />;
+    const tid = placedMap[key];
+    if (tid) {
+      const tok = puzzle.tokens.find(t => t.id === tid);
+      const animal = animalById(tok.animalId);
+      const isRecent = recentTokenId === tok.id;
+      const isPartnerPulse = partnerTokenId === tok.id;
+      const isFixed = !!(puzzle.preMarks && puzzle.preMarks[tok.id]);
+      const adj = pairAdj[tok.id];
+      const isDropTarget = dragState.over === key;
+      return (
+        <div
+          onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
+          onDragLeave={() => onCellDrop('leave', r, c)}
+          onDrop={(e) => { e.preventDefault(); onCellDrop('drop', r, c); }}
+          style={{
+            animation: winAnimating ? `celebrationWave 700ms cubic-bezier(0.4,0,0.2,1) ${idx * 55}ms both` : 'none',
+            position: 'relative',
+            boxShadow: isDropTarget ? '0 0 0 2px var(--accent-gold)' : 'none',
+            borderRadius: 4,
+            transition: 'box-shadow 140ms',
+          }}
+        >
+          <PlacedTile
+            token={tok} animal={animal} gender={marks[tok.id] || null}
+            onClick={() => onCellClick(tok.id)}
+            onDragStart={(e) => onTokenDragStart(e, tok.id)}
+            isRecent={isRecent} isPartnerPulse={isPartnerPulse}
+            isFixed={isFixed} cellSize={cellSize}
+            isAdjacentToPartner={adj}
+          />
+        </div>
+      );
+    }
+    const isDropTarget = dragState.over === key;
+    const userMarked = userForbidden && userForbidden[key];
+    return (
+      <DropCell
+        size={cellSize} row={r} col={c}
+        isDropTarget={isDropTarget}
+        userMarked={userMarked}
+        onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
+        onDragLeave={() => onCellDrop('leave', r, c)}
+        onDrop={(e) => { e.preventDefault(); onCellDrop('drop', r, c); }}
+        onClick={() => onEmptyCellClick && onEmptyCellClick(r, c)}
+      />
+    );
+  };
+
+  const rowsArr = Array.from({ length: n }, (_, i) => i);
+  const colsArr = Array.from({ length: n }, (_, i) => i);
+
+  return (
+    <div style={{ padding: '4px 40px 20px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
+        border: '1px solid var(--border-soft)', borderRadius: 3,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 12px 32px -16px rgba(60, 50, 30, 0.15)',
+      }}>
+        {/* Column headers */}
+        <div style={{ display: 'flex', gap, marginBottom: gap, paddingLeft: rowHintWidth + gap, minHeight: colHintHeight }}>
+          {colsArr.map(c => (
+            <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+              {(colRules[c] || []).map(r => (
+                <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} />
+              ))}
+              {(colCountHints[c] || []).map(h => (
+                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} />
+              ))}
+            </div>
+          ))}
+        </div>
+        {rowsArr.map(r => (
+          <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
+            <div style={{ width: rowHintWidth, minHeight: cellSize, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3, paddingRight: 4, flexWrap: 'wrap' }}>
+              {(rowRules[r] || []).map(rr => (
+                <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} />
+              ))}
+              {(rowCountHints[r] || []).map(h => (
+                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} />
+              ))}
+            </div>
+            {colsArr.map(c => (<div key={c}>{cellContent(r, c, r * n + c)}</div>))}
+          </div>
+        ))}
+        {/* Adjacency SVG overlay */}
+        <svg style={{
+          position: 'absolute',
+          left: boardPad + rowHintWidth + gap,
+          top: boardPad + colHintHeight + gap,
+          width: n * cellSize + (n - 1) * gap,
+          height: n * cellSize + (n - 1) * gap,
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}>
+          {puzzle.pairs.map(([t1, t2]) => {
+            const p1 = placements[t1], p2 = placements[t2];
+            if (!p1 || !p2) return null;
+            const valid = isAdjacent(p1, p2);
+            return (
+              <PairAdjacencyLine key={t1} from={p1} to={p2} cellSize={cellSize} gap={gap} valid={valid} />
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, dragState }) {
+  if (!puzzle) return null;
+  const unplaced = puzzle.tokens.filter(t => !placements[t.id]);
+  const groups = {};
+  for (const t of unplaced) { (groups[t.animalId] = groups[t.animalId] || []).push(t); }
+  const entries = Object.entries(groups);
+
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); onDropToHand('over'); }}
+      onDragLeave={() => onDropToHand('leave')}
+      onDrop={(e) => { e.preventDefault(); onDropToHand('drop'); }}
+      style={{
+        margin: '0 40px 20px', padding: '18px 20px', minHeight: 100,
+        background: dragState.overHand ? 'rgba(180,83,9,0.05)' : 'var(--bg-subtle)',
+        border: dragState.overHand ? '1px dashed var(--accent-gold)' : '1px solid var(--border-soft)',
+        borderRadius: 3, transition: 'all 160ms',
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <div className="font-body" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-tertiary)', fontWeight: 500 }}>
+          Hand · 손패
+        </div>
+        <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>
+          {unplaced.length > 0 ? `${unplaced.length}마리 대기` : '모든 토큰이 배치됨'}
+        </div>
+      </div>
+      {unplaced.length === 0 ? (
+        <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: 13, fontStyle: 'italic' }} className="font-display">
+          타일 클릭으로 성별 순환 · 짝은 상하좌우대각선 이웃이어야 합니다
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+          {entries.map(([aid, toks]) => {
+            const animal = animalById(parseInt(aid));
+            return (
+              <div key={aid} style={{
+                display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card)',
+                padding: '8px 10px', border: '1px solid var(--border-soft)', borderRadius: 3,
+              }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {toks.map((t, i) => {
+                    // Determine display gender:
+                    // - Both tokens in hand: fall back to index (0→♂, 1→♀)
+                    // - One in hand, partner placed with gender: show OPPOSITE of partner
+                    // - One in hand, partner placed without gender: default male
+                    let gender;
+                    if (toks.length === 2) {
+                      gender = i === 0 ? 'male' : 'female';
+                    } else {
+                      const partnerId = getPartnerToken(t.id, puzzle.pairs);
+                      const partnerMark = partnerId && marks[partnerId];
+                      if (partnerMark) {
+                        gender = partnerMark === 'male' ? 'female' : 'male';
+                      } else {
+                        gender = 'male';
+                      }
+                    }
+                    const sym = gender === 'male' ? '♂' : '♀';
+                    const symColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
+                    return (
+                      <div key={t.id} draggable
+                        onDragStart={(e) => onTokenDragStart(e, t.id)}
+                        style={{
+                          width: 58, height: 58, background: 'var(--bg-card)',
+                          border: '1px solid var(--border-medium)', borderRadius: 4,
+                          cursor: 'grab', position: 'relative',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'transform 180ms, box-shadow 180ms',
+                          opacity: dragState.tokenId === t.id ? 0.4 : 1,
+                        }}>
+                        <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: 0.22, borderRadius: 4 }} />
+                        <img src={animalImgSrc(animal.id, gender)} alt={animal.name} draggable={false}
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                          style={{ width: '80%', height: '80%', objectFit: 'contain', position: 'relative' }} />
+                        <div style={{ display: 'none', fontSize: 26, position: 'relative' }}>
+                          {animal.emoji}
+                        </div>
+                        <div className="font-display" style={{
+                          position: 'absolute', bottom: 1, right: 2, fontSize: 10, color: symColor,
+                          background: 'var(--bg-card)', borderRadius: 2,
+                          width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500,
+                        }}>{sym}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2 }}>{animal.name}</div>
+                  <div className="font-mono" style={{ fontSize: 10, color: 'var(--ink-tertiary)', letterSpacing: '0.04em' }}>
+                    {animal.habitat} · {animal.diet}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Controls({ onNew, onReset, onHint, disabled }) {
+  const btn = (label, icon, onClick, primary) => (
+    <button onClick={onClick} disabled={disabled} className="font-body" style={{
+      padding: '10px 16px', background: primary ? 'var(--ink-primary)' : 'var(--bg-card)',
+      color: primary ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+      border: primary ? '1px solid var(--ink-primary)' : '1px solid var(--border-medium)',
+      borderRadius: 2, cursor: disabled ? 'wait' : 'pointer', fontSize: 13, fontWeight: 500,
+      display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '0.02em',
+      opacity: disabled ? 0.5 : 1, transition: 'all 160ms',
+    }}>
+      <span style={{ fontSize: 14 }}>{icon}</span>{label}
+    </button>
+  );
+  return (
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', padding: '8px 40px 20px' }}>
+      {btn('새 퍼즐', '🎲', onNew, true)}
+      {btn('초기화', '↺', onReset)}
+      {btn('정답 보기', '◉', onHint)}
+    </div>
+  );
+}
+
+function Legend({ collapsed, onToggle }) {
+  return (
+    <div style={{ padding: '0 40px 32px', maxWidth: 760, margin: '0 auto' }}>
+      <button onClick={onToggle} className="font-body" style={{
+        background: 'transparent', border: 'none', color: 'var(--ink-tertiary)',
+        cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 0',
+      }}>
+        {collapsed ? '규약 읽는 법 ↓' : '규약 읽는 법 ↑'}
+      </button>
+      {!collapsed && (
+        <div style={{
+          marginTop: 10, padding: 16, background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-soft)', borderRadius: 2,
+          animation: 'fadeInUp 260ms',
+        }} className="font-body">
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>전역 규약.</strong> 같은 종 두 마리는 반드시 <strong>상·하·좌·우·대각선</strong> 중 하나로 이웃해야 합니다.
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>메인 규약 <span className="font-mono">#</span>.</strong> 가장자리의 <span className="font-mono">#N</span>은 해당 행/열의 총 토큰 수가 N임을 뜻합니다. 힌트가 없는 라인도 있습니다 — 추론의 여지입니다.
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>라인 규약.</strong> 일부 행/열은 <strong>하나의 서식지/식성/성별</strong>로만 채워져야 합니다. 난이도별로 2~4개가 등장합니다.
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>고정 타일.</strong> 금장으로 표시된 타일은 움직일 수 없습니다. 성별도 이미 결정되어 있습니다.
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나, <span style={{ color: 'var(--ok-loose)' }}>✧ 해답 중 하나</span>는 여러 유효해 중 하나를 찾으면 됩니다.
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>단계.</strong> (1) 손패에서 드래그하여 격자에 배치 · (2) 타일 클릭으로 <strong>? → ♂ → ♀ → ?</strong> 순환. 짝은 자동 반대 성별.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LoadingOverlay({ show, level, progress }) {
+  if (!show) return null;
+  const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
+  const pct = progress ? Math.min(100, Math.round((progress.elapsed / progress.budget) * 100)) : 0;
+  const sec = progress ? (progress.elapsed / 1000).toFixed(1) : '0.0';
+  const budgetSec = progress ? (progress.budget / 1000).toFixed(0) : '—';
+  const relaxHint = progress && progress.currentMaxSolutions > 1 
+    ? `해답 ${progress.currentMaxSolutions}개 이하 허용 중` 
+    : '유일해 탐색 중';
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(250,247,240,0.9)', backdropFilter: 'blur(3px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40, animation: 'fadeInUp 200ms',
+    }}>
+      <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }} className="font-display">
+        <div style={{ fontSize: 12, color: 'var(--ink-tertiary)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }} className="font-body">
+          새 퍼즐 생성 중
+        </div>
+        <div style={{ fontSize: 36, fontStyle: 'italic', color: 'var(--ink-primary)', fontWeight: 400, marginBottom: 24 }}>
+          {cfg?.glyph} {cfg?.label}
+        </div>
+        
+        {/* Progress bar */}
+        <div style={{
+          width: 320, height: 4, background: 'var(--border-soft)',
+          borderRadius: 2, overflow: 'hidden', margin: '0 auto', position: 'relative',
+        }}>
+          <div style={{
+            width: `${pct}%`, height: '100%', background: 'var(--accent-gold)',
+            transition: 'width 200ms', position: 'relative',
+            backgroundImage: 'linear-gradient(90deg, var(--accent-gold) 0%, var(--accent-gold-soft) 50%, var(--accent-gold) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'progressShimmer 2s linear infinite',
+          }} />
+        </div>
+        
+        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', width: 320, margin: '14px auto 0' }} className="font-mono">
+          <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
+            {sec}s / {budgetSec}s
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
+            {progress ? `시도 ${progress.attempts}` : ''}
+          </span>
+        </div>
+        
+        {progress && progress.elapsed > 2000 && (
+          <div style={{ marginTop: 18, fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', fontStyle: 'italic' }} className="font-body">
+            {relaxHint}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RulesModal({ show, onClose }) {
+  if (!show) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 24, animation: 'fadeInUp 200ms',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        maxWidth: 620, background: 'var(--bg-paper)', padding: '36px 40px',
+        border: '1px solid var(--border-medium)', borderRadius: 3,
+        boxShadow: '0 24px 60px -20px rgba(0,0,0,0.3)',
+        maxHeight: '88vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+          <div>
+            <div className="font-display" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.02em' }}>
+              규약<span style={{ color: 'var(--accent-gold)' }}>.</span>
+            </div>
+            <div className="font-body" style={{ fontSize: 12, color: 'var(--ink-tertiary)', marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              How to play · 인접, 카운트, 라인 규약
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink-tertiary)' }}>×</button>
+        </div>
+        <ol className="font-body" style={{ paddingLeft: 18, color: 'var(--ink-secondary)', fontSize: 13.5, lineHeight: 1.75 }}>
+          <li style={{ marginBottom: 10 }}>
+            <strong>전역 인접 규약.</strong> 같은 종 두 마리는 반드시 서로의 <strong>8방향 이웃</strong>에 있어야 합니다.
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>카운트 힌트 #.</strong> 가장자리의 <span className="font-mono">#N</span>은 해당 행/열의 총 토큰 수가 N임을 뜻합니다. 모든 라인에 힌트가 있지는 않습니다.
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>라인 규약.</strong> 일부 행/열은 그 라인의 모든 동물이 <strong>같은 서식지</strong>, <strong>같은 식성</strong>, 또는 <strong>같은 성별</strong>이어야 합니다.
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>고정 타일.</strong> 금빛 점이 있는 타일은 위치·성별이 이미 결정되어 있어 움직일 수 없습니다.
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>성별 결정.</strong> 각 쌍은 암수 한 쌍. 타일을 클릭하면 <strong>? → ♂ → ♀ → ?</strong> 로 순환하며, 짝은 자동으로 반대 성별이 됩니다.
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나. 
+            <span style={{ color: 'var(--ok-loose)' }}> ✧ 해답 중 하나</span>는 여러 유효해가 있으며 그 중 하나를 찾으면 성공입니다. 
+            난이도가 높을수록 다중해가 허용됩니다.
+          </li>
+          <li>
+            <strong>승리 조건.</strong> 모든 타일이 배치되고 성별이 결정되며, 인접·라인·카운트·고정 타일 규약이 모두 만족되면 완성입니다.
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+function WinDialog({ show, level, uniqueness, solutionCount, onNext, onClose }) {
+  if (!show) return null;
+  const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24, animation: 'fadeInUp 320ms',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        maxWidth: 440, width: '100%', background: 'var(--bg-paper)', padding: 40,
+        border: '1px solid var(--border-medium)', borderRadius: 3, textAlign: 'center',
+        boxShadow: '0 24px 60px -20px rgba(0,0,0,0.3)',
+      }}>
+        <div className="font-body" style={{ fontSize: 11, color: 'var(--accent-gold)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>
+          ✦ Solved ✦
+        </div>
+        <div className="font-display" style={{ fontSize: 40, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--ink-primary)', lineHeight: 1.1 }}>
+          모든 짝이<br /><span style={{ fontStyle: 'italic', color: 'var(--accent-gold)' }}>이웃으로.</span>
+        </div>
+        <div className="font-body" style={{ marginTop: 18, color: 'var(--ink-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+          {cfg?.glyph} <strong>{cfg?.label}</strong> 난이도 해결
+        </div>
+        {uniqueness === 'loose' && (
+          <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
+            유효한 {solutionCount}개 해답 중 하나를 찾았습니다
+          </div>
+        )}
+        {uniqueness === 'flexible' && (
+          <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
+            규약을 만족하는 배치를 완성했습니다
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 28 }}>
+          <button onClick={onNext} className="font-body" style={{
+            padding: '12px 22px', background: 'var(--ink-primary)', color: 'var(--bg-paper)',
+            border: 'none', borderRadius: 2, cursor: 'pointer', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em',
+          }}>다음 퍼즐 →</button>
+          <button onClick={onClose} className="font-body" style={{
+            padding: '12px 22px', background: 'transparent', color: 'var(--ink-secondary)',
+            border: '1px solid var(--border-medium)', borderRadius: 2, cursor: 'pointer', fontSize: 13,
+          }}>조금 더 보기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// SECTION 7 — APP STATE (Reducer)
+// =============================================================================
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'PUZZLE_READY': {
+      const placements = {};
+      const preMarks = action.puzzle.preMarks || {};
+      for (const t of action.puzzle.tokens) {
+        if (preMarks[t.id]) placements[t.id] = { row: t.row, col: t.col };
+      }
+      return {
+        ...state, puzzle: action.puzzle, placements, marks: { ...preMarks },
+        userForbidden: {}, isGenerating: false, isSolved: false,
+        recentTokenId: null, partnerTokenId: null, showWin: false,
+        level: action.level ?? state.level,
+        generationProgress: null,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'START_GENERATING':
+      return { ...state, isGenerating: true, level: action.level ?? state.level, generationProgress: null };
+    case 'GENERATION_PROGRESS':
+      return { ...state, generationProgress: action.progress };
+    case 'TOGGLE_USER_FORBIDDEN': {
+      const key = `${action.row},${action.col}`;
+      const nf = { ...state.userForbidden };
+      if (nf[key]) delete nf[key]; else nf[key] = true;
+      return { ...state, userForbidden: nf };
+    }
+    case 'TOGGLE_MARK': {
+      if (state.isSolved) return state;
+      if (!state.placements[action.tokenId]) return state;
+      if (state.puzzle.preMarks && state.puzzle.preMarks[action.tokenId]) return state;
+      // If partner is a fixed tile with a forced gender, this token's gender is also locked
+      const partnerId = getPartnerToken(action.tokenId, state.puzzle.pairs);
+      const partnerIsFixed = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+      if (partnerIsFixed) return state; // cannot toggle — gender is determined by fixed partner
+      const cur = state.marks[action.tokenId] || null;
+      const next = cur === null ? 'male' : cur === 'male' ? 'female' : null;
+      const newMarks = { ...state.marks };
+      if (next === null) {
+        delete newMarks[action.tokenId];
+        if (partnerId && state.placements[partnerId] && !(state.puzzle.preMarks && state.puzzle.preMarks[partnerId])) delete newMarks[partnerId];
+      } else {
+        newMarks[action.tokenId] = next;
+        if (partnerId && state.placements[partnerId] && !(state.puzzle.preMarks && state.puzzle.preMarks[partnerId])) {
+          newMarks[partnerId] = next === 'male' ? 'female' : 'male';
+        }
+      }
+      return {
+        ...state, marks: newMarks, recentTokenId: action.tokenId,
+        partnerTokenId: (partnerId && state.placements[partnerId]) ? partnerId : null,
+      };
+    }
+    case 'DRAG_START':
+      return { ...state, dragState: { ...state.dragState, tokenId: action.tokenId } };
+    case 'DRAG_OVER_CELL':
+      return { ...state, dragState: { ...state.dragState, over: `${action.row},${action.col}` } };
+    case 'DRAG_LEAVE_CELL':
+      if (state.dragState.over === `${action.row},${action.col}`) {
+        return { ...state, dragState: { ...state.dragState, over: null } };
+      }
+      return state;
+    case 'DRAG_OVER_HAND':
+      return { ...state, dragState: { ...state.dragState, overHand: true } };
+    case 'DRAG_LEAVE_HAND':
+      return { ...state, dragState: { ...state.dragState, overHand: false } };
+    case 'DRAG_END':
+      return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+    case 'PLACE_TOKEN': {
+      const { tokenId, row, col } = action;
+      if (!tokenId) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      const forbidden = new Set(state.puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+      if (forbidden.has(`${row},${col}`)) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      // Block drop on user-marked (X) cells
+      if (state.userForbidden && state.userForbidden[`${row},${col}`]) {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const occupant = Object.entries(state.placements).find(([, p]) => p && p.row === row && p.col === col);
+      if (occupant && state.puzzle.preMarks && state.puzzle.preMarks[occupant[0]]) {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const nuf = { ...state.userForbidden }; delete nuf[`${row},${col}`];
+      const newPlacements = { ...state.placements };
+      let displaced = null;
+      for (const [tid, cell] of Object.entries(newPlacements)) {
+        if (cell && cell.row === row && cell.col === col) { displaced = tid; break; }
+      }
+      const prev = newPlacements[tokenId];
+      newPlacements[tokenId] = { row, col };
+      if (displaced) {
+        if (prev) newPlacements[displaced] = prev;
+        else delete newPlacements[displaced];
+      }
+      // If partner is a fixed tile, auto-assign opposite gender to this token
+      const newMarks = { ...state.marks };
+      const partnerId = getPartnerToken(tokenId, state.puzzle.pairs);
+      const partnerFixedGender = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+      if (partnerFixedGender && !newMarks[tokenId]) {
+        newMarks[tokenId] = partnerFixedGender === 'male' ? 'female' : 'male';
+      }
+      return {
+        ...state, placements: newPlacements, marks: newMarks, userForbidden: nuf,
+        dragState: { tokenId: null, over: null, overHand: false },
+        recentTokenId: tokenId,
+      };
+    }
+    case 'RETURN_TO_HAND': {
+      const { tokenId } = action;
+      if (!tokenId) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      if (state.puzzle.preMarks && state.puzzle.preMarks[tokenId]) {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const newPlacements = { ...state.placements };
+      const newMarks = { ...state.marks };
+      delete newPlacements[tokenId];
+      delete newMarks[tokenId];
+      return {
+        ...state, placements: newPlacements, marks: newMarks,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'RESET': {
+      const placements = {};
+      const preMarks = state.puzzle.preMarks || {};
+      for (const t of state.puzzle.tokens) {
+        if (preMarks[t.id]) placements[t.id] = { row: t.row, col: t.col };
+      }
+      return {
+        ...state, placements, marks: { ...preMarks }, userForbidden: {},
+        recentTokenId: null, partnerTokenId: null, isSolved: false, showWin: false,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'SHOW_SOLUTION': {
+      const placements = {};
+      for (const t of state.puzzle.tokens) placements[t.id] = { row: t.row, col: t.col };
+      return { ...state, placements, marks: { ...state.puzzle.solution } };
+    }
+    case 'SOLVED': return { ...state, isSolved: true };
+    case 'SHOW_WIN': return { ...state, showWin: true };
+    case 'CLOSE_WIN': return { ...state, showWin: false };
+    case 'SHOW_RULES': return { ...state, showRules: true };
+    case 'CLOSE_RULES': return { ...state, showRules: false };
+    case 'TOGGLE_LEGEND': return { ...state, legendCollapsed: !state.legendCollapsed };
+    case 'CLEAR_PULSE': return { ...state, partnerTokenId: null, recentTokenId: null };
+    default: return state;
+  }
+}
+
+const initialState = {
+  level: 'Sprout', puzzle: null, placements: {}, marks: {},
+  recentTokenId: null, partnerTokenId: null,
+  isGenerating: true, isSolved: false,
+  showRules: false, showWin: false, legendCollapsed: true,
+  userForbidden: {},
+  generationProgress: null,
+  dragState: { tokenId: null, over: null, overHand: false },
+};
+
+// =============================================================================
+// SECTION 8 — MAIN APP
+// =============================================================================
+
+function ZoologicApp() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const generate = useCallback(async (level) => {
+    dispatch({ type: 'START_GENERATING', level });
+    await new Promise(r => setTimeout(r, 60));
+    try {
+      const p = await generatePuzzleAsync(level, (progress) => {
+        dispatch({ type: 'GENERATION_PROGRESS', progress });
+      });
+      if (p) dispatch({ type: 'PUZZLE_READY', puzzle: p, level });
+      else dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+    } catch (e) {
+      console.error('generate failed', e);
+      dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+    }
+  }, []);
+
+  useEffect(() => {
+    generate('Sprout');
+  }, []);
+
+  const handleNewPuzzle = useCallback(() => { generate(state.level); }, [state.level, generate]);
+  const handleLevelChange = useCallback((lv) => {
+    if (lv === state.level || state.isGenerating) return;
+    generate(lv);
+  }, [state.level, state.isGenerating, generate]);
+
+  const handleCellClick = useCallback((tokenId) => {
+    dispatch({ type: 'TOGGLE_MARK', tokenId });
+  }, []);
+
+  const handleTokenDragStart = useCallback((e, tokenId) => {
+    try { e.dataTransfer.setData('text/plain', tokenId); e.dataTransfer.effectAllowed = 'move'; } catch (_) { }
+    dispatch({ type: 'DRAG_START', tokenId });
+  }, []);
+
+  const handleCellDrop = useCallback((phase, row, col) => {
+    if (phase === 'over') dispatch({ type: 'DRAG_OVER_CELL', row, col });
+    else if (phase === 'leave') dispatch({ type: 'DRAG_LEAVE_CELL', row, col });
+    else if (phase === 'drop') dispatch({ type: 'PLACE_TOKEN', tokenId: state.dragState.tokenId, row, col });
+  }, [state.dragState.tokenId]);
+
+  const handleDropToHand = useCallback((phase) => {
+    if (phase === 'over') dispatch({ type: 'DRAG_OVER_HAND' });
+    else if (phase === 'leave') dispatch({ type: 'DRAG_LEAVE_HAND' });
+    else if (phase === 'drop') {
+      const tid = state.dragState.tokenId;
+      if (tid && state.placements[tid]) dispatch({ type: 'RETURN_TO_HAND', tokenId: tid });
+      else dispatch({ type: 'DRAG_END' });
+    }
+  }, [state.dragState.tokenId, state.placements]);
+
+  useEffect(() => {
+    if (state.partnerTokenId || state.recentTokenId) {
+      const t = setTimeout(() => dispatch({ type: 'CLEAR_PULSE' }), 500);
+      return () => clearTimeout(t);
+    }
+  }, [state.partnerTokenId, state.recentTokenId]);
+
+  // V2 Win check — constraint-based, not canonical-position-based
+  useEffect(() => {
+    if (!state.puzzle || state.isSolved) return;
+    if (checkWinV2(state.puzzle, state.placements, state.marks)) {
+      dispatch({ type: 'SOLVED' });
+      setTimeout(() => dispatch({ type: 'SHOW_WIN' }), 1400);
+    }
+  }, [state.marks, state.placements, state.puzzle, state.isSolved]);
+
+  const placedCount = Object.keys(state.placements).length;
+  const totalTokens = state.puzzle ? state.puzzle.tokens.length : 0;
+  const genderedCount = Object.keys(state.marks).length;
+  const adjacencyOk = state.puzzle ? state.puzzle.pairs.every(([t1, t2]) => {
+    const p1 = state.placements[t1], p2 = state.placements[t2];
+    if (!p1 || !p2) return true;
+    return isAdjacent(p1, p2);
+  }) : false;
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-paper)', position: 'relative' }}>
+      <div aria-hidden style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 0.5,
+        backgroundImage: `radial-gradient(circle at 25% 15%, rgba(180,83,9,0.03) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(28,25,23,0.025) 0%, transparent 40%)`,
+      }} />
+      <div style={{ position: 'relative', maxWidth: 960, margin: '0 auto' }}
+        onDragEnd={() => dispatch({ type: 'DRAG_END' })}>
+        <Header onHelp={() => dispatch({ type: 'SHOW_RULES' })} />
+        <DifficultySelector current={state.level} onChange={handleLevelChange} disabled={state.isGenerating} />
+        {state.puzzle && (
+          <>
+            <StatusBar puzzle={state.puzzle} placedCount={placedCount} totalTokens={totalTokens}
+              genderedCount={genderedCount} adjacencyOk={adjacencyOk} />
+            <Grid puzzle={state.puzzle} placements={state.placements} marks={state.marks}
+              userForbidden={state.userForbidden}
+              onCellClick={handleCellClick}
+              onEmptyCellClick={(r, c) => dispatch({ type: 'TOGGLE_USER_FORBIDDEN', row: r, col: c })}
+              onCellDrop={handleCellDrop} onTokenDragStart={handleTokenDragStart}
+              recentTokenId={state.recentTokenId} partnerTokenId={state.partnerTokenId}
+              winAnimating={state.isSolved} dragState={state.dragState} />
+            <HandPool puzzle={state.puzzle} placements={state.placements} marks={state.marks}
+              onTokenDragStart={handleTokenDragStart} onDropToHand={handleDropToHand}
+              dragState={state.dragState} />
+            <Controls onNew={handleNewPuzzle} onReset={() => dispatch({ type: 'RESET' })}
+              onHint={() => dispatch({ type: 'SHOW_SOLUTION' })} disabled={state.isGenerating} />
+            <Legend collapsed={state.legendCollapsed} onToggle={() => dispatch({ type: 'TOGGLE_LEGEND' })} />
+            <div style={{ textAlign: 'center', padding: '16px 40px 40px', fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.12em', textTransform: 'uppercase' }} className="font-body">
+              adjacency · line rules · count hints · graceful N2
+            </div>
+          </>
+        )}
+      </div>
+      <LoadingOverlay show={state.isGenerating} level={state.level} progress={state.generationProgress} />
+      <RulesModal show={state.showRules} onClose={() => dispatch({ type: 'CLOSE_RULES' })} />
+      <WinDialog
+        show={state.showWin}
+        level={state.level}
+        uniqueness={state.puzzle ? state.puzzle.uniqueness : null}
+        solutionCount={state.puzzle ? state.puzzle.solutionCount : null}
+        onNext={() => { dispatch({ type: 'CLOSE_WIN' }); handleNewPuzzle(); }}
+        onClose={() => dispatch({ type: 'CLOSE_WIN' })}
+      />
+    </div>
+  );
+}
+
+// =============================================================================
+// BOOT
+// =============================================================================
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ZoologicApp />);
+</script>
+</body>
+</html>
