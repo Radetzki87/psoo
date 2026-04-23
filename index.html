@@ -1411,14 +1411,117 @@ function ForbiddenCell({ size }) {
   );
 }
 
-function DropCell({ size, row, col, isDropTarget, userMarked, onDragOver, onDragLeave, onDrop, onClick }) {
-  // When cell is user-marked (X), visually indicate drop is blocked (red tint instead of gold)
-  const bg = userMarked
-    ? (isDropTarget ? 'rgba(185,28,28,0.1)' : 'rgba(120,113,108,0.12)')
-    : (isDropTarget ? 'rgba(180,83,9,0.08)' : 'var(--bg-subtle)');
-  const border = userMarked
-    ? (isDropTarget ? '1.5px dashed var(--danger)' : '1px solid var(--border-medium)')
-    : (isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px dashed var(--border-medium)');
+function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
+  // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
+  const dim = Math.ceil(Math.sqrt(capacity));
+  // Mini-cell size: fit within parent cell with padding
+  const padding = Math.max(6, cellSize * 0.10);
+  const gap = 2;
+  const innerSize = cellSize - padding * 2;
+  const miniCellSize = (innerSize - gap * (dim - 1)) / dim;
+  // Build cells array of length `capacity`, filled with {animalId, gender} or null
+  const slots = new Array(capacity).fill(null);
+  for (let i = 0; i < candidates.length && i < capacity; i++) slots[i] = candidates[i];
+  return (
+    <div style={{
+      position: 'absolute', inset: padding, zIndex: 4,
+      display: 'grid',
+      gridTemplateColumns: `repeat(${dim}, 1fr)`,
+      gridTemplateRows: `repeat(${dim}, 1fr)`,
+      gap: `${gap}px`,
+      pointerEvents: 'none',
+      opacity: opacity !== undefined ? opacity : 0.6,
+    }}>
+      {slots.map((slot, i) => {
+        if (!slot) {
+          return (
+            <div key={i} style={{
+              background: 'rgba(255,255,255,0.4)',
+              border: '1px dashed rgba(120,113,108,0.45)',
+              borderRadius: 2,
+            }} />
+          );
+        }
+        const animal = animalById(slot.animalId);
+        const gender = slot.gender || 'male';
+        const genderSym = gender === 'male' ? '♂' : '♀';
+        const genderColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
+        return (
+          <div key={i} style={{
+            background: 'rgba(255,255,255,0.75)',
+            border: '1px solid rgba(120,113,108,0.5)',
+            borderRadius: 2,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', position: 'relative',
+          }}>
+            <img
+              src={animalImgSrc(animal.id, gender)}
+              alt={animal.name}
+              draggable={false}
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+              style={{ width: '86%', height: '86%', objectFit: 'contain', pointerEvents: 'none' }}
+            />
+            <div style={{
+              display: 'none', width: '100%', height: '100%',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: miniCellSize * 0.55,
+            }}>{animal.emoji}</div>
+            <div className="font-display" style={{
+              position: 'absolute', bottom: 0, right: 1,
+              fontSize: Math.max(8, miniCellSize * 0.24),
+              color: genderColor, fontWeight: 600, lineHeight: 1,
+              textShadow: '0 0 2px rgba(255,255,255,0.9)',
+            }}>{genderSym}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
+  // Unified overlay: renders over either empty Q-cell or Q-cell with placed tile.
+  // Opacity values (higher = more opaque/visible):
+  //   - empty Q-cell: candidates 0.8 (prominent, full note-card feel), "?" 0.3 (visible but secondary)
+  //   - tile-occupied Q-cell: candidates 0.3 (faint, so real tile remains primary),
+  //                           "?" 0.2 (subtle watermark), actual tile image stays at full opacity.
+  // Layer order (low → high):
+  //   1. (parent background or placed tile, outside this component)
+  //   2. candidate mini-grid (zIndex 4)
+  //   3. big "?" symbol (zIndex 5, topmost)
+  const candidatesOpacity = hasPlacedTile ? 0.3 : 0.8;
+  const questionOpacity = hasPlacedTile ? 0.2 : 0.3;
+  return (
+    <>
+      <QCandidateGrid candidates={candidates || []} capacity={capacity || 4} cellSize={cellSize} opacity={candidatesOpacity} />
+      <div className="font-display" style={{
+        position: 'absolute', inset: 0, zIndex: 5,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: cellSize * 0.72, fontStyle: 'italic', fontWeight: 600,
+        color: 'var(--accent-gold)', opacity: questionOpacity,
+        pointerEvents: 'none', userSelect: 'none', lineHeight: 1,
+        textShadow: '0 0 8px rgba(255, 253, 247, 0.8)',
+      }}>?</div>
+    </>
+  );
+}
+
+function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onDragOver, onDragLeave, onDrop, onClick }) {
+  const isX = markState === 'X';
+  const isQ = markState === 'Q';
+
+  let bg, border;
+  if (isX) {
+    bg = isDropTarget ? 'rgba(185,28,28,0.1)' : 'rgba(120,113,108,0.12)';
+    border = isDropTarget ? '1.5px dashed var(--danger)' : '1px solid var(--border-medium)';
+  } else if (isQ) {
+    bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'rgba(180,83,9,0.04)';
+    border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px solid rgba(180,83,9,0.35)';
+  } else {
+    bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'var(--bg-subtle)';
+    border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px dashed var(--border-medium)';
+  }
+
   return (
     <div
       onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={onClick}
@@ -1426,15 +1529,19 @@ function DropCell({ size, row, col, isDropTarget, userMarked, onDragOver, onDrag
       style={{
         width: size, height: size, background: bg, borderRadius: 4, border,
         transition: 'all 140ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', position: 'relative',
+        cursor: 'pointer', position: 'relative', overflow: 'hidden',
       }}
     >
-      {userMarked ? (
+      {isX && (
         <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
           <line x1="5" y1="5" x2="19" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
           <line x1="19" y1="5" x2="5" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
         </svg>
-      ) : (
+      )}
+      {isQ && (
+        <QMarkOverlay candidates={qCandidates} capacity={qCapacity} cellSize={size} hasPlacedTile={false} />
+      )}
+      {!isX && !isQ && (
         <div style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--border-medium)' }} />
       )}
     </div>
@@ -1453,7 +1560,7 @@ function PairAdjacencyLine({ from, to, cellSize, gap, valid }) {
   );
 }
 
-function Grid({ puzzle, placements, marks, userForbidden, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState }) {
+function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState }) {
   const n = puzzle.n;
   const maxBoard = 560;
   const cellSize = Math.floor(Math.min(maxBoard / n, 86));
@@ -1515,6 +1622,9 @@ function Grid({ puzzle, placements, marks, userForbidden, onCellClick, onEmptyCe
       const isFixed = !!(puzzle.preMarks && puzzle.preMarks[tok.id]);
       const adj = pairAdj[tok.id];
       const isDropTarget = dragState.over === key;
+      // Q-mark overlay applies even on tiles that have been placed on Q-marked cells
+      const cellIsQ = cellMarks && cellMarks[key] === 'Q';
+      const cellQCands = cellIsQ && qCandidates ? qCandidates[key] : undefined;
       return (
         <div
           onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
@@ -1536,16 +1646,22 @@ function Grid({ puzzle, placements, marks, userForbidden, onCellClick, onEmptyCe
             isFixed={isFixed} cellSize={cellSize}
             isAdjacentToPartner={adj}
           />
+          {cellIsQ && (
+            <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} />
+          )}
         </div>
       );
     }
     const isDropTarget = dragState.over === key;
-    const userMarked = userForbidden && userForbidden[key];
+    const markState = cellMarks ? cellMarks[key] : undefined;
+    const qCands = qCandidates ? qCandidates[key] : undefined;
     return (
       <DropCell
         size={cellSize} row={r} col={c}
         isDropTarget={isDropTarget}
-        userMarked={userMarked}
+        markState={markState}
+        qCandidates={qCands}
+        qCapacity={qMarkCapacity}
         onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
         onDragLeave={() => onCellDrop('leave', r, c)}
         onDrop={(e) => { e.preventDefault(); onCellDrop('drop', r, c); }}
@@ -1947,7 +2063,8 @@ function reducer(state, action) {
       }
       return {
         ...state, puzzle: action.puzzle, placements, marks: { ...preMarks },
-        userForbidden: {}, isGenerating: false, isSolved: false,
+        cellMarks: {}, qCandidates: {},
+        isGenerating: false, isSolved: false,
         recentTokenId: null, partnerTokenId: null, showWin: false,
         level: action.level ?? state.level,
         generationProgress: null,
@@ -1958,11 +2075,34 @@ function reducer(state, action) {
       return { ...state, isGenerating: true, level: action.level ?? state.level, generationProgress: null };
     case 'GENERATION_PROGRESS':
       return { ...state, generationProgress: action.progress };
-    case 'TOGGLE_USER_FORBIDDEN': {
+    case 'CYCLE_CELL_MARK': {
+      // 3-state cycle: empty → X → Q → empty
       const key = `${action.row},${action.col}`;
-      const nf = { ...state.userForbidden };
-      if (nf[key]) delete nf[key]; else nf[key] = true;
-      return { ...state, userForbidden: nf };
+      const cur = state.cellMarks[key]; // undefined | 'X' | 'Q'
+      const next = cur === undefined ? 'X' : cur === 'X' ? 'Q' : undefined;
+      const newMarks = { ...state.cellMarks };
+      if (next === undefined) delete newMarks[key];
+      else newMarks[key] = next;
+      // Reset Q candidates when entering Q state or leaving Q state
+      const newQCandidates = { ...state.qCandidates };
+      if (cur === 'Q' || next === 'Q') delete newQCandidates[key];
+      return { ...state, cellMarks: newMarks, qCandidates: newQCandidates };
+    }
+    case 'ENQUEUE_Q_CANDIDATE': {
+      // Add a {animalId, gender} pair to Q-mark cell's FIFO candidate list.
+      // Male and female of same species are tracked as independent entries
+      // (24 distinct candidates: 12 species × 2 genders).
+      const key = `${action.row},${action.col}`;
+      if (state.cellMarks[key] !== 'Q') return state;
+      const cur = state.qCandidates[key] || [];
+      const gender = action.gender || 'male';
+      // Dedup on (animalId, gender) pair
+      if (cur.some(c => c.animalId === action.animalId && c.gender === gender)) return state;
+      const QCAP = state.qMarkCapacity || 4;
+      const next = [...cur, { animalId: action.animalId, gender }];
+      // FIFO: if exceeds cap, drop oldest
+      while (next.length > QCAP) next.shift();
+      return { ...state, qCandidates: { ...state.qCandidates, [key]: next } };
     }
     case 'TOGGLE_MARK': {
       if (state.isSolved) return state;
@@ -2009,15 +2149,15 @@ function reducer(state, action) {
       if (!tokenId) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
       const forbidden = new Set(state.puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
       if (forbidden.has(`${row},${col}`)) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
-      // Block drop on user-marked (X) cells
-      if (state.userForbidden && state.userForbidden[`${row},${col}`]) {
+      // Block drop on X-marked cells
+      const destKey = `${row},${col}`;
+      if (state.cellMarks[destKey] === 'X') {
         return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
       }
       const occupant = Object.entries(state.placements).find(([, p]) => p && p.row === row && p.col === col);
       if (occupant && state.puzzle.preMarks && state.puzzle.preMarks[occupant[0]]) {
         return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
       }
-      const nuf = { ...state.userForbidden }; delete nuf[`${row},${col}`];
       const newPlacements = { ...state.placements };
       let displaced = null;
       for (const [tid, cell] of Object.entries(newPlacements)) {
@@ -2036,8 +2176,47 @@ function reducer(state, action) {
       if (partnerFixedGender && !newMarks[tokenId]) {
         newMarks[tokenId] = partnerFixedGender === 'male' ? 'female' : 'male';
       }
+
+      // Q-mark candidate tracking:
+      //  - If destination is Q-marked, enqueue this token's {animalId, gender}
+      //  - If displaced to source (swap), enqueue the displaced token's {animalId, gender} at source if source is Q-marked
+      //  - Male and female of same species are tracked as independent entries
+      //  - Tokens without a confirmed gender ("?" state) are NOT registered
+      const newQCandidates = { ...state.qCandidates };
+      const QCAP = state.qMarkCapacity || 4;
+      const droppedAnimal = state.puzzle.tokens.find(t => t.id === tokenId);
+      const droppedGender = newMarks[tokenId]; // only register if gender is confirmed
+      if (state.cellMarks[destKey] === 'Q' && droppedAnimal && droppedGender) {
+        const curList = newQCandidates[destKey] || [];
+        const alreadyExists = curList.some(c => c.animalId === droppedAnimal.animalId && c.gender === droppedGender);
+        if (!alreadyExists) {
+          const nextList = [...curList, { animalId: droppedAnimal.animalId, gender: droppedGender }];
+          while (nextList.length > QCAP) nextList.shift();
+          newQCandidates[destKey] = nextList;
+        }
+      }
+      // Swap case: if displaced tile was moved to `prev` cell, and that cell is Q-marked,
+      // register displaced animal (with its gender) there — only if gender confirmed
+      if (displaced && prev) {
+        const prevKey = `${prev.row},${prev.col}`;
+        if (state.cellMarks[prevKey] === 'Q') {
+          const dispAnimal = state.puzzle.tokens.find(t => t.id === displaced);
+          const dispGender = state.marks[displaced]; // only register if confirmed
+          if (dispAnimal && dispGender) {
+            const curList = newQCandidates[prevKey] || [];
+            const alreadyExists = curList.some(c => c.animalId === dispAnimal.animalId && c.gender === dispGender);
+            if (!alreadyExists) {
+              const nextList = [...curList, { animalId: dispAnimal.animalId, gender: dispGender }];
+              while (nextList.length > QCAP) nextList.shift();
+              newQCandidates[prevKey] = nextList;
+            }
+          }
+        }
+      }
+
       return {
-        ...state, placements: newPlacements, marks: newMarks, userForbidden: nuf,
+        ...state, placements: newPlacements, marks: newMarks,
+        qCandidates: newQCandidates,
         dragState: { tokenId: null, over: null, overHand: false },
         recentTokenId: tokenId,
       };
@@ -2064,7 +2243,8 @@ function reducer(state, action) {
         if (preMarks[t.id]) placements[t.id] = { row: t.row, col: t.col };
       }
       return {
-        ...state, placements, marks: { ...preMarks }, userForbidden: {},
+        ...state, placements, marks: { ...preMarks },
+        cellMarks: {}, qCandidates: {},
         recentTokenId: null, partnerTokenId: null, isSolved: false, showWin: false,
         dragState: { tokenId: null, over: null, overHand: false },
       };
@@ -2090,7 +2270,9 @@ const initialState = {
   recentTokenId: null, partnerTokenId: null,
   isGenerating: true, isSolved: false,
   showRules: false, showWin: false, legendCollapsed: true,
-  userForbidden: {},
+  cellMarks: {},       // {"r,c": 'X' | 'Q'}
+  qCandidates: {},     // {"r,c": [animalId1, ...]} FIFO list of animal IDs
+  qMarkCapacity: 4,    // 2x2 grid (can be 9 for 3x3)
   generationProgress: null,
   dragState: { tokenId: null, over: null, overHand: false },
 };
@@ -2137,10 +2319,26 @@ function ZoologicApp() {
   }, []);
 
   const handleCellDrop = useCallback((phase, row, col) => {
-    if (phase === 'over') dispatch({ type: 'DRAG_OVER_CELL', row, col });
+    if (phase === 'over') {
+      dispatch({ type: 'DRAG_OVER_CELL', row, col });
+      // If dragging a tile over a Q-marked cell, register its {animalId, gender} as candidate.
+      // BUT only if the tile has a confirmed gender — tiles in "?" state (gender undecided)
+      // must NOT be registered, because male vs female are treated as independent candidates.
+      const tid = state.dragState.tokenId;
+      if (tid && state.puzzle) {
+        const key = `${row},${col}`;
+        if (state.cellMarks && state.cellMarks[key] === 'Q') {
+          const tok = state.puzzle.tokens.find(t => t.id === tid);
+          const gender = state.marks[tid]; // must be explicitly 'male' or 'female'
+          if (tok && gender) {
+            dispatch({ type: 'ENQUEUE_Q_CANDIDATE', row, col, animalId: tok.animalId, gender });
+          }
+        }
+      }
+    }
     else if (phase === 'leave') dispatch({ type: 'DRAG_LEAVE_CELL', row, col });
     else if (phase === 'drop') dispatch({ type: 'PLACE_TOKEN', tokenId: state.dragState.tokenId, row, col });
-  }, [state.dragState.tokenId]);
+  }, [state.dragState.tokenId, state.cellMarks, state.puzzle, state.marks]);
 
   const handleDropToHand = useCallback((phase) => {
     if (phase === 'over') dispatch({ type: 'DRAG_OVER_HAND' });
@@ -2192,9 +2390,9 @@ function ZoologicApp() {
             <StatusBar puzzle={state.puzzle} placedCount={placedCount} totalTokens={totalTokens}
               genderedCount={genderedCount} adjacencyOk={adjacencyOk} />
             <Grid puzzle={state.puzzle} placements={state.placements} marks={state.marks}
-              userForbidden={state.userForbidden}
+              cellMarks={state.cellMarks} qCandidates={state.qCandidates} qMarkCapacity={state.qMarkCapacity}
               onCellClick={handleCellClick}
-              onEmptyCellClick={(r, c) => dispatch({ type: 'TOGGLE_USER_FORBIDDEN', row: r, col: c })}
+              onEmptyCellClick={(r, c) => dispatch({ type: 'CYCLE_CELL_MARK', row: r, col: c })}
               onCellDrop={handleCellDrop} onTokenDragStart={handleTokenDragStart}
               recentTokenId={state.recentTokenId} partnerTokenId={state.partnerTokenId}
               winAnimating={state.isSolved} dragState={state.dragState} />
