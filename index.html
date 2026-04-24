@@ -12,16 +12,19 @@
     --bg-paper: #FAF7F0;
     --bg-card: #FFFFFF;
     --bg-subtle: #F5F2EA;
+    --bg-fixed: #EEE9DC;       /* pre-mark tile background — neutral, not gold */
     --ink-primary: #1C1917;
     --ink-secondary: #44403C;
     --ink-tertiary: #78716C;
     --border-soft: #E7E5E4;
     --border-medium: #D6D3D1;
-    --accent-gold: #B45309;
+    --accent-gold: #B45309;    /* reserved: constraints (badges, Q, selection) */
     --accent-gold-soft: #D97706;
     --success-soft: #FEF3C7;
     --forbidden: #E7E5E4;
     --danger: #B91C1C;
+    --gender-male: #1E3A8A;    /* reserved: ♂ only */
+    --gender-female: #9D174D;  /* reserved: ♀ only */
     --ok-strict: #B45309;
     --ok-loose: #92400E;
     --ok-flexible: #78716C;
@@ -60,6 +63,36 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+  @keyframes softPulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(180,83,9,0); }
+    50%      { box-shadow: 0 0 0 4px rgba(180,83,9,0.18); }
+  }
+  @keyframes tooltipIn {
+    0%   { opacity: 0; transform: translateY(-4px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes badgeTipFade {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Accessibility: respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Stronger keyboard focus indication */
+  [role="button"]:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 </style>
 </head>
@@ -1080,52 +1113,126 @@ function loadFallback(level) {
 // SECTION 6 — UI COMPONENTS
 // =============================================================================
 
-function Header({ onHelp }) {
+function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  const levels = ['Sprout', 'Easy', 'MediumPlus', 'Medium', 'Hard'];
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '32px 40px 16px' }}>
-      <div>
-        <div className="font-display" style={{ fontSize: 44, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--ink-primary)', lineHeight: 1 }}>
-          Zoologic<span style={{ color: 'var(--accent-gold)', fontStyle: 'italic', fontWeight: 400 }}>.</span>
-          <sup className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginLeft: 6, fontStyle: 'normal' }}>v2</sup>
-        </div>
-        <div className="font-body" style={{ fontSize: 13, color: 'var(--ink-tertiary)', marginTop: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-          짝은 이웃 · Pairs must be adjacent
-        </div>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: 'clamp(14px, 3vw, 20px) clamp(12px, 4vw, 40px) 10px',
+      borderBottom: '1px solid var(--border-soft)',
+      flexWrap: 'wrap',
+    }}>
+      {/* Brand — compressed, single line */}
+      <div className="font-display" style={{
+        fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 500, letterSpacing: '-0.02em',
+        color: 'var(--ink-primary)', lineHeight: 1, flexShrink: 0, marginRight: 4,
+      }}>
+        Zoologic<span style={{ color: 'var(--accent-gold)', fontStyle: 'italic', fontWeight: 400 }}>.</span>
       </div>
+
+      <div style={{ flex: 1, minWidth: 4 }} />
+
+      {/* Difficulty — horizontal segmented row, wraps cleanly on narrow screens */}
+      <div role="radiogroup" aria-label="난이도 선택" style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 4,
+        opacity: disabled ? 0.5 : 1,
+      }}>
+        {levels.map((lv) => {
+          const c = DIFFICULTY_CONFIGS[lv];
+          const active = level === lv;
+          return (
+            <button
+              key={lv}
+              role="radio"
+              aria-checked={active}
+              disabled={disabled}
+              onClick={() => onChangeLevel(lv)}
+              className="font-body"
+              title={`${c.label} · ${c.n}×${c.n}`}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '7px 10px',
+                border: '1px solid',
+                borderColor: active ? 'var(--ink-primary)' : 'var(--border-medium)',
+                borderRadius: 4,
+                background: active ? 'var(--ink-primary)' : 'var(--bg-card)',
+                color: active ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+                cursor: disabled ? 'wait' : 'pointer',
+                fontSize: 12, fontWeight: active ? 600 : 500,
+                lineHeight: 1, whiteSpace: 'nowrap',
+                transition: 'background 140ms, color 140ms, border-color 140ms',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden>{c.glyph}</span>
+              <span>{c.label}</span>
+              <span className="font-mono" style={{
+                fontSize: 10,
+                color: active ? 'rgba(254,252,248,0.65)' : 'var(--ink-tertiary)',
+                marginLeft: 1,
+              }}>{c.n}×{c.n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Help */}
       <button onClick={onHelp} aria-label="도움말" style={{
-        width: 40, height: 40, borderRadius: 999, border: '1px solid var(--border-medium)',
+        width: 32, height: 32, borderRadius: 999, border: '1px solid var(--border-medium)',
         background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--ink-secondary)', fontSize: 18,
+        color: 'var(--ink-secondary)', fontSize: 15, flexShrink: 0,
       }} className="font-display">?</button>
     </div>
   );
 }
 
-function DifficultySelector({ current, onChange, disabled }) {
-  const levels = ['Sprout', 'Easy', 'MediumPlus', 'Medium', 'Hard'];
+// Progress strip — sits just above the grid, integrates subtitle + counters
+function PuzzleMeta({ puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  if (!puzzle) return null;
+  const allPlaced = placedCount === totalTokens;
+  const allGendered = genderedCount === totalTokens;
   return (
-    <div style={{ display: 'flex', gap: 8, padding: '8px 40px 20px', flexWrap: 'wrap' }}>
-      {levels.map(lv => {
-        const c = DIFFICULTY_CONFIGS[lv];
-        const active = current === lv;
-        return (
-          <button key={lv} disabled={disabled} onClick={() => onChange(lv)} style={{
-            border: active ? '1px solid var(--ink-primary)' : '1px solid var(--border-medium)',
-            background: active ? 'var(--ink-primary)' : 'var(--bg-card)',
-            color: active ? 'var(--bg-paper)' : 'var(--ink-secondary)',
-            padding: '10px 16px', borderRadius: 2, cursor: disabled ? 'wait' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 180ms cubic-bezier(0.4,0,0.2,1)',
-            opacity: disabled ? 0.5 : 1,
-          }} className="font-body">
-            <span style={{ fontSize: 16 }}>{c.glyph}</span>
-            <span style={{ fontSize: 13, letterSpacing: '0.02em', fontWeight: 500 }}>{c.label}</span>
-            <span className="font-mono" style={{ fontSize: 11, opacity: 0.65 }}>{c.n}×{c.n}</span>
-          </button>
-        );
-      })}
+    <div style={{
+      padding: '8px clamp(12px, 4vw, 40px) 6px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      gap: 10, flexWrap: 'wrap',
+    }}>
+      {/* Uniqueness badge on the left — the only essential meta */}
+      <UniquenessBadge uniqueness={puzzle.uniqueness} solutionCount={puzzle.solutionCount} />
+      {/* Three-chip progress — each with an icon (not color-only) */}
+      <div className="font-mono" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 2,
+        fontSize: 11, color: 'var(--ink-tertiary)',
+        border: '1px solid var(--border-soft)', borderRadius: 999,
+        padding: '3px 6px', background: 'var(--bg-card)',
+      }}>
+        <ProgressChip icon="▦" label="배치" current={placedCount} total={totalTokens} done={allPlaced} />
+        <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
+        <ProgressChip icon="⚥" label="성별" current={genderedCount} total={totalTokens} done={allGendered} />
+        <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
+        <ProgressChip icon="↔" label="인접" current={adjacencyOk ? '✓' : '—'} total={null} done={adjacencyOk} bad={!adjacencyOk && allPlaced} />
+      </div>
     </div>
   );
 }
+
+function ProgressChip({ icon, label, current, total, done, bad }) {
+  const color = bad ? 'var(--danger)' : (done ? 'var(--accent-gold)' : 'var(--ink-primary)');
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px' }}>
+      <span style={{ color: 'var(--ink-tertiary)', fontSize: 11, fontFamily: 'system-ui' }} aria-hidden>{icon}</span>
+      <span style={{ color: 'var(--ink-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+      <strong style={{ color, fontWeight: 600 }}>
+        {total !== null ? `${current}/${total}` : current}
+      </strong>
+    </span>
+  );
+}
+
+function DifficultySelector(_props) { return null; /* replaced by Header's pill */ }
+
+function StatusBar(_props) { return null; /* replaced by PuzzleMeta (rendered below Header in App) */ }
 
 function UniquenessBadge({ uniqueness, solutionCount }) {
   if (!uniqueness) return null;
@@ -1167,29 +1274,210 @@ function UniquenessBadge({ uniqueness, solutionCount }) {
   );
 }
 
-function StatusBar({ puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
-  if (!puzzle) return null;
-  const config = DIFFICULTY_CONFIGS[puzzle.level] || DIFFICULTY_CONFIGS.Sprout;
-  return (
-    <div style={{ padding: '0 40px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="font-display" style={{ fontStyle: 'italic', fontSize: 17, color: 'var(--ink-secondary)', fontWeight: 400 }}>
-          {config.subtitle}
-        </div>
-        <UniquenessBadge uniqueness={puzzle.uniqueness} solutionCount={puzzle.solutionCount} />
-      </div>
-      <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        <span>배치 <strong style={{ color: placedCount === totalTokens ? 'var(--accent-gold)' : 'var(--ink-primary)' }}>{placedCount}/{totalTokens}</strong></span>
-        <span style={{ margin: '0 10px', color: 'var(--border-medium)' }}>·</span>
-        <span>성별 <strong style={{ color: genderedCount === totalTokens ? 'var(--accent-gold)' : 'var(--ink-primary)' }}>{genderedCount}/{totalTokens}</strong></span>
-        <span style={{ margin: '0 10px', color: 'var(--border-medium)' }}>·</span>
-        <span>인접 <strong style={{ color: adjacencyOk ? 'var(--accent-gold)' : 'var(--danger)' }}>{adjacencyOk ? '✓' : '—'}</strong></span>
-      </div>
-    </div>
+function BadgeTooltip({ show, text, anchorRef }) {
+  // Portal-rendered tooltip anchored via getBoundingClientRect — escapes any
+  // overflow clipping from parent containers and auto-flips when too close
+  // to the viewport top.
+  const [pos, setPos] = useState(null);
+  useEffect(() => {
+    if (!show || !anchorRef || !anchorRef.current) { setPos(null); return; }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const cx = r.left + r.width / 2;
+      const preferredTop = r.top - 8;
+      const flipBelow = preferredTop < 40; // flip to below if too close to top
+      setPos({ cx, top: flipBelow ? r.bottom + 8 : r.top - 8, flip: flipBelow, vw });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [show, anchorRef]);
+
+  if (!show || !pos) return null;
+  // Clamp horizontal position so tooltip stays inside viewport with 8px margin
+  const EDGE = 8;
+  const MAX_TIP_W = Math.min(260, pos.vw - EDGE * 2);
+  // We render as translate(-50%,0); clamp the center coordinate so translated
+  // box fits within [EDGE, vw - EDGE]
+  const halfW = MAX_TIP_W / 2;
+  const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
+  const arrowOffset = pos.cx - clampedCx; // how far the arrow sits from tip center
+
+  return ReactDOM.createPortal(
+    <div role="tooltip" style={{
+      position: 'fixed',
+      left: clampedCx,
+      top: pos.top,
+      zIndex: 1000,
+      background: 'var(--ink-primary)', color: 'var(--bg-paper)',
+      padding: '6px 10px', borderRadius: 4,
+      fontSize: 12, fontWeight: 500, lineHeight: 1.35,
+      letterSpacing: '0.01em',
+      maxWidth: MAX_TIP_W,
+      whiteSpace: 'normal', textAlign: 'center',
+      boxShadow: '0 4px 14px -4px rgba(0,0,0,0.25)',
+      animation: 'badgeTipFade 120ms cubic-bezier(0.4,0,0.2,1)',
+      transform: pos.flip ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+      pointerEvents: 'none',
+    }} className="font-body">
+      {text}
+      <span aria-hidden style={{
+        position: 'absolute',
+        [pos.flip ? 'bottom' : 'top']: '100%',
+        left: `calc(50% + ${arrowOffset}px)`,
+        transform: 'translateX(-50%)',
+        width: 0, height: 0,
+        borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+        ...(pos.flip
+          ? { borderBottom: '5px solid var(--ink-primary)' }
+          : { borderTop: '5px solid var(--ink-primary)' }),
+      }} />
+    </div>,
+    document.body
   );
 }
 
-function LineRuleBadge({ rule, ok }) {
+// ─────────────────────────────────────────────────────────────────
+// Global Tooltip Singleton — only ONE badge tooltip is open at a time.
+// Prevents stale/stacked tooltips when user rapidly taps multiple badges.
+// ─────────────────────────────────────────────────────────────────
+const __tooltipBus = (() => {
+  const listeners = new Set();
+  let activeId = null;
+  let nextId = 1;
+  return {
+    register(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    claim() { return nextId++; },
+    open(id) {
+      activeId = id;
+      listeners.forEach(fn => fn(activeId));
+    },
+    close(id) {
+      if (activeId === id || id == null) {
+        activeId = null;
+        listeners.forEach(fn => fn(activeId));
+      }
+    },
+    getActive() { return activeId; },
+  };
+})();
+
+// Global outside-tap listener — closes any open tooltip when user taps
+// something that isn't a badge. Installed once.
+if (typeof window !== 'undefined' && !window.__badgeTooltipGlobalInstalled) {
+  window.__badgeTooltipGlobalInstalled = true;
+  window.addEventListener('pointerdown', (ev) => {
+    // If the pointer lands on a badge element, that badge's own handler
+    // will claim the tip. Otherwise close whatever is open.
+    if (!(ev.target && ev.target.closest && ev.target.closest('[data-badge-tip="1"]'))) {
+      __tooltipBus.close(null);
+    }
+  }, { capture: true, passive: true });
+}
+
+function useBadgeTooltip() {
+  const [open, setOpen] = useState(false);
+  const idRef = useRef(null);
+  const timerRef = useRef(null);
+  const activePointerRef = useRef(null);
+  const anchorRef = useRef(null);
+  const touchFlowRef = useRef(false);
+
+  if (idRef.current == null) idRef.current = __tooltipBus.claim();
+
+  // Subscribe to bus — close this tip whenever another badge claims the bus
+  useEffect(() => {
+    return __tooltipBus.register((activeId) => {
+      if (activeId !== idRef.current) {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        setOpen(false);
+        activePointerRef.current = null;
+      }
+    });
+  }, []);
+
+  const clearTimer = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
+
+  const hide = useCallback(() => {
+    clearTimer();
+    setOpen(false);
+    activePointerRef.current = null;
+    __tooltipBus.close(idRef.current);
+    setTimeout(() => { touchFlowRef.current = false; }, 400);
+  }, []);
+
+  // Mouse hover path
+  const show = useCallback(() => {
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    setOpen(true);
+  }, []);
+
+  // Click / keyboard path — auto-dismiss. Bail if a touch flow is active.
+  const showTimed = useCallback(() => {
+    if (touchFlowRef.current) return;
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    setOpen(true);
+    timerRef.current = setTimeout(() => {
+      setOpen(false);
+      __tooltipBus.close(idRef.current);
+    }, 2500);
+  }, []);
+
+  // Touch path — opens on pointerdown, closes on up/cancel OR when finger
+  // moves outside the anchor's bounding rect.
+  const beginTouch = useCallback((e, el) => {
+    anchorRef.current = el;
+    activePointerRef.current = e.pointerId;
+    touchFlowRef.current = true;
+    try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    setOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open || activePointerRef.current == null) return;
+
+    const onMove = (ev) => {
+      if (ev.pointerId !== activePointerRef.current) return;
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const inside = ev.clientX >= r.left && ev.clientX <= r.right
+                   && ev.clientY >= r.top  && ev.clientY <= r.bottom;
+      if (!inside) hide();
+    };
+    const onEnd = (ev) => {
+      if (ev.pointerId !== activePointerRef.current) return;
+      hide();
+    };
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerup', onEnd, { passive: true });
+    window.addEventListener('pointercancel', onEnd, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+    };
+  }, [open, hide]);
+
+  useEffect(() => () => clearTimer(), []);
+  return { open, show, hide, showTimed, beginTouch };
+}
+
+function LineRuleBadge({ rule, ok, compact, iconOnly }) {
   let icon, label;
   if (rule.dim === 'gender') {
     icon = rule.val === 'male' ? '♂' : '♀';
@@ -1198,36 +1486,104 @@ function LineRuleBadge({ rule, ok }) {
     icon = ATTR_ICON[rule.val] || '•';
     label = VALUE_LABEL[rule.val] || rule.val;
   }
-  const color = ok ? 'var(--accent-gold)' : 'var(--ink-secondary)';
-  const bg = ok ? 'var(--success-soft)' : 'var(--bg-card)';
-  const border = ok ? '1px solid var(--accent-gold)' : '1px solid var(--border-soft)';
+  const tip = useBadgeTooltip();
+  const anchorRef = useRef(null);
+  const tipText = rule.dim === 'gender'
+    ? `이 라인은 전부 ${label}`
+    : `이 라인은 전부 ${label}`;
+  // Legibility-first: solid surfaces in both states, confident type sizes.
+  const size = iconOnly ? 30 : (compact ? 34 : 38);
+  const styleMap = ok
+    ? { bg: 'rgba(217, 119, 6, 0.14)', border: '1px solid rgba(217, 119, 6, 0.65)', color: 'var(--accent-gold)', iconColor: 'var(--accent-gold)', weight: 600 }
+    : { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-secondary)', iconColor: 'var(--ink-primary)', weight: 500 };
   return (
-    <div title={`이 라인의 모든 동물은 ${label}`} style={{
-      minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      gap: 4, background: bg, border, borderRadius: 2, color,
-      padding: '2px 8px', transition: 'all 220ms cubic-bezier(0.4,0,0.2,1)',
-      fontSize: 14, position: 'relative',
-    }} className="font-mono">
-      <span style={{ fontSize: 16, fontFamily: rule.dim === 'gender' ? "'Fraunces', serif" : 'inherit' }}>{icon}</span>
-      <span style={{ fontSize: 10, letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>{label}</span>
-      {ok && <span style={{ position: 'absolute', top: -5, right: -5, width: 12, height: 12, borderRadius: 999, background: 'var(--accent-gold)', color: 'var(--bg-card)', fontSize: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>}
+    <div
+      ref={anchorRef}
+      data-badge-tip="1"
+      role="button" tabIndex={0}
+      aria-label={`라인 제약: ${tipText}${ok ? ' (충족)' : ''}`}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
+      onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
+      onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
+      style={{
+        width: size, height: size,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: styleMap.bg, border: styleMap.border, borderRadius: 4,
+        color: styleMap.color,
+        transition: 'all 220ms cubic-bezier(0.4,0,0.2,1)',
+        position: 'relative', flexShrink: 0,
+        boxShadow: ok ? '0 0 0 2px rgba(217, 119, 6, 0.08)' : 'none',
+        cursor: 'help',
+      }}>
+      <span style={{
+        fontSize: iconOnly ? 17 : (compact ? 19 : 21),
+        fontFamily: rule.dim === 'gender' ? "'Fraunces', serif" : 'inherit',
+        fontWeight: styleMap.weight,
+        color: styleMap.iconColor,
+        lineHeight: 1,
+        display: 'block',
+      }} aria-hidden>{icon}</span>
+      <BadgeTooltip show={tip.open} text={tipText} anchorRef={anchorRef} />
     </div>
   );
 }
 
-function CountHintBadge({ hint, currentValue, ok, over }) {
-  const icon = hint.type === 'total' ? '#' : (hint.type === 'H1' ? '♂' : '♀');
-  const color = over ? 'var(--danger)' : (ok ? 'var(--accent-gold)' : 'var(--ink-secondary)');
-  const bg = ok ? 'var(--success-soft)' : 'var(--bg-card)';
-  const border = over ? '1px solid var(--danger)' : (ok ? '1px solid var(--accent-gold)' : '1px solid var(--border-soft)');
+function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly }) {
+  const kind = hint.type === 'total' ? '' : (hint.type === 'H1' ? '♂' : '♀');
+  const size = iconOnly ? 30 : (compact ? 34 : 38);
+  const kindLabel = hint.type === 'total' ? '전체' : hint.type === 'H1' ? '수컷' : '암컷';
+  const tip = useBadgeTooltip();
+  const anchorRef = useRef(null);
+  const tipText = `이 라인에 ${kindLabel} ${hint.value}마리${over ? ' · 초과' : ok ? ' · 충족' : ''}`;
+  const state = over ? 'over' : (ok ? 'ok' : 'idle');
+  const styleMap = {
+    over: { bg: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(220, 38, 38, 0.65)', color: 'var(--danger)', weight: 700, shadow: '0 0 0 2px rgba(220, 38, 38, 0.08)' },
+    ok:   { bg: 'rgba(217, 119, 6, 0.14)', border: '1px solid rgba(217, 119, 6, 0.65)', color: 'var(--accent-gold)', weight: 700, shadow: '0 0 0 2px rgba(217, 119, 6, 0.08)' },
+    idle: { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-primary)', weight: 600, shadow: 'none' },
+  }[state];
   return (
-    <div title={`${hint.type === 'total' ? '총' : hint.type === 'H1' ? '수컷' : '암컷'} ${hint.value}마리`} style={{
-      minWidth: 40, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-      background: bg, border, borderRadius: 2, color, padding: '0 7px',
-      fontSize: 14, transition: 'all 220ms', position: 'relative',
-    }} className="font-mono">
-      <span style={{ fontSize: 14, fontFamily: "'Fraunces', serif", fontWeight: 500 }}>{icon}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: 13 }}>{hint.value}</span>
+    <div
+      ref={anchorRef}
+      data-badge-tip="1"
+      role="button" tabIndex={0}
+      aria-label={`${kindLabel} ${hint.value}마리${ok ? ' (충족)' : over ? ' (초과)' : ''}`}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
+      onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
+      onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
+      style={{
+        minWidth: size, height: size,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
+        background: styleMap.bg, border: styleMap.border, borderRadius: 4,
+        color: styleMap.color,
+        padding: '0 6px',
+        transition: 'all 220ms', position: 'relative', flexShrink: 0,
+        boxShadow: styleMap.shadow,
+        lineHeight: 1,
+        cursor: 'help',
+      }}>
+        <span className="font-mono" style={{
+          fontSize: iconOnly ? 15 : (compact ? 16 : 18),
+          fontWeight: styleMap.weight, lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+          display: 'block',
+        }}>{hint.value}</span>
+        {kind && (
+          <span style={{
+            fontFamily: "'Fraunces', serif",
+            fontSize: iconOnly ? 12 : (compact ? 13 : 14),
+            fontWeight: styleMap.weight,
+            lineHeight: 1,
+            opacity: 0.9,
+            display: 'block',
+            position: 'relative',
+            top: -1,
+          }} aria-hidden>{kind}</span>
+        )}
+      <BadgeTooltip show={tip.open} text={tipText} anchorRef={anchorRef} />
     </div>
   );
 }
@@ -1238,53 +1594,194 @@ function animalImgSrc(animalId, gender) {
   return `${IMAGE_BASE_URL}/${num}.webp`;
 }
 
-function AttributeOverlay({ animal, cellSize }) {
+function AttributeOverlay({ animal, cellSize, anchorRef }) {
+  // On very narrow mobile viewports (< 420px), render as a portal-based
+  // floating popover above/below the tile — the cell is too small to fit
+  // the full name without clipping. On wider viewports, fall back to the
+  // original inset overlay which sits inside the cell.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 420
+  );
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 420);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  if (isNarrow) return <AttributeOverlayFloating animal={animal} anchorRef={anchorRef} />;
+  return <AttributeOverlayInset animal={animal} cellSize={cellSize} />;
+}
+
+function AttributeOverlayFloating({ animal, anchorRef }) {
+  // Portal-rendered floating popover — positioned above the tile with
+  // automatic flip to below when near the top edge. Escapes cell overflow
+  // clipping so the animal name never gets cut off on narrow mobile.
+  const [pos, setPos] = useState(null);
+  useEffect(() => {
+    if (!anchorRef || !anchorRef.current) { setPos(null); return; }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const cx = r.left + r.width / 2;
+      const spaceAbove = r.top;
+      const spaceBelow = vh - r.bottom;
+      const flipBelow = spaceAbove < 90 && spaceBelow > spaceAbove;
+      setPos({ cx, top: flipBelow ? r.bottom + 6 : r.top - 6, flip: flipBelow, vw });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [anchorRef]);
+
+  if (!pos) return null;
+  const EDGE = 8;
+  const MAX_W = Math.min(200, pos.vw - EDGE * 2);
+  const halfW = MAX_W / 2;
+  const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
+  const arrowOffset = pos.cx - clampedCx;
+
+  return ReactDOM.createPortal(
+    <div style={{
+      position: 'fixed',
+      left: clampedCx, top: pos.top,
+      transform: pos.flip ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+      zIndex: 1000, pointerEvents: 'none',
+      minWidth: 120, maxWidth: MAX_W,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg-paper)',
+      border: '1px solid var(--border-medium)',
+      borderRadius: 6, padding: '8px 10px',
+      boxShadow: '0 8px 24px -6px rgba(0,0,0,0.25)',
+      animation: 'badgeTipFade 160ms cubic-bezier(0.4,0,0.2,1)',
+    }} className="font-body">
+      <div className="font-display" style={{
+        fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)',
+        marginBottom: 6, letterSpacing: '-0.01em',
+        textAlign: 'center', lineHeight: 1.2,
+        maxWidth: '100%',
+      }}>{animal.name}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch', width: '100%' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '3px 6px', borderRadius: 3,
+          background: HABITAT_TINT[animal.habitat],
+          border: '1px solid var(--border-soft)',
+          fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1.2,
+          justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.habitat]}</span>
+          <span>{animal.habitat}</span>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '3px 6px', borderRadius: 3,
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-soft)',
+          fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1.2,
+          justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.diet]}</span>
+          <span>{animal.diet}</span>
+        </div>
+      </div>
+      <span aria-hidden style={{
+        position: 'absolute',
+        [pos.flip ? 'bottom' : 'top']: '100%',
+        left: `calc(50% + ${arrowOffset}px)`,
+        transform: 'translateX(-50%)',
+        width: 0, height: 0,
+        borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+        ...(pos.flip
+          ? { borderBottom: '6px solid var(--border-medium)' }
+          : { borderTop: '6px solid var(--border-medium)' }),
+      }} />
+    </div>,
+    document.body
+  );
+}
+
+function AttributeOverlayInset({ animal, cellSize }) {
+  // Original in-cell overlay — shrinks type to fit small cells.
+  const tiny = cellSize < 52;
+  const nameSize = tiny ? Math.max(9, cellSize * 0.18) : Math.max(11, cellSize * 0.17);
+  const chipText = tiny ? Math.max(8, cellSize * 0.14) : Math.max(9, cellSize * 0.13);
+  const chipIcon = tiny ? Math.max(9, cellSize * 0.15) : Math.max(10, cellSize * 0.15);
   return (
     <div style={{
       position: 'absolute', inset: 0, pointerEvents: 'none',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(255, 253, 247, 0.92)', backdropFilter: 'blur(2px)',
-      borderRadius: 4, zIndex: 10, padding: 4,
+      background: 'rgba(255, 253, 247, 0.94)', backdropFilter: 'blur(2px)',
+      borderRadius: 4, zIndex: 10, padding: 2, overflow: 'hidden',
       animation: 'fadeInUp 180ms cubic-bezier(0.4,0,0.2,1)',
     }} className="font-body">
       <div className="font-display" style={{
-        fontSize: Math.max(10, cellSize * 0.16),
+        fontSize: nameSize,
         fontWeight: 600,
         color: 'var(--ink-primary)',
         marginBottom: 2,
         letterSpacing: '-0.01em',
         textAlign: 'center', lineHeight: 1,
+        maxWidth: '100%',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{animal.name}</div>
-      <div style={{
-        display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
-        marginTop: 4,
-      }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          padding: '2px 6px', borderRadius: 2,
-          background: HABITAT_TINT[animal.habitat],
-          border: '1px solid var(--border-soft)',
-          fontSize: Math.max(9, cellSize * 0.13), color: 'var(--ink-primary)', fontWeight: 500,
-        }}>
-          <span style={{ fontSize: Math.max(10, cellSize * 0.15) }}>{ATTR_ICON[animal.habitat]}</span>
-          <span>{animal.habitat}</span>
+      {tiny ? (
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginTop: 3 }}>
+          <span title={animal.habitat} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2px 4px', borderRadius: 2,
+            background: HABITAT_TINT[animal.habitat],
+            border: '1px solid var(--border-soft)',
+            fontSize: chipIcon, lineHeight: 1,
+          }}>{ATTR_ICON[animal.habitat]}</span>
+          <span title={animal.diet} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2px 4px', borderRadius: 2,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-soft)',
+            fontSize: chipIcon, lineHeight: 1,
+          }}>{ATTR_ICON[animal.diet]}</span>
         </div>
+      ) : (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          padding: '2px 6px', borderRadius: 2,
-          background: 'var(--bg-subtle)',
-          border: '1px solid var(--border-soft)',
-          fontSize: Math.max(9, cellSize * 0.13), color: 'var(--ink-primary)', fontWeight: 500,
+          display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
+          marginTop: 4, maxWidth: '100%',
         }}>
-          <span style={{ fontSize: Math.max(10, cellSize * 0.15) }}>{ATTR_ICON[animal.diet]}</span>
-          <span>{animal.diet}</span>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '2px 5px', borderRadius: 2,
+            background: HABITAT_TINT[animal.habitat],
+            border: '1px solid var(--border-soft)',
+            fontSize: chipText, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+            maxWidth: '100%', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.habitat]}</span>
+            <span>{animal.habitat}</span>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '2px 5px', borderRadius: 2,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-soft)',
+            fontSize: chipText, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+            maxWidth: '100%', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.diet]}</span>
+            <span>{animal.diet}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError }) {
+function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError, isSelected, isDraggingThis }) {
   const sym = gender === 'male' ? '♂' : gender === 'female' ? '♀' : '?';
   const symColor = gender === 'male' ? '#1E3A8A' : gender === 'female' ? '#9D174D' : 'var(--ink-tertiary)';
   const undecided = !gender;
@@ -1333,12 +1830,18 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
     cancelPress();
     const duration = pressStartRef.current ? Date.now() - pressStartRef.current : 0;
     pressStartRef.current = null;
-    // Only trigger click if press was short (normal click, not long-press)
-    if (duration < LONG_PRESS_MS && !longPressed) {
+    // Only trigger click if press was short (normal click, not long-press) AND no drag occurred
+    if (duration < LONG_PRESS_MS && !longPressed && !draggedRef.current) {
       if (onClick) onClick(e);
     }
+    draggedRef.current = false;
     setLongPressed(false);
   }, [onClick, longPressed, cancelPress]);
+
+  // Track whether pointer movement since pointerdown exceeded drag threshold
+  const draggedRef = useRef(false);
+  const pressStartXY = useRef({ x: 0, y: 0 });
+  const DRAG_SUPPRESS_PX = 6;
 
   useEffect(() => {
     return () => {
@@ -1348,34 +1851,55 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
   }, []);
 
   const showOverlay = hoverActive || longPressed;
+  const tileRef = useRef(null);
 
   return (
     <div
-      draggable={!isFixed}
-      onDragStart={(e) => {
-        cancelPress();
+      ref={tileRef}
+      onPointerDown={(e) => {
+        draggedRef.current = false;
+        pressStartXY.current = { x: e.clientX, y: e.clientY };
+        if (onDragStart) onDragStart(e); // parent begins pointer drag
+        startPress();
         cancelHover();
-        setLongPressed(false);
-        if (onDragStart) onDragStart(e);
+      }}
+      onPointerMove={(e) => {
+        if (draggedRef.current) return;
+        const dx = e.clientX - pressStartXY.current.x;
+        const dy = e.clientY - pressStartXY.current.y;
+        if (Math.hypot(dx, dy) > DRAG_SUPPRESS_PX) {
+          draggedRef.current = true;
+          cancelPress();
+          setLongPressed(false);
+        }
       }}
       onMouseEnter={startHover}
       onMouseLeave={() => { cancelHover(); cancelPress(); setLongPressed(false); }}
-      onMouseDown={() => { cancelHover(); startPress(); }}
-      onMouseUp={endPress}
-      onTouchStart={startPress}
-      onTouchEnd={endPress}
-      onTouchCancel={() => { cancelPress(); setLongPressed(false); }}
+      onPointerUp={endPress}
+      onPointerCancel={() => { cancelPress(); setLongPressed(false); draggedRef.current = false; }}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
       role="button"
+      tabIndex={0}
+      aria-label={`${animal.name}${gender ? ` ${gender === 'male' ? '수컷' : '암컷'}` : ' 성별 미정'}${isFixed ? ' (고정)' : ''}${isAdjacentToPartner === false ? ' — 짝과 인접하지 않음' : ''}`}
       style={{
         width: cellSize, height: cellSize, borderRadius: 4,
-        background: 'var(--bg-card)',
-        border: adjacencyBorder || (isRecent ? '1.5px solid var(--ink-primary)' : '1px solid var(--border-soft)'),
-        boxShadow: isPartnerPulse ? '0 0 0 4px rgba(180,83,9,0.22)' : '0 1px 2px rgba(0,0,0,0.04)',
-        cursor: isFixed ? 'pointer' : 'grab',
+        background: isFixed ? 'var(--bg-fixed)' : 'var(--bg-card)',
+        border: isSelected
+          ? '2px solid var(--accent-gold)'
+          : (isAdjacentToPartner === false ? '1.5px dashed var(--danger)' : (isRecent ? '1.5px solid var(--ink-primary)' : '1px solid var(--border-soft)')),
+        boxShadow: isSelected ? '0 0 0 3px rgba(180,83,9,0.25)' : (isPartnerPulse ? '0 0 0 4px rgba(180,83,9,0.22)' : '0 1px 2px rgba(0,0,0,0.04)'),
+        cursor: isFixed ? 'default' : 'grab',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         position: 'relative', overflow: 'hidden', userSelect: 'none',
         transition: 'box-shadow 300ms, border 180ms',
         animation: isRecent ? 'cellResolve 320ms cubic-bezier(0.4,0,0.2,1)' : 'none',
+        opacity: isDraggingThis ? 0.35 : 1,
+        touchAction: 'none',
       }}
     >
       <div style={{ position: 'absolute', inset: 0, background: tint, opacity: 0.22, pointerEvents: 'none' }} />
@@ -1403,9 +1927,27 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
         }}>{sym}</div>
       )}
       {isFixed && !showOverlay && (
-        <div title="고정 타일" style={{ position: 'absolute', top: 3, left: 4, width: 7, height: 7, borderRadius: 999, background: 'var(--accent-gold)' }} />
+        <>
+          {/* Diagonal hatch texture to signal "immutable" without color */}
+          <svg aria-hidden width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.07 }}>
+            <defs>
+              <pattern id={`fixedHatch-${token.id}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="6" stroke="#78716C" strokeWidth="1.2" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#fixedHatch-${token.id})`} />
+          </svg>
+          {/* Corner lock glyph — neutral, not gold */}
+          <div title="고정 타일 (변경 불가)" aria-hidden style={{
+            position: 'absolute', top: 3, left: 3,
+            width: 13, height: 13, borderRadius: 2,
+            background: 'rgba(255,255,255,0.9)', border: '1px solid var(--border-medium)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 9, color: 'var(--ink-tertiary)', lineHeight: 1,
+          }}>⌾</div>
+        </>
       )}
-      {showOverlay && <AttributeOverlay animal={animal} cellSize={cellSize} />}
+      {showOverlay && <AttributeOverlay animal={animal} cellSize={cellSize} anchorRef={tileRef} />}
     </div>
   );
 }
@@ -1520,7 +2062,7 @@ function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
   );
 }
 
-function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onDragOver, onDragLeave, onDrop, onClick }) {
+function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onClick }) {
   const isX = markState === 'X';
   const isQ = markState === 'Q';
 
@@ -1538,7 +2080,8 @@ function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapac
 
   return (
     <div
-      onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={onClick}
+      data-drop-cell={`${row},${col}`}
+      onClick={onClick}
       role="button"
       style={{
         width: size, height: size, background: bg, borderRadius: 4, border,
@@ -1574,14 +2117,227 @@ function PairAdjacencyLine({ from, to, cellSize, gap, valid }) {
   );
 }
 
+function useViewportWidth() {
+  const [w, setW] = React.useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  React.useEffect(() => {
+    const onR = () => setW(window.innerWidth);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  return w;
+}
+
+// ============================================================================
+// UNIFIED POINTER DRAG SYSTEM (mouse + touch + pen)
+// Replaces HTML5 Drag & Drop API, which does not work on mobile touch.
+//
+// Model:
+//   - Any tile (hand or placed) becomes a drag source via onPointerDown on it.
+//   - A drag doesn't "commit" until pointer moves more than DRAG_THRESHOLD px.
+//     Before threshold, releasing counts as a TAP (selects the tile).
+//   - Drop targets are identified by data-drop-cell="r,c" or data-drop-hand="1".
+//     On pointermove we use elementFromPoint to find them.
+//   - Selected tile (via tap) can be placed by tapping a valid target.
+//
+// Exposes: DragProvider (wraps app), useDrag() -> { startPointerDrag,
+//   selectedTokenId, selectTile, clearSelection, draggingTokenId,
+//   ghostStyle, overTarget }
+// ============================================================================
+
+const DragContext = React.createContext(null);
+
+function DragProvider({ children, onPlace, onReturnToHand, onTapTile, onSelectionChange }) {
+  const [draggingTokenId, setDraggingTokenId] = useState(null);
+  const [selectedTokenId, setSelectedTokenIdRaw] = useState(null);
+  const selectedRef = useRef(null);
+  const setSelectedTokenId = useCallback((id) => {
+    selectedRef.current = id;
+    setSelectedTokenIdRaw(id);
+    if (onSelectionChange) onSelectionChange(id);
+  }, [onSelectionChange]);
+  const [overTarget, setOverTarget] = useState(null);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
+  const [ghostVisible, setGhostVisible] = useState(false);
+  const [ghostToken, setGhostToken] = useState(null); // { animalId, gender }
+
+  // refs carry live state inside move/up handlers
+  const stateRef = useRef({
+    pointerId: null,
+    tokenId: null,
+    gender: null,
+    startX: 0, startY: 0,
+    moved: false,
+    source: null, // 'hand' | 'board'
+  });
+  const DRAG_THRESHOLD = 6; // px
+
+  const clearGhost = useCallback(() => {
+    setGhostVisible(false);
+    setGhostToken(null);
+    setDraggingTokenId(null);
+    setOverTarget(null);
+  }, []);
+
+  // Begin a pointer interaction on a tile. Does NOT start a drag yet — waits for threshold.
+  const beginPointerPress = useCallback((e, { tokenId, gender, source, animalId }) => {
+    // Ignore non-primary pointer buttons for mouse
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const s = stateRef.current;
+    s.pointerId = e.pointerId;
+    s.tokenId = tokenId;
+    s.gender = gender;
+    s.animalId = animalId;
+    s.startX = e.clientX;
+    s.startY = e.clientY;
+    s.moved = false;
+    s.source = source;
+    // Capture pointer so moves keep coming even if finger leaves element
+    try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    // Don't preventDefault yet — preserve taps / scrolls until threshold
+  }, []);
+
+  // Global pointermove + pointerup listeners
+  useEffect(() => {
+    function findDropTarget(x, y) {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const cell = el.closest && el.closest('[data-drop-cell]');
+      if (cell) {
+        const [r, c] = cell.getAttribute('data-drop-cell').split(',').map(Number);
+        return { kind: 'cell', row: r, col: c, key: `cell:${r},${c}` };
+      }
+      const hand = el.closest && el.closest('[data-drop-hand]');
+      if (hand) return { kind: 'hand', key: 'hand' };
+      return null;
+    }
+
+    function onMove(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      const dx = e.clientX - s.startX;
+      const dy = e.clientY - s.startY;
+      if (!s.moved) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        // Threshold crossed — start drag
+        s.moved = true;
+        setDraggingTokenId(s.tokenId);
+        setSelectedTokenId(null); // dragging supersedes tap-selection
+        setGhostToken({ animalId: s.animalId, gender: s.gender });
+        setGhostVisible(true);
+      }
+      setGhostPos({ x: e.clientX, y: e.clientY });
+      const tgt = findDropTarget(e.clientX, e.clientY);
+      setOverTarget(tgt);
+      // Prevent page scroll while dragging on touch
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function onUp(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      const { tokenId, moved, source } = s;
+      s.pointerId = null;
+
+      if (!moved) {
+        // TAP — decide: select, deselect, toggle, or place/return-to-hand.
+        // If another tile was already selected AND this tap is on a different
+        // tile, treat it as "switch selection" (don't trigger place).
+        const prevSelected = selectedRef.current;
+        if (source === 'hand') {
+          // Hand tap → select / deselect
+          if (prevSelected === tokenId) setSelectedTokenId(null);
+          else setSelectedTokenId(tokenId);
+        } else {
+          // Board tap
+          if (prevSelected && prevSelected !== tokenId) {
+            // Switch selection to this tile
+            setSelectedTokenId(tokenId);
+          } else if (prevSelected === tokenId) {
+            // Tap same tile → deselect + toggle mark
+            setSelectedTokenId(null);
+            if (onTapTile) onTapTile({ tokenId, source });
+          } else {
+            // Nothing selected → toggle gender mark
+            if (onTapTile) onTapTile({ tokenId, source });
+          }
+        }
+        return;
+      }
+
+      // Drag ended — resolve drop. Clear any tap-selection.
+      setSelectedTokenId(null);
+      const tgt = findDropTarget(e.clientX, e.clientY);
+      clearGhost();
+      if (!tgt) return; // dropped on nothing — cancel
+      if (tgt.kind === 'cell') {
+        if (onPlace) onPlace({ tokenId, row: tgt.row, col: tgt.col });
+      } else if (tgt.kind === 'hand') {
+        if (source === 'board' && onReturnToHand) onReturnToHand({ tokenId });
+      }
+    }
+
+    function onCancel(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      s.pointerId = null;
+      clearGhost();
+    }
+
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+    };
+  }, [onPlace, onReturnToHand, onTapTile, clearGhost]);
+
+  const ctx = useMemo(() => ({
+    beginPointerPress,
+    selectedTokenId, setSelectedTokenId,
+    draggingTokenId, overTarget,
+    ghostVisible, ghostPos, ghostToken,
+  }), [beginPointerPress, selectedTokenId, draggingTokenId, overTarget, ghostVisible, ghostPos, ghostToken]);
+
+  return (
+    <DragContext.Provider value={ctx}>
+      {children}
+      {ghostVisible && ghostToken && (
+        <div style={{
+          position: 'fixed', left: 0, top: 0,
+          transform: `translate(${ghostPos.x - 30}px, ${ghostPos.y - 30}px) scale(1.05)`,
+          width: 60, height: 60, pointerEvents: 'none', zIndex: 9999,
+          background: 'var(--bg-card)', border: '1.5px solid var(--accent-gold)', borderRadius: 4,
+          boxShadow: '0 8px 24px -6px rgba(0,0,0,0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          transition: 'transform 60ms linear',
+        }}>
+          <img src={animalImgSrc(ghostToken.animalId, ghostToken.gender)}
+               alt="" draggable={false}
+               style={{ width: '82%', height: '82%', objectFit: 'contain' }} />
+        </div>
+      )}
+    </DragContext.Provider>
+  );
+}
+
+function useDrag() {
+  const ctx = React.useContext(DragContext);
+  if (!ctx) throw new Error('useDrag must be used within DragProvider');
+  return ctx;
+}
+
 function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState }) {
+  const drag = useDrag();
   const n = puzzle.n;
-  const maxBoard = 560;
-  const cellSize = Math.floor(Math.min(maxBoard / n, 86));
-  const gap = 6;
-  const boardPad = 20;
-  const rowHintWidth = 140;
-  const colHintHeight = 108;
+  const vw = useViewportWidth();
+  const isMobile = vw < 640;
+  const isTiny = vw < 400;
+  // outer page padding applied at container level (via CSS var below). Compute remaining width.
+  const pagePad = isMobile ? 12 : 40;
+  const boardPad = isMobile ? 10 : 20;
+  const gap = isMobile ? 3 : 6;
 
   const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
   const placedMap = {};
@@ -1599,6 +2355,30 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     if (h.row !== null) (rowCountHints[h.row] = rowCountHints[h.row] || []).push(h);
     else (colCountHints[h.col] = colCountHints[h.col] || []).push(h);
   }
+
+  // Compute max badges per row / col so the hint gutter is sized to fit without wrapping
+  let maxRowBadges = 1, maxColBadges = 1;
+  for (let i = 0; i < n; i++) {
+    const rb = (rowRules[i] || []).length + (rowCountHints[i] || []).length;
+    const cb = (colRules[i] || []).length + (colCountHints[i] || []).length;
+    if (rb > maxRowBadges) maxRowBadges = rb;
+    if (cb > maxColBadges) maxColBadges = cb;
+  }
+
+  // Responsive badge sizing — compact on mobile, icon-only on tiny
+  const compact = isMobile;
+  const iconOnly = isTiny;
+  // Badge heights match the redesigned LineRule/CountHint: iconOnly=30, compact=34, default=38
+  const badgeH = iconOnly ? 30 : (compact ? 34 : 38);
+  // Badge widths mirror the minWidth values in the badge components
+  const rowBadgeW = iconOnly ? 32 : (compact ? 38 : 44);
+  const hintGap = isMobile ? 3 : 4;
+  const rowHintWidth = rowBadgeW * maxRowBadges + hintGap * Math.max(0, maxRowBadges - 1) + 8;
+  const colHintHeight = badgeH * maxColBadges + hintGap * Math.max(0, maxColBadges - 1) + 8;
+
+  const availableW = vw - pagePad * 2 - boardPad * 2 - rowHintWidth - gap;
+  const maxCell = isMobile ? 64 : 86;
+  const cellSize = Math.max(28, Math.floor(Math.min((availableW - (n - 1) * gap) / n, maxCell)));
 
   // Evaluate rules & counts runtime
   const ruleOk = {};
@@ -1628,6 +2408,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     const key = `${r},${c}`;
     if (forbiddenSet.has(key)) return <ForbiddenCell size={cellSize} />;
     const tid = placedMap[key];
+    const isDropTarget = drag.overTarget && drag.overTarget.kind === 'cell' && drag.overTarget.row === r && drag.overTarget.col === c;
     if (tid) {
       const tok = puzzle.tokens.find(t => t.id === tid);
       const animal = animalById(tok.animalId);
@@ -1635,15 +2416,13 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
       const isPartnerPulse = partnerTokenId === tok.id;
       const isFixed = !!(puzzle.preMarks && puzzle.preMarks[tok.id]);
       const adj = pairAdj[tok.id];
-      const isDropTarget = dragState.over === key;
-      // Q-mark overlay applies even on tiles that have been placed on Q-marked cells
       const cellIsQ = cellMarks && cellMarks[key] === 'Q';
       const cellQCands = cellIsQ && qCandidates ? qCandidates[key] : undefined;
+      const isSelected = drag.selectedTokenId === tok.id;
+      const isDraggingThis = drag.draggingTokenId === tok.id;
       return (
         <div
-          onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
-          onDragLeave={() => onCellDrop('leave', r, c)}
-          onDrop={(e) => { e.preventDefault(); onCellDrop('drop', r, c); }}
+          data-drop-cell={`${r},${c}`}
           style={{
             animation: winAnimating ? `celebrationWave 700ms cubic-bezier(0.4,0,0.2,1) ${idx * 55}ms both` : 'none',
             position: 'relative',
@@ -1655,10 +2434,20 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
           <PlacedTile
             token={tok} animal={animal} gender={marks[tok.id] || null}
             onClick={() => onCellClick(tok.id)}
-            onDragStart={(e) => onTokenDragStart(e, tok.id)}
+            onDragStart={(e) => {
+              if (isFixed) return;
+              drag.beginPointerPress(e, {
+                tokenId: tok.id,
+                gender: marks[tok.id] || 'male',
+                animalId: tok.animalId,
+                source: 'board',
+              });
+            }}
             isRecent={isRecent} isPartnerPulse={isPartnerPulse}
             isFixed={isFixed} cellSize={cellSize}
             isAdjacentToPartner={adj}
+            isSelected={isSelected}
+            isDraggingThis={isDraggingThis}
           />
           {cellIsQ && (
             <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} />
@@ -1666,7 +2455,6 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         </div>
       );
     }
-    const isDropTarget = dragState.over === key;
     const markState = cellMarks ? cellMarks[key] : undefined;
     const qCands = qCandidates ? qCandidates[key] : undefined;
     return (
@@ -1676,9 +2464,6 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         markState={markState}
         qCandidates={qCands}
         qCapacity={qMarkCapacity}
-        onDragOver={(e) => { e.preventDefault(); onCellDrop('over', r, c); }}
-        onDragLeave={() => onCellDrop('leave', r, c)}
-        onDrop={(e) => { e.preventDefault(); onCellDrop('drop', r, c); }}
         onClick={() => onEmptyCellClick && onEmptyCellClick(r, c)}
       />
     );
@@ -1688,7 +2473,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const colsArr = Array.from({ length: n }, (_, i) => i);
 
   return (
-    <div style={{ padding: '4px 40px 20px', display: 'flex', justifyContent: 'center' }}>
+    <div style={{ padding: '4px clamp(6px, 2vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
       <div style={{
         position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
         border: '1px solid var(--border-soft)', borderRadius: 3,
@@ -1697,24 +2482,24 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         {/* Column headers */}
         <div style={{ display: 'flex', gap, marginBottom: gap, paddingLeft: rowHintWidth + gap, minHeight: colHintHeight }}>
           {colsArr.map(c => (
-            <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+            <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap' }}>
               {(colRules[c] || []).map(r => (
-                <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} />
+                <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} compact={compact} iconOnly={iconOnly} />
               ))}
               {(colCountHints[c] || []).map(h => (
-                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} />
+                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} />
               ))}
             </div>
           ))}
         </div>
         {rowsArr.map(r => (
           <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
-            <div style={{ width: rowHintWidth, minHeight: cellSize, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3, paddingRight: 4, flexWrap: 'wrap' }}>
+            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, paddingRight: 4, flexWrap: 'nowrap', overflow: 'visible' }}>
               {(rowRules[r] || []).map(rr => (
-                <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} />
+                <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} compact={compact} iconOnly={iconOnly} />
               ))}
               {(rowCountHints[r] || []).map(h => (
-                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} />
+                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} />
               ))}
             </div>
             {colsArr.map(c => (<div key={c}>{cellContent(r, c, r * n + c)}</div>))}
@@ -1744,22 +2529,27 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   );
 }
 
-function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, dragState }) {
+function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, dragState, onHandTapReturn }) {
+  const drag = useDrag();
   if (!puzzle) return null;
   const unplaced = puzzle.tokens.filter(t => !placements[t.id]);
   const groups = {};
   for (const t of unplaced) { (groups[t.animalId] = groups[t.animalId] || []).push(t); }
   const entries = Object.entries(groups);
 
+  const overHand = drag.overTarget && drag.overTarget.kind === 'hand';
+
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); onDropToHand('over'); }}
-      onDragLeave={() => onDropToHand('leave')}
-      onDrop={(e) => { e.preventDefault(); onDropToHand('drop'); }}
+      data-drop-hand="1"
+      onClick={(e) => {
+        // Only handle bare-hand taps (not clicks on child tiles which fire their own)
+        if (e.target === e.currentTarget && onHandTapReturn) onHandTapReturn();
+      }}
       style={{
-        margin: '0 40px 20px', padding: '18px 20px', minHeight: 100,
-        background: dragState.overHand ? 'rgba(180,83,9,0.05)' : 'var(--bg-subtle)',
-        border: dragState.overHand ? '1px dashed var(--accent-gold)' : '1px solid var(--border-soft)',
+        margin: '0 clamp(12px, 4vw, 40px) 20px', padding: 'clamp(12px, 3vw, 18px) clamp(12px, 3vw, 20px)', minHeight: 100,
+        background: overHand ? 'rgba(180,83,9,0.05)' : 'var(--bg-subtle)',
+        border: overHand ? '1px dashed var(--accent-gold)' : '1px solid var(--border-soft)',
         borderRadius: 3, transition: 'all 160ms',
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
@@ -1806,16 +2596,29 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                     }
                     const sym = gender === 'male' ? '♂' : '♀';
                     const symColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
+                    const isSelected = drag.selectedTokenId === t.id;
+                    const isDraggingThis = drag.draggingTokenId === t.id;
                     return (
-                      <div key={t.id} draggable
-                        onDragStart={(e) => onTokenDragStart(e, t.id, gender)}
+                      <div key={t.id}
+                        onPointerDown={(e) => {
+                          drag.beginPointerPress(e, {
+                            tokenId: t.id,
+                            gender,
+                            animalId: animal.id,
+                            source: 'hand',
+                          });
+                        }}
                         style={{
                           width: 58, height: 58, background: 'var(--bg-card)',
-                          border: '1px solid var(--border-medium)', borderRadius: 4,
+                          border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-medium)',
+                          boxShadow: isSelected ? '0 0 0 3px rgba(180,83,9,0.25)' : 'none',
+                          borderRadius: 4,
                           cursor: 'grab', position: 'relative',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'transform 180ms, box-shadow 180ms',
-                          opacity: dragState.tokenId === t.id ? 0.4 : 1,
+                          transition: 'transform 180ms, box-shadow 180ms, border 180ms',
+                          opacity: isDraggingThis ? 0.35 : 1,
+                          touchAction: 'none',
+                          userSelect: 'none',
                         }}>
                         <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: 0.22, borderRadius: 4 }} />
                         <img src={animalImgSrc(animal.id, gender)} alt={animal.name} draggable={false}
@@ -1834,10 +2637,29 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                     );
                   })}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2 }}>{animal.name}</div>
-                  <div className="font-mono" style={{ fontSize: 10, color: 'var(--ink-tertiary)', letterSpacing: '0.04em' }}>
-                    {animal.habitat} · {animal.diet}
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{animal.name}</div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    <span title={animal.habitat} className="font-body" style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 6px', borderRadius: 2,
+                      background: HABITAT_TINT[animal.habitat],
+                      border: '1px solid var(--border-soft)',
+                      fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+                    }}>
+                      <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.habitat]}</span>
+                      <span>{animal.habitat}</span>
+                    </span>
+                    <span title={animal.diet} className="font-body" style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 6px', borderRadius: 2,
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-soft)',
+                      fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+                    }}>
+                      <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.diet]}</span>
+                      <span>{animal.diet}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1852,7 +2674,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
 function Controls({ onNew, onReset, onHint, disabled }) {
   const btn = (label, icon, onClick, primary) => (
     <button onClick={onClick} disabled={disabled} className="font-body" style={{
-      padding: '10px 16px', background: primary ? 'var(--ink-primary)' : 'var(--bg-card)',
+      padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)', background: primary ? 'var(--ink-primary)' : 'var(--bg-card)',
       color: primary ? 'var(--bg-paper)' : 'var(--ink-secondary)',
       border: primary ? '1px solid var(--ink-primary)' : '1px solid var(--border-medium)',
       borderRadius: 2, cursor: disabled ? 'wait' : 'pointer', fontSize: 13, fontWeight: 500,
@@ -1863,7 +2685,7 @@ function Controls({ onNew, onReset, onHint, disabled }) {
     </button>
   );
   return (
-    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', padding: '8px 40px 20px' }}>
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', padding: '8px clamp(12px, 4vw, 40px) 20px', flexWrap: 'wrap' }}>
       {btn('새 퍼즐', '🎲', onNew, true)}
       {btn('초기화', '↺', onReset)}
       {btn('정답 보기', '◉', onHint)}
@@ -1873,7 +2695,7 @@ function Controls({ onNew, onReset, onHint, disabled }) {
 
 function Legend({ collapsed, onToggle }) {
   return (
-    <div style={{ padding: '0 40px 32px', maxWidth: 760, margin: '0 auto' }}>
+    <div style={{ padding: '0 clamp(12px, 4vw, 40px) 32px', maxWidth: 760, margin: '0 auto' }}>
       <button onClick={onToggle} className="font-body" style={{
         background: 'transparent', border: 'none', color: 'var(--ink-tertiary)',
         cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 0',
@@ -2410,30 +3232,94 @@ function ZoologicApp() {
     return isAdjacent(p1, p2);
   }) : false;
 
+  // ──────────────────────────────────────────────────────────
+  // Unified drag callbacks — drive reducer from pointer events.
+  // Selection state lives inside DragProvider; app exposes a ref
+  // via onSelectionChange so cell-click handlers can see it.
+  // ──────────────────────────────────────────────────────────
+  const selectionRef = useRef(null);
+  const handleSelectionChange = useCallback((id) => { selectionRef.current = id; }, []);
+
+  const handleDragPlace = useCallback(({ tokenId, row, col }) => {
+    const tok = state.puzzle && state.puzzle.tokens.find(t => t.id === tokenId);
+    if (!tok) return;
+    const group = state.puzzle.tokens.filter(t => t.animalId === tok.animalId && !state.placements[t.id]);
+    let gender = state.marks[tokenId];
+    if (!gender && group.length === 2) {
+      const i = group.findIndex(t => t.id === tokenId);
+      gender = i === 0 ? 'male' : 'female';
+    }
+    dispatch({ type: 'DRAG_START', tokenId, assignGender: gender });
+    dispatch({ type: 'PLACE_TOKEN', tokenId, row, col });
+  }, [state.puzzle, state.placements, state.marks]);
+
+  const handleDragReturnToHand = useCallback(({ tokenId }) => {
+    if (!tokenId) return;
+    if (state.placements[tokenId]) {
+      dispatch({ type: 'DRAG_START', tokenId });
+      dispatch({ type: 'RETURN_TO_HAND', tokenId });
+    }
+  }, [state.placements]);
+
+  // Tap on a tile — toggle gender mark if board tile, else handled by provider (select)
+  const handleTapTile = useCallback(({ tokenId, source }) => {
+    if (!tokenId || !state.puzzle) return;
+    if (source !== 'board') return; // hand taps handled by provider (select)
+    const isFixed = !!(state.puzzle.preMarks && state.puzzle.preMarks[tokenId]);
+    if (!isFixed) dispatch({ type: 'TOGGLE_MARK', tokenId });
+  }, [state.puzzle]);
+
+  // Tap on empty cell — if a tile is selected, place it; else cycle cell mark
+  const handleEmptyCellClickWrapped = useCallback((r, c) => {
+    const tid = selectionRef.current;
+    if (tid) {
+      handleDragPlace({ tokenId: tid, row: r, col: c });
+      return;
+    }
+    dispatch({ type: 'CYCLE_CELL_MARK', row: r, col: c });
+  }, [handleDragPlace]);
+
+  // Tap on hand area — if a board tile is selected, return to hand
+  const handleHandTapReturn = useCallback(() => {
+    const tid = selectionRef.current;
+    if (tid && state.placements[tid]) {
+      handleDragReturnToHand({ tokenId: tid });
+    }
+  }, [state.placements, handleDragReturnToHand]);
+
   return (
+    <DragProvider
+      onPlace={handleDragPlace}
+      onReturnToHand={handleDragReturnToHand}
+      onTapTile={handleTapTile}
+      onSelectionChange={handleSelectionChange}
+    >
     <div style={{ minHeight: '100vh', background: 'var(--bg-paper)', position: 'relative' }}>
       <div aria-hidden style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 0.5,
         backgroundImage: `radial-gradient(circle at 25% 15%, rgba(180,83,9,0.03) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(28,25,23,0.025) 0%, transparent 40%)`,
       }} />
-      <div style={{ position: 'relative', maxWidth: 960, margin: '0 auto' }}
-        onDragEnd={() => dispatch({ type: 'DRAG_END' })}>
-        <Header onHelp={() => dispatch({ type: 'SHOW_RULES' })} />
-        <DifficultySelector current={state.level} onChange={handleLevelChange} disabled={state.isGenerating} />
+      <div style={{ position: 'relative', maxWidth: 960, margin: '0 auto', overflowX: 'hidden' }}>
+        <Header
+          onHelp={() => dispatch({ type: 'SHOW_RULES' })}
+          level={state.level}
+          onChangeLevel={handleLevelChange}
+          disabled={state.isGenerating}
+        />
         {state.puzzle && (
           <>
-            <StatusBar puzzle={state.puzzle} placedCount={placedCount} totalTokens={totalTokens}
+            <PuzzleMeta puzzle={state.puzzle} placedCount={placedCount} totalTokens={totalTokens}
               genderedCount={genderedCount} adjacencyOk={adjacencyOk} />
             <Grid puzzle={state.puzzle} placements={state.placements} marks={state.marks}
               cellMarks={state.cellMarks} qCandidates={state.qCandidates} qMarkCapacity={state.qMarkCapacity}
               onCellClick={handleCellClick}
-              onEmptyCellClick={(r, c) => dispatch({ type: 'CYCLE_CELL_MARK', row: r, col: c })}
+              onEmptyCellClick={handleEmptyCellClickWrapped}
               onCellDrop={handleCellDrop} onTokenDragStart={handleTokenDragStart}
               recentTokenId={state.recentTokenId} partnerTokenId={state.partnerTokenId}
               winAnimating={state.isSolved} dragState={state.dragState} />
             <HandPool puzzle={state.puzzle} placements={state.placements} marks={state.marks}
               onTokenDragStart={handleTokenDragStart} onDropToHand={handleDropToHand}
-              dragState={state.dragState} />
+              dragState={state.dragState} onHandTapReturn={handleHandTapReturn} />
             <Controls onNew={handleNewPuzzle} onReset={() => dispatch({ type: 'RESET' })}
               onHint={() => dispatch({ type: 'SHOW_SOLUTION' })} disabled={state.isGenerating} />
             <Legend collapsed={state.legendCollapsed} onToggle={() => dispatch({ type: 'TOGGLE_LEGEND' })} />
@@ -2454,6 +3340,7 @@ function ZoologicApp() {
         onClose={() => dispatch({ type: 'CLOSE_WIN' })}
       />
     </div>
+    </DragProvider>
   );
 }
 
