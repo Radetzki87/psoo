@@ -166,25 +166,39 @@ const DIFFICULTY_CONFIGS = {
     countCoverage: [12, 12],         // 12 lines, 100% — eliminates info-shortage bottleneck
     fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
     maxSolutions: 20,                 // Loose (≤20)
-    totalBudgetMs: 25000,
+    totalBudgetMs: 20000,
     verifyTimeLimitMs: 2500,
     maxAttempts: 2000,
+    label: '상중급', glyph: '🌲',
+    subtitle: '규약이 느슨해 추론의 여지가 큽니다',
+  },
+  MediumPlus: {
+    n: 6, k: 8, forbiddenCount: [2, 4],
+    animalPoolRestriction: 'any',
+    ruleCount: [4, 5],                // one more rule on average
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [12, 12],         // 12 lines, 100%
+    fixedTileCount: [4, 5],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 25,                 // Loose (≤25)
+    totalBudgetMs: 20000,
+    verifyTimeLimitMs: 3000,
+    maxAttempts: 2500,
     label: '중급', glyph: '🌳',
-    subtitle: '규약 3-4개가 교차합니다',
+    subtitle: '규약 4-5개가 교차합니다',
   },
   Hard: {
-    n: 7, k: 9, forbiddenCount: [3, 5],
+    n: 7, k: 11, forbiddenCount: [3, 5],
     animalPoolRestriction: 'any',
-    ruleCount: [3, 4],
+    ruleCount: [7,7],                // +2 rules compared to previous [5,6]
     ruleDimensions: ['habitat', 'diet', 'gender'],
     countCoverage: [14, 14],         // 14 lines, 100% — eliminates info-shortage bottleneck
-    fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
+    fixedTileCount: [8, 8],           // ≥ ruleCount max to anchor every rule
     maxSolutions: 30,                 // Loose (≤30)
-    totalBudgetMs: 45000,
-    verifyTimeLimitMs: 4000,
-    maxAttempts: 3000,
+    totalBudgetMs: 20000,
+    verifyTimeLimitMs: 5000,
+    maxAttempts: 5500,
     label: '상급', glyph: '🏔',
-    subtitle: '성별 규약까지 더해집니다',
+    subtitle: '규약 7-8개 + 성별 규약까지',
   },
 };
 
@@ -1088,7 +1102,7 @@ function Header({ onHelp }) {
 }
 
 function DifficultySelector({ current, onChange, disabled }) {
-  const levels = ['Sprout', 'Easy', 'Medium', 'Hard'];
+  const levels = ['Sprout', 'Easy', 'MediumPlus', 'Medium', 'Hard'];
   return (
     <div style={{ display: 'flex', gap: 8, padding: '8px 40px 20px', flexWrap: 'wrap' }}>
       {levels.map(lv => {
@@ -1902,8 +1916,8 @@ function LoadingOverlay({ show, level, progress }) {
   const pct = progress ? Math.min(100, Math.round((progress.elapsed / progress.budget) * 100)) : 0;
   const sec = progress ? (progress.elapsed / 1000).toFixed(1) : '0.0';
   const budgetSec = progress ? (progress.budget / 1000).toFixed(0) : '—';
-  const relaxHint = progress && progress.currentMaxSolutions > 1 
-    ? `해답 ${progress.currentMaxSolutions}개 이하 허용 중` 
+  const relaxHint = progress && progress.currentMaxSolutions > 1
+    ? `해답 ${progress.currentMaxSolutions}개 이하 허용 중`
     : '유일해 탐색 중';
   return (
     <div style={{
@@ -1917,7 +1931,7 @@ function LoadingOverlay({ show, level, progress }) {
         <div style={{ fontSize: 36, fontStyle: 'italic', color: 'var(--ink-primary)', fontWeight: 400, marginBottom: 24 }}>
           {cfg?.glyph} {cfg?.label}
         </div>
-        
+
         {/* Progress bar */}
         <div style={{
           width: 320, height: 4, background: 'var(--border-soft)',
@@ -1931,7 +1945,7 @@ function LoadingOverlay({ show, level, progress }) {
             animation: 'progressShimmer 2s linear infinite',
           }} />
         </div>
-        
+
         <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', width: 320, margin: '14px auto 0' }} className="font-mono">
           <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
             {sec}s / {budgetSec}s
@@ -1940,7 +1954,7 @@ function LoadingOverlay({ show, level, progress }) {
             {progress ? `시도 ${progress.attempts}` : ''}
           </span>
         </div>
-        
+
         {progress && progress.elapsed > 2000 && (
           <div style={{ marginTop: 18, fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', fontStyle: 'italic' }} className="font-body">
             {relaxHint}
@@ -1992,8 +2006,8 @@ function RulesModal({ show, onClose }) {
             <strong>성별 결정.</strong> 각 쌍은 암수 한 쌍. 타일을 클릭하면 <strong>? → ♂ → ♀ → ?</strong> 로 순환하며, 짝은 자동으로 반대 성별이 됩니다.
           </li>
           <li style={{ marginBottom: 10 }}>
-            <strong>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나. 
-            <span style={{ color: 'var(--ok-loose)' }}> ✧ 해답 중 하나</span>는 여러 유효해가 있으며 그 중 하나를 찾으면 성공입니다. 
+            <strong>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나.
+            <span style={{ color: 'var(--ok-loose)' }}> ✧ 해답 중 하나</span>는 여러 유효해가 있으며 그 중 하나를 찾으면 성공입니다.
             난이도가 높을수록 다중해가 허용됩니다.
           </li>
           <li>
