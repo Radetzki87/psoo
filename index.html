@@ -1944,6 +1944,9 @@ function BadgeTooltip({ show, text, anchorRef }) {
   // overflow clipping from parent containers and auto-flips when too close
   // to the viewport top.
   const [pos, setPos] = useState(null);
+  const tipBoxRef = useRef(null);
+  const [measuredW, setMeasuredW] = useState(0);
+  const [measuredH, setMeasuredH] = useState(0);
   useEffect(() => {
     if (!show || !anchorRef || !anchorRef.current) { setPos(null); return; }
     const update = () => {
@@ -1955,9 +1958,17 @@ function BadgeTooltip({ show, text, anchorRef }) {
       if (r.width === 0 && r.height === 0) return;
       const vw = window.innerWidth;
       const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
       const preferredTop = r.top - 8;
       const flipBelow = preferredTop < 40; // flip to below if too close to top
-      setPos({ cx, top: flipBelow ? r.bottom + 8 : r.top - 8, flip: flipBelow, vw });
+      setPos({
+        cx, cy,
+        top: flipBelow ? r.bottom + 8 : r.top - 8,
+        flip: flipBelow,
+        anchorLeft: r.left,
+        anchorRight: r.right,
+        vw,
+      });
     };
     update();
     // Also re-run on next frame in case anchor was just remounted —
@@ -1970,23 +1981,124 @@ function BadgeTooltip({ show, text, anchorRef }) {
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [show, anchorRef, text]);  // include `text` so re-show with new content recomputes
+  }, [show, anchorRef, text]);
+
+  // Measure actual rendered tooltip box AFTER mount so position is based on
+  // real dimensions, not the conservative max width.
+  useEffect(() => {
+    if (!show || !pos || !tipBoxRef.current) return;
+    const r = tipBoxRef.current.getBoundingClientRect();
+    if (r.width > 0 && Math.abs(r.width - measuredW) > 0.5) setMeasuredW(r.width);
+    if (r.height > 0 && Math.abs(r.height - measuredH) > 0.5) setMeasuredH(r.height);
+  }, [show, pos, text, measuredW, measuredH]);
 
   if (!show || !pos) return null;
-  // Clamp horizontal position so tooltip stays inside viewport with 8px margin
   const EDGE = 8;
   const MAX_TIP_W = Math.min(260, pos.vw - EDGE * 2);
-  // We render as translate(-50%,0); clamp the center coordinate so translated
-  // box fits within [EDGE, vw - EDGE]
-  const halfW = MAX_TIP_W / 2;
-  const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
-  const arrowOffset = pos.cx - clampedCx; // how far the arrow sits from tip center
+  const effectiveW = measuredW > 0 ? Math.min(measuredW, MAX_TIP_W) : MAX_TIP_W;
+  const halfW = effectiveW / 2;
 
-  return ReactDOM.createPortal(
-    <div role="tooltip" style={{
-      position: 'fixed',
+  // Decide placement based on the anchor's position in the viewport.
+  // If the anchor sits in the right 25% of the viewport, prefer 'left'
+  // placement (box extends leftward). Likewise for the left 25%.
+  // This produces predictable side-placement behavior independent of the
+  // tooltip text length, fixing the "tall narrow column" symptom that
+  // happened when the centered placement got squashed near the edge.
+  // The geometric overflow check is a fallback for extreme cases.
+  const SIDE_THRESHOLD = 0.25;
+  const anchorRatio = pos.cx / pos.vw;
+  const wouldOverflowRight = pos.cx + halfW > pos.vw - EDGE;
+  const wouldOverflowLeft = pos.cx - halfW < EDGE;
+  let placement;
+  if (anchorRatio > 1 - SIDE_THRESHOLD || wouldOverflowRight) {
+    // Right edge zone — prefer 'left' (box extends leftward from anchor)
+    if (wouldOverflowLeft && !wouldOverflowRight) {
+      // Edge case: box can't fit either side — fall back to top/bottom
+      placement = pos.flip ? 'bottom' : 'top';
+    } else {
+      placement = 'left';
+    }
+  } else if (anchorRatio < SIDE_THRESHOLD || wouldOverflowLeft) {
+    if (wouldOverflowRight && !wouldOverflowLeft) {
+      placement = pos.flip ? 'bottom' : 'top';
+    } else {
+      placement = 'right';
+    }
+  } else {
+    placement = pos.flip ? 'bottom' : 'top';
+  }
+
+  // Style by placement
+  let boxStyle = {};
+  let arrowStyle = {};
+  const halfH = (measuredH > 0 ? measuredH : 24) / 2;
+  if (placement === 'top' || placement === 'bottom') {
+    // Vertical placement (default)
+    const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
+    const rawOffset = pos.cx - clampedCx;
+    const ARROW_PAD = 6;
+    const maxArrowOffset = Math.max(0, halfW - ARROW_PAD);
+    const arrowOffset = Math.max(-maxArrowOffset, Math.min(maxArrowOffset, rawOffset));
+    boxStyle = {
       left: clampedCx,
       top: pos.top,
+      transform: placement === 'bottom' ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+    };
+    arrowStyle = {
+      [placement === 'bottom' ? 'bottom' : 'top']: '100%',
+      left: `calc(50% + ${arrowOffset}px)`,
+      transform: 'translateX(-50%)',
+      borderLeft: '5px solid transparent',
+      borderRight: '5px solid transparent',
+      ...(placement === 'bottom'
+        ? { borderBottom: '5px solid var(--ink-primary)' }
+        : { borderTop: '5px solid var(--ink-primary)' }),
+    };
+  } else {
+    // Side placement — box extends sideways from anchor
+    // Vertical center alignment with anchor; clamp inside viewport.
+    const vh = window.innerHeight;
+    const clampedCy = Math.max(EDGE + halfH, Math.min(vh - EDGE - halfH, pos.cy));
+    // Available horizontal space on the side we're rendering on, minus EDGE margin
+    if (placement === 'left') {
+      const sideMaxW = Math.max(60, pos.anchorLeft - 8 - EDGE);
+      // box is to the LEFT of anchor; right edge of box ~ 8px before anchor's left
+      boxStyle = {
+        left: pos.anchorLeft - 8,
+        top: clampedCy,
+        transform: 'translate(-100%, -50%)',
+        maxWidth: Math.min(MAX_TIP_W, sideMaxW),
+      };
+      arrowStyle = {
+        left: '100%',
+        top: `calc(50% + ${pos.cy - clampedCy}px)`,
+        transform: 'translateY(-50%)',
+        borderTop: '5px solid transparent',
+        borderBottom: '5px solid transparent',
+        borderLeft: '5px solid var(--ink-primary)',
+      };
+    } else { // 'right'
+      const sideMaxW = Math.max(60, pos.vw - pos.anchorRight - 8 - EDGE);
+      boxStyle = {
+        left: pos.anchorRight + 8,
+        top: clampedCy,
+        transform: 'translate(0, -50%)',
+        maxWidth: Math.min(MAX_TIP_W, sideMaxW),
+      };
+      arrowStyle = {
+        right: '100%',
+        top: `calc(50% + ${pos.cy - clampedCy}px)`,
+        transform: 'translateY(-50%)',
+        borderTop: '5px solid transparent',
+        borderBottom: '5px solid transparent',
+        borderRight: '5px solid var(--ink-primary)',
+      };
+    }
+  }
+
+  return ReactDOM.createPortal(
+    <div ref={tipBoxRef} role="tooltip" style={{
+      position: 'fixed',
       zIndex: 1000,
       background: 'var(--ink-primary)', color: 'var(--bg-paper)',
       padding: '6px 10px', borderRadius: 4,
@@ -1996,20 +2108,20 @@ function BadgeTooltip({ show, text, anchorRef }) {
       whiteSpace: 'normal', textAlign: 'center',
       boxShadow: '0 4px 14px -4px rgba(0,0,0,0.25)',
       animation: 'badgeTipFade 120ms cubic-bezier(0.4,0,0.2,1)',
-      transform: pos.flip ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
       pointerEvents: 'none',
+      // Hide until we've measured the box at least once — prevents the
+      // first-frame flash where the tooltip snaps from MAX_TIP_W-based
+      // position to its real position.
+      visibility: (measuredW > 0 && measuredH > 0) ? 'visible' : 'hidden',
+      // Box style overrides (placement-specific position + side maxWidth)
+      // applied LAST so they override the defaults above.
+      ...boxStyle,
     }} className="font-body">
       {text}
       <span aria-hidden style={{
         position: 'absolute',
-        [pos.flip ? 'bottom' : 'top']: '100%',
-        left: `calc(50% + ${arrowOffset}px)`,
-        transform: 'translateX(-50%)',
         width: 0, height: 0,
-        borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-        ...(pos.flip
-          ? { borderBottom: '5px solid var(--ink-primary)' }
-          : { borderTop: '5px solid var(--ink-primary)' }),
+        ...arrowStyle,
       }} />
     </div>,
     document.body
@@ -3242,7 +3354,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const isTiny = vw < 400;
   // Aggressive padding reduction on mobile so the board grabs every available pixel.
   const pagePad = isMobile ? (isTiny ? 4 : 8) : 40;
-  const boardPad = isMobile ? (isTiny ? 4 : 8) : 20;
+  const boardPad = isMobile ? (isTiny ? 6 : 12) : 20;
   const gap = isMobile ? 3 : 6;
 
   const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
@@ -3472,7 +3584,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const colsArr = Array.from({ length: n }, (_, i) => i);
 
   return (
-    <div style={{ padding: '4px clamp(2px, 1vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+    <div style={{ padding: '4px clamp(12px, 3vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
       <div style={{
         position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
         border: '1px solid var(--border-soft)', borderRadius: 3,
@@ -3516,7 +3628,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
             : Math.min(rowHintWidth - 8, rowSlotH * 2 + 2);
           return (
           <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
-            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingRight: 4, overflow: 'visible' }}>
+            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: isMobile ? 8 : 6, paddingRight: 4, overflow: 'visible' }}>
               {rRules.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: hintGap, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                   {rRules.map(rr => (

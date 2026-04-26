@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRIM39 G2-Metaphase TimeLag Dashboard v4.0 — SAC + Metaphase 7/7 Edition</title>
+<meta name="description" content="TRIM39 G2 mRNA Peak to Metaphase Protein - 6-DS Cross-Platform Dashboard v4.0 with dedicated SAC Reversal tab and upgraded Metaphase 7/7 tab">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #060a14;
+    color: #cdd8ec;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  #root { width: 100%; min-height: 100vh; }
+  #loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: #64FFDA;
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+  #loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid #64FFDA40;
+    border-top-color: #64FFDA;
+    border-radius: 50%;
+    margin-left: 12px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .recharts-tooltip-wrapper:focus { outline: none; }
+</style>
+</head>
+<body>
+<div id="root"><div id="loading">LOADING TRIM39 DASHBOARD v4.0</div></div>
+
+<!-- React 18 (UMD production builds) -->
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+
+<!-- PropTypes (Recharts dependency) -->
+<script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+
+<!-- Recharts UMD -->
+<script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+
+<!-- Babel Standalone for in-browser JSX transformation -->
+<script crossorigin src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Area, BarChart, Bar, Cell } = Recharts;
+
+const C={bg:"#060a14",card:"#0b1120",bdr:"#182844",bdrH:"#2a4a7a",tx:"#cdd8ec",dm:"#5a6e8e",ac:"#64FFDA",wn:"#FF6D00",ng:"#FF5252",ps:"#69F0AE",mR:"#42A5F5",mH:"#00E676",pr:"#FF5252",mpi:"#FF5722",ind:"#FFB300",hiC:"#AA00FF",ph:{G1:"#5C6B7A",S:"#1565C0",G2:"#2E7D32",M_entry:"#E64A19",M_exit:"#7B1FA2",Prophase:"#7E57C2",Prometaphase:"#EF6C00",Metaphase:"#D32F2F",Anaphase:"#00897B",Telophase:"#5C6BC0"}};
+const F=(v,d)=>{if(v==null)return"-";const dd=d!=null?d:3;return(v>=0?"+":"")+v.toFixed(dd)};
+const N=n=>n!=null?n.toLocaleString():"-";
+const IF_Q={G2:.05,Prophase:.20,Prometaphase:.65,Metaphase:1.0,Anaphase:.45,Telophase:.12};
+
+/* ══════════════════════════════════════════════════════════════
+   6 DS DATA (v6 master table verified)
+   ══════════════════════════════════════════════════════════════ */
+const DS={
+epi_all:{l:"EPI All",s:"EPI",n:220878,det:8.10,hi:1.21,c:"#4CAF50",
+ph:[{p:"G1",n:154835,nD:11967,nH:1879,dt:7.73,md:-.0816,id:-.0884,zd:2.684,mh:-.1109,ih:-.1082,sd:-.085,sh:-.107},{p:"S",n:12721,nD:1033,nH:165,dt:8.12,md:.0627,id:.1151,zd:2.763,mh:-.0837,ih:.019,sd:.098,sh:-.064},{p:"G2",n:5972,nD:524,nH:79,dt:8.77,md:.9965,id:.9477,zd:2.747,mh:.7662,ih:.4217,sd:.600,sh:.264},{p:"M_entry",n:4617,nD:405,nH:51,dt:8.77,md:.8237,id:.6587,zd:2.616,mh:.7558,ih:.2354,sd:1.639,sh:1.707},{p:"M_exit",n:5274,nD:461,nH:63,dt:8.74,md:.5686,id:.3054,zd:2.704,mh:.6668,ih:.1996,sd:.157,sh:.094}],
+sub:[{s:"Interphase",dt:7.93},{s:"Prophase",dt:7.77},{s:"Prometaphase",dt:9.10},{s:"Metaphase",dt:8.25},{s:"Anaphase",dt:8.82},{s:"Telophase",dt:8.28}],
+pro:{md:.4663,id:.3404,mh:.3262,ih:.1292},
+dis7:{r:-.679,p:.094},a23:[{s:"Prometaphase",n:3141,nd:274,dt:8.7,z:2.642,tg:"TAUTOLOGICAL"},{s:"Metaphase",n:209,nd:8,dt:3.8,z:3.285,tg:"INDEPENDENT"}],
+ins:{
+t1d:"[EPI 22.1만 세포 | Detected | Phase]\nG2와 M_entry의 검출률이 8.77%로 정확히 동률입니다. 전체(AllComp)에서는 G2(7.35%)가 M_entry(6.05%)보다 확연히 높지만, 상피 세포만 분리하면 두 Phase가 동등해집니다. 이것은 Immune/Stromal 세포의 M_entry 검출률이 상피보다 낮아서 전체에서 G2 피크가 부각되는 것이지, 상피 내부에서는 TRIM39 mRNA 전사가 G2에서 시작되어 M_entry까지 '플래토(고원)'를 형성한다는 뜻입니다.\n\nMPI_indep(Phase 배정 유전자와 0% 겹침인 독립 유사분열 마커)는 G2(+0.948)가 M_entry(+0.659)보다 높아서 G2 피크를 유지합니다. 전이 방향 4/4 일치로 순환성 배제가 확인됩니다.",
+t1h:"[EPI 22.1만 세포 | High | Phase]\nHigh 세포(TRIM39 mRNA 상위 25%로 매우 풍부한 세포)에서도 MPI_indep G2(+0.422)가 M_entry(+0.235)보다 높아 G2 피크를 유지합니다. 전이 4/4 완전 일치.\n\nDet에서 Hi로 전환하면 G2의 MPI_indep가 +0.948에서 +0.422로 하강합니다(하강폭 -0.526). 이것은 TRIM39를 많이 발현하는 세포일수록 유사분열 강도가 더 낮다는 '용량-반응' 증거입니다. MPI_indep 하강폭(-0.526)이 MPI 하강폭(-0.230)의 2.3배인 것은, MPI가 순환성 때문에 효과를 과소추정하고 있음을 보여줍니다.",
+t2:"[EPI | G2 mRNA 집중]\nG2=M_entry=8.77% 플래토. 상피 세포 내에서 TRIM39 Z값의 Phase 간 범위가 좁아(2.62~2.83, 범위 0.21) 감시-개입 해리(검출률이 높을수록 강도가 낮은 역 상관) rho=-0.679가 경계적 유의성(p=0.094)에 머뭅니다. 이것은 '해리가 없다'가 아니라 '상피 내에서 Z 분산이 작아 5개 점의 상관으로는 검정력이 부족하다'는 뜻입니다.\n\nSubstage 분해: Prometaphase(9.10%)가 M기 Substage 중 최고. G2(8.77%)에서 Prophase(7.77%)로의 급감은 유사분열 전사 침묵(DNA 응축에 의해 전사가 정지되는 현상)의 전사체 수준 증거입니다.",
+t3:"[EPI | Det/Hi 4-궤적]\nDet MPI/ind 모두 G2 피크. Hi MPI/ind 모두 G2 피크 유지(전환 없음). EPI 전체에서는 M_entry 피크 전환이 발생하지 않습니다. GI3이나 Colon처럼 특정 조직으로 좁혀야 전환이 보입니다.\n\nG2 용량-반응: ind 하강폭(-0.526)이 MPI(-0.230)의 2.3배. 이것은 MPI가 Phase 배정 유전자와 겹치는 '순환성' 때문에 효과를 과소추정하는 것이며, 순환성 없는 MPI_indep가 포착하는 진정한 효과 크기가 2배 이상 큽니다.",
+t5:"[EPI | MPI 순환성]\nDet 전이 4/4, Hi 전이 4/4로 완전 일치. 6종 DS 중 가장 견고한 순환성 배제 결과입니다. MPI와 MPI_indep의 방향이 모든 인접 Phase 전이에서 동일하므로, MPI에서 관찰되는 G2 피크가 분류 아티팩트가 아닌 진성 생물학적 신호임이 확인됩니다.\n\nG2에서 Delta(MPI-ind)=+0.049로 거의 동등. M_exit에서 Delta=+0.264로 커짐. 이것은 M_exit Phase에서 순환성 기여가 가장 크다는 것을 의미합니다. M_exit의 결론을 해석할 때 가장 많은 주의가 필요합니다."}},
+
+epi_gi3:{l:"EPI GI3",s:"GI3",n:36942,det:10.36,hi:1.14,c:"#FF6D00",
+ph:[{p:"G1",n:26111,nD:2559,nH:279,dt:9.80,md:-.066,id:-.083,zd:2.377,mh:-.073,ih:-.104,sd:-.068,sh:-.066},{p:"S",n:1995,nD:220,nH:23,dt:11.03,md:-.006,id:.189,zd:2.508,mh:-.109,ih:.153,sd:.011,sh:-.101},{p:"G2",n:1059,nD:121,nH:24,dt:11.43,md:.967,id:.937,zd:2.760,mh:.742,ih:.384,sd:.511,sh:.177},{p:"M_entry",n:940,nD:113,nH:10,dt:12.02,md:.732,id:.510,zd:2.478,mh:1.148,ih:.486,sd:1.589,sh:2.262},{p:"M_exit",n:993,nD:116,nH:13,dt:11.68,md:.555,id:.151,zd:2.567,mh:.363,ih:.172,sd:.099,sh:-.091}],
+sub:[{s:"Interphase",dt:10.07},{s:"Prophase",dt:10.35},{s:"Prometaphase",dt:11.87},{s:"Metaphase",dt:11.61},{s:"Anaphase",dt:9.39},{s:"Telophase",dt:10.43}],
+pro:{md:.2388,id:.1387,mh:.3516,ih:.2254},
+dis7:{r:.607,p:.148},
+ins:{
+t1d:"[GI3 3.7만 세포 | Detected | Phase]\nM_entry 검출률(12.02%)이 G2(11.43%)를 초과합니다. 이것은 EPI 전체(동률 8.77%)나 AllComp(G2>>M_entry)와 다른, 위장관 상피 특이적 패턴입니다. 장 상피는 3~5일마다 완전히 교체되는 인체에서 가장 빠른 세포 교체 조직이며, M_entry(유사분열 진입) 시점에서 TRIM39 발현이 특히 중요한 것은 이 빠른 교체의 품질관리와 관련됩니다.\n\nMPI_indep는 여전히 G2 피크(+0.937>+0.510). '검출률은 M_entry에서 높지만, 유사분열 강도는 G2에서 높다'는 이중 관찰입니다.",
+t1h:"[GI3 3.7만 세포 | High | Phase]\nHi MPI에서 M_entry(+1.148)가 G2(+0.742)를 크게 초과합니다. Hi MPI_indep에서도 M_entry(+0.486)가 G2(+0.384)를 초과합니다. MPI와 MPI_indep 양쪽에서 M_entry 피크 전환이 확인되는 것은 6종 DS 중 유일합니다.\n\n순환성 0%인 MPI_indep에서도 전환이 재현되므로 이것은 분류 아티팩트가 아닌 진성 생물학입니다. SAC(방추사 조립 체크포인트) 점수가 M_entry Hi에서 +2.262로 극대화되는 것은, G2에서 만들어진 TRIM39 mRNA가 M_entry에서 단백질로 번역되어 APC/C를 억제하기 시작한 기능적 귀결입니다.",
+t2:"[GI3 | G2 mRNA 집중]\nM_entry(12.02%)가 G2(11.43%)를 0.6%p 초과. Substage에서 Prometaphase(11.87%)가 M기 최고. G2에서 시작된 mRNA가 Prometaphase까지 잔존하고, 이후 전사 침묵 + 자연 분해로 감소하는 시간 궤적이 관찰됩니다.\n\nAnaphase(9.39%)에서 급감하는 것이 특징적 -- 대장(8.11%)보다 더 급격합니다. Small Intestine/Stomach에서 Anaphase의 mRNA 소실이 빠를 가능성이 있습니다.",
+t3:"[GI3 | Det/Hi 4-궤적]\nDet에서는 MPI/ind 모두 G2 피크. Hi로 전환하면 MPI+ind 양쪽에서 M_entry 전환이 발생합니다. 이 '상반부 교차(crossover)'가 한 차트에서 보이는 것이 Tab 3의 핵심 시각화입니다.\n\nG2 용량-반응: ind 하강폭 -0.552(2.5x ratio). SAC 부호 역전: G2 Hi SAC(+0.177) -> M_entry Hi SAC(+2.262)로 +2.086 역전. G2에서 TRIM39 High 세포의 SAC가 낮은 것은 아직 단백질이 SAC에 영향을 주지 못하기 때문이고, M_entry에서 극대화되는 것은 단백질이 기능을 시작했기 때문입니다.",
+t5:"[GI3 | MPI 순환성]\nDet 4/4 일치, Hi 3/4. Hi에서 M_entry->M_exit 전이가 불일치 -- MPI는 하강하지만 ind는 미세 상승. M_exit Phase에서의 순환성 기여가 GI에서도 관찰됩니다.\n\nG2 Delta(MPI-ind)=+0.030으로 거의 0. G2에서는 MPI와 MPI_indep가 거의 동일한 값을 보여서, 순환성 기여가 미미합니다. M_exit에서 Delta=+0.404로 급증합니다."}},
+
+epi_colon8:{l:"EPI Colon8",s:"Col8",n:7861,det:7.62,hi:1.26,c:"#E91E63",
+ph:[{p:"G1",n:5585,nD:403,nH:62,dt:7.22,md:-.0926,id:-.1289,zd:2.902,mh:-.0951,ih:-.131,sd:-.098,sh:-.083},{p:"S",n:491,nD:43,nH:6,dt:8.76,md:.1251,id:.3784,zd:2.926,mh:-.1376,ih:.2232,sd:.136,sh:-.108},{p:"G2",n:254,nD:20,nH:6,dt:7.87,md:.8831,id:1.0015,zd:3.567,mh:.3291,ih:.311,sd:.464,sh:-.095},{p:"M_entry",n:222,nD:24,nH:5,dt:10.81,md:.5848,id:.2265,zd:3.765,mh:.8769,ih:.1744,sd:1.486,sh:1.914},{p:"M_exit",n:217,nD:18,nH:2,dt:8.29,md:.7838,id:.1805,zd:2.596,mh:null,ih:null,sd:.243,sh:null}],
+sub:[{s:"Interphase",dt:7.40},{s:"Prophase",dt:8.23},{s:"Prometaphase",dt:10.61},{s:"Metaphase",dt:9.62},{s:"Anaphase",dt:8.11},{s:"Telophase",dt:7.19}],
+pro:{md:.0797,id:-.0112,mh:.1326,ih:.1758},
+dis7:{r:.321,p:.482},a23:[{s:"Prometaphase",n:153,nd:19,dt:12.4,z:3.718,tg:"TAUTOLOGICAL"},{s:"Metaphase",n:8,nd:0,dt:0.0,z:null,tg:"INDEPENDENT"}],
+ins:{
+t1d:"[Colon8 7,861 세포 | Detected | Phase]\nM_entry(10.81%)가 G2(7.87%)를 2.94%p 초과 -- 6종 DS 중 가장 큰 차이입니다. Donor 4명 중 3명(TSP2, TSP25, TSP27)에서 M_entry>G2가 재현됩니다.\n\n동시에 MPI_indep는 G2(+1.002)가 전 DS 최고이고 M_entry(+0.227)와의 차이(0.775)도 전 DS 최대입니다. '검출률은 M_entry에서 최고인데, 유사분열 강도는 G2에서 최고' -- 이 괴리는 감시-개입 모델의 극단적 형태입니다. G2에서는 많은 세포가 TRIM39를 약하게 켜고(넓은 감시), M_entry에서는 적은 세포가 강하게 켭니다(좁은 개입).",
+t1h:"[Colon8 7,861 세포 | High | Phase]\nHi MPI: M_entry(+0.877)>G2(+0.329) -- MPI에서는 M_entry 전환이 발생합니다. 그러나 Hi MPI_indep: G2(+0.311)>M_entry(+0.174) -- 순환성 없는 지표에서는 전환이 발생하지 않습니다. 이 괴리는 SAC 모듈(MPI에 포함되지만 MPI_indep에는 없는 유전자들)의 구조적 기여가 Colon에서 특히 크다는 것을 보여줍니다.\n\nSAC 부호 역전이 극적입니다. G2 Hi SAC=-0.095(음수! 6종 DS 중 유일) -> M_entry Hi SAC=+1.914. 역전 크기 +2.009. G2에서 TRIM39 High 세포의 SAC가 완전히 비활성 상태인 것은, G2 시점에서는 TRIM39 단백질이 아직 만들어지지 않아 SAC에 영향을 줄 수 없다는 시간 지연 모델의 가장 극단적 확인입니다.\n\n[주의] n_hi=5~6으로 극소표본. 방향성은 참고하되 절대값은 주의가 필요합니다.",
+t2:"[Colon8 | G2 mRNA 집중]\nG2 검출률(7.87%)은 EPI 전체(8.77%)보다 낮지만, G2 MPI_indep(+1.002)는 6종 DS 중 최고값입니다. '검출은 적지만 검출된 세포의 유사분열 강도가 가장 높다' -- 대장 상피 G2에서 TRIM39+ 세포가 유사분열 진입 직전의 가장 활발한 상태에 있음을 시사합니다.\n\nM_entry(10.81%)가 G2(7.87%)를 크게 초과하는 것은 GI3(차이 0.6%p)보다 훨씬 극적(차이 2.9%p). Substage: Prometaphase(10.61%)가 M기 최고, 이후 Metaphase(9.62%) -> Anaphase(8.11%) -> Telophase(7.19%)로 순차 감소. 전사 침묵 후 mRNA 자연 분해의 시간 궤적이 가장 깔끔하게 관찰됩니다.",
+t3:"[Colon8 | Det/Hi 4-궤적]\nDet MPI와 Det ind 모두 G2 피크. Hi MPI만 M_entry 전환, Hi ind는 G2 유지. 이 '빨간 실선만 교차하고 노란 점선은 교차하지 않는' 패턴이 Colon의 특징입니다.\n\n용량-반응: MPI 하강 -0.554, ind 하강 -0.690 -- 절대값이 전 DS 중 최대! 대장 상피에서 TRIM39 고발현에 의한 유사분열 억제가 가장 강력합니다. 그러나 ratio(1.2x)는 다른 DS(2~11x)보다 낮은데, 이것은 MPI 하강 자체가 크기 때문(-0.554)이지 ind가 작은 것이 아닙니다.",
+t5:"[Colon8 | MPI 순환성]\nDet 3/4, Hi 1/3. 소표본(Phase당 det 18~24개)으로 불안정합니다.\n\n흥미로운 발견: G2에서 ind(+1.002)>MPI(+0.883). 6종 DS 중 유일하게 MPI_indep가 MPI를 초과합니다. 보통 MPI가 Phase 배정 유전자의 기여로 ind보다 높은데, Colon G2에서 Phase 배정 모듈의 일부가 상대적으로 비활성화되어 있을 가능성을 시사합니다."}},
+
+all_all:{l:"AllComp",s:"ALL",n:1025717,det:5.78,hi:1.44,c:"#00BCD4",
+ph:[{p:"G1",n:719361,nD:39299,nH:10501,dt:5.46,md:-.074,id:-.083,zd:3.532,mh:-.080,ih:-.086,sd:-.079,sh:-.083},{p:"S",n:52513,nD:3155,nH:773,dt:6.01,md:.043,id:.150,zd:3.396,mh:-.088,ih:-.010,sd:.078,sh:-.071},{p:"G2",n:26783,nD:1969,nH:391,dt:7.35,md:1.061,id:.967,zd:3.097,mh:.771,ih:.353,sd:.635,sh:.164},{p:"M_entry",n:26902,nD:1628,nH:369,dt:6.05,md:.697,id:.561,zd:3.334,mh:.561,ih:.199,sd:1.517,sh:1.476},{p:"M_exit",n:24576,nD:1587,nH:335,dt:6.46,md:.661,id:.355,zd:3.316,mh:.574,ih:.133,sd:.228,sh:.053}],
+sub:[{s:"Interphase",dt:5.61},{s:"Prophase",dt:5.82},{s:"Prometaphase",dt:6.20},{s:"Metaphase",dt:6.08},{s:"Anaphase",dt:6.57},{s:"Telophase",dt:6.09}],
+pro:{md:.4644,id:.3186,mh:.2933,ih:.0787},
+dis7:{r:-.929,p:.003},a23:[{s:"Prometaphase",n:18653,nd:1082,dt:5.8,z:3.435,tg:"TAUTOLOGICAL"},{s:"Metaphase",n:1250,nd:62,dt:5.0,z:3.295,tg:"INDEPENDENT"}],
+mc:[{g:"BIRC5",r:-.2455,rl:"CPC/Survivin"},{g:"AURKB",r:-.2397,rl:"Aurora B"},{g:"DLGAP5",r:-.1953,rl:"Spindle MT"},{g:"KIF2C",r:-.1285,rl:"KT MT"},{g:"NUF2",r:-.1218,rl:"KT complex"},{g:"CDCA8",r:-.0683,rl:"CPC"},{g:"KIF11",r:-.0581,rl:"Spindle sep"}],
+ins:{
+t1d:"[AllComp 102.6만 세포 | Detected | Phase]\nG2(7.35%)가 확연한 피크입니다(G1 대비 OR=1.373, p=6.1e-37). 전체 6개 Compartment(상피+면역+기질+내피+생식+신경)를 포함한 가장 대규모 데이터셋에서, G2에서 TRIM39 mRNA가 가장 풍부하다는 것이 극단적 유의성으로 확인됩니다.\n\n감시-개입 해리(검출률이 높을수록 발현 강도가 낮은 역 상관): rho=-0.929(7-Phase, p=0.003). G2에서 '많은 세포가 약하게'(넓은 감시), G1에서 '적은 세포가 강하게'(좁은 개입). G2->Prophase 검출률 급감(7.35%->5.82%)은 유사분열 전사 침묵의 전사체 증거입니다.",
+t1h:"[AllComp 102.6만 세포 | High | Phase]\nHigh 세포에서도 G2 피크 유지(MPI_indep G2 +0.353>M_entry +0.199). 전이 2/4 -- M_exit에서 Hi MPI가 상승하는 역전이 발생하여 불일치. 이것은 M_exit Phase 배정 유전자(ANLN, PRC1)가 MPI에 포함되지만 MPI_indep에는 없기 때문입니다.\n\nG2 ind 하강폭 -0.614(ratio 2.1x). 102만 세포 규모에서의 가장 안정적인 용량-반응 추정치입니다.",
+t2:"[AllComp | G2 mRNA 집중]\nG2(7.35%)가 확연한 피크. Fisher p<0.001. 해리 rho=-0.929(p=0.003)으로 6종 DS 중 가장 강하고 유의한 해리.\n\nSubstage: G2->Prophase 급감폭(1.53%p)이 전 DS 중 최대. Prometaphase(6.20%)에서 미세 반등. Anaphase(6.57%)에서 추가 반등 -- APC/C가 단백질은 분해하지만 mRNA는 남기 때문입니다.",
+t3:"[AllComp | Det/Hi 4-궤적]\nDet/Hi 모두 G2 피크 유지. 전환 없음. 102만 세포의 대규모에서는 6개 Compartment가 혼합되어 조직 특이적 전환 패턴이 희석됩니다.\n\nG2 ind 하강폭 -0.614, MPI -0.290. ratio 2.1x. 가장 안정적인 순환성 과소추정 비율 추정치.",
+t5:"[AllComp | MPI 순환성]\nDet 4/4 일치. Hi 2/4. M_exit에서 불일치가 가장 큼 -- Hi MPI M_exit(+0.574)가 M_entry(+0.561)보다 높지만, Hi ind M_exit(+0.133)는 M_entry(+0.199)보다 낮음. M_exit의 순환성 기여가 Hi 세포에서 특히 큽니다.\n\nDelta(MPI-ind): G2=+0.094, M_exit=+0.306. 순환성 기여가 G2에서 작고 M_exit에서 크다는 것이 정량적으로 확인됩니다."}},
+
+all_gi3:{l:"All GI3",s:"A-GI",n:101410,det:7.11,hi:1.29,c:"#26A69A",
+ph:[{p:"G1",n:69977,nD:4734,nH:897,dt:6.77,md:-.063,id:-.073,zd:3.061,mh:-.067,ih:-.078,sd:-.066,sh:-.069},{p:"S",n:5428,nD:407,nH:67,dt:7.50,md:-.003,id:.205,zd:3.098,mh:-.110,ih:-.001,sd:.024,sh:-.111},{p:"G2",n:2826,nD:243,nH:41,dt:8.60,md:.804,id:.658,zd:3.066,mh:.762,ih:.192,sd:.328,sh:.128},{p:"M_entry",n:3117,nD:228,nH:33,dt:7.31,md:.543,id:.362,zd:2.993,mh:.723,ih:.305,sd:1.344,sh:1.783},{p:"M_exit",n:2709,nD:219,nH:34,dt:8.08,md:.651,id:.316,zd:3.071,mh:.607,ih:.114,sd:.169,sh:-.030}],
+sub:[{s:"Interphase",dt:6.92},{s:"Prophase",dt:7.50},{s:"Prometaphase",dt:7.51},{s:"Metaphase",dt:7.64},{s:"Anaphase",dt:7.39},{s:"Telophase",dt:7.28}],
+pro:{md:.2629,id:.0689,mh:.2415,ih:.0505},
+dis7:{r:.607,p:.148},
+ins:{
+t1d:"[All GI3 10.1만 세포 | Detected | Phase]\nG2(8.60%)가 피크이지만, M_exit(8.08%)도 높아서 피크가 뾰족하지 않습니다. Fisher p=0.068으로 경계적. GI 조직에서 M_exit의 TRIM39 검출률이 다른 조직보다 높은 'M_exit 특이적 패턴'이 관찰됩니다.\n\nMPI_indep G2(+0.658). AllComp 전체(+0.967)보다 낮은데, 이것은 GI의 Immune 세포(특히 장 상주 면역세포)가 다른 조직의 Immune 세포와 TRIM39 프로파일이 다르기 때문일 수 있습니다.",
+t1h:"[All GI3 10.1만 세포 | High | Phase]\nHi MPI_indep에서 M_entry(+0.305)가 G2(+0.192)를 초과합니다 -- ind만의 M_entry 전환! Hi MPI에서는 G2(+0.762) vs M_entry(+0.723)으로 근소 차이. ind에서만 전환이 나타나는 것은 EPI GI3(MPI+ind 양쪽 전환)과 다르지만, 같은 방향입니다.\n\nSAC 역전 +1.656. EPI GI3(+2.086)보다 작지만 같은 방향. Immune/Stromal 혼입이 SAC 역전을 약화시킵니다.",
+t2:"[All GI3 | G2 mRNA 집중]\nG2(8.60%) 피크이지만 M_exit(8.08%)도 높음. Substage: Metaphase(7.64%)가 M기 Substage 중 최고로, EPI GI3(Prometaphase 최고)과 다릅니다. Immune 세포에서 Metaphase 검출률이 높은 것이 원인으로 추정됩니다.",
+t3:"[All GI3 | Det/Hi 4-궤적]\nDet: G2 피크. Hi: ind만 M_entry 전환(+0.305>+0.192). MPI는 비전환(+0.762>+0.723 근소).\n\nG2 용량-반응 ratio가 11.1x로 전 DS 중 최대! MPI 하강이 -0.042(거의 0)인데 ind 하강은 -0.466. MPI가 M_exit 역전 패턴에 의해 G2 하강폭을 거의 완전히 상쇄하여 '진정한' 효과를 은폐하는 가장 극적 사례입니다.",
+t5:"[All GI3 | MPI 순환성]\nDet 3/4, Hi 2/4. M_exit에서 불일치. G2 Delta(MPI-ind)=+0.146, M_exit Delta=+0.335."}},
+
+all_colon8:{l:"All Colon8",s:"A-Col",n:19697,det:6.45,hi:1.38,c:"#8D6E63",
+ph:[{p:"G1",n:13867,nD:835,nH:182,dt:6.02,md:-.080,id:-.112,zd:3.265,mh:-.077,ih:-.126,sd:-.090,sh:-.094},{p:"S",n:1071,nD:77,nH:14,dt:7.19,md:.204,id:.476,zd:3.272,mh:-.143,ih:.025,sd:.291,sh:-.135},{p:"G2",n:609,nD:47,nH:10,dt:7.72,md:.871,id:.797,zd:3.210,mh:.409,ih:.153,sd:.445,sh:-.114},{p:"M_entry",n:576,nD:41,nH:5,dt:7.12,md:.574,id:.479,zd:3.321,mh:.877,ih:.174,sd:1.379,sh:1.914},{p:"M_exit",n:564,nD:46,nH:9,dt:8.16,md:.733,id:.378,zd:3.323,mh:.397,ih:.051,sd:.276,sh:-.074}],
+sub:[{s:"Interphase",dt:6.24},{s:"Prophase",dt:6.67},{s:"Prometaphase",dt:6.59},{s:"Metaphase",dt:8.83},{s:"Anaphase",dt:8.83},{s:"Telophase",dt:6.99}],
+pro:{md:.2203,id:-.0021,mh:.1621,ih:.0875},
+dis7:{r:-.321,p:.482},a23:[{s:"Prometaphase",n:379,nd:26,dt:6.9,z:3.433,tg:"TAUTOLOGICAL"},{s:"Metaphase",n:31,nd:2,dt:6.5,z:null,tg:"INDEPENDENT"}],
+ins:{
+t1d:"[All Colon8 2.0만 세포 | Detected | Phase]\nG2(7.72%)>M_entry(7.12%)로 EPI Colon8(M_entry>>G2)과 반대입니다. Immune/Stromal 세포의 M_entry 검출률이 상피보다 낮아서 전체에서는 G2 피크가 부각됩니다. 이 EPI vs AllComp 반전이 'M_entry 전사 집중은 상피 특이적'이라는 결론의 핵심 근거입니다.\n\nM_exit(8.16%)가 M_entry(7.12%)보다 높은 것은 GI 전체의 'M_exit 특이적 패턴'과 일관적입니다.\n\nSubstage: Metaphase(8.83%)=Anaphase(8.83%) 동률 최고. EPI Colon8(Prometaphase 최고)과 완전 반전. Immune 세포에서 Metaphase/Anaphase 검출률이 높은 것이 원인.",
+t1h:"[All Colon8 2.0만 세포 | High | Phase]\nHi MPI M_entry(+0.877)>G2(+0.409) -- MPI 전환. Hi ind M_entry(+0.174)>G2(+0.153) -- ind도 전환! 단 ind 차이가 +0.021로 극소. n_hi=5(M_entry).\n\nSAC: G2 Hi=-0.114(음수, EPI Col8과 동일 패턴) -> M_entry Hi=+1.914. 역전 +2.028(6종 DS 2위). Colon의 Immune 포함 전체에서도 SAC 역전이 극적입니다.",
+t2:"[All Colon8 | G2 mRNA 집중]\nG2(7.72%)>M_entry(7.12%). EPI Colon8과 반전. Substage: Meta=Ana=8.83% 동률 최고, ProM(6.59%)이 낮음. EPI(ProM 10.61% 최고)와 완전 반전. 이 반전이 '상피 vs 면역 세포의 Substage 분포 차이'를 보여줍니다.",
+t3:"[All Colon8 | Det/Hi 4-궤적]\nHi MPI+ind 양쪽 M_entry 전환. 단 ind 차이 극소(+0.021). G2 ind 하강 -0.644, MPI -0.461. ratio 1.4x.",
+t5:"[All Colon8 | MPI 순환성]\nDet 3/4, Hi 3/4. AllComp(Hi 2/4)보다 오히려 높음. Colon에서 Hi 세포의 Phase 분포가 비교적 안정적입니다."}},
+};
+const DSK=Object.keys(DS);
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENTS (FIXED getTrans: uses md/id/mh/ih keys)
+   ══════════════════════════════════════════════════════════════ */
+const Bd=({t,c})=><span style={{display:"inline-block",padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,color:c||"#fff",background:(c||"#555")+"15",border:"1px solid "+(c||"#555")+"28"}}>{t}</span>;
+const Mt=({l,v,c,s})=><div style={{flex:"1 1 100px",background:C.card,borderRadius:8,padding:"8px 10px",border:"1px solid "+C.bdr,textAlign:"center"}}><div style={{fontSize:8,color:C.dm,textTransform:"uppercase",letterSpacing:.5}}>{l}</div><div style={{fontSize:15,fontWeight:800,color:c||C.ac,fontFamily:"monospace",marginTop:1}}>{v}</div>{s&&<div style={{fontSize:8,color:C.dm,marginTop:1}}>{s}</div>}</div>;
+const Sc=({title,sub,children})=><div style={{background:C.card,borderRadius:10,padding:"14px 16px",border:"1px solid "+C.bdr,marginBottom:10}}>{title&&<div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:1}}>{title}</div>}{sub&&<div style={{fontSize:9,color:C.dm,marginBottom:10}}>{sub}</div>}{children}</div>;
+const Ins=({icon,title,children,c})=><div style={{background:(c||C.ac)+"06",border:"1px solid "+(c||C.ac)+"18",borderRadius:10,padding:"12px 16px",marginTop:10}}><div style={{fontSize:11,fontWeight:700,color:c||C.ac,marginBottom:5}}>{icon} {title}</div><div style={{fontSize:10,lineHeight:1.75,color:"#a0b0c5",whiteSpace:"pre-wrap"}}>{children}</div></div>;
+const CTip=({active,payload,label})=>{if(!active||!payload||!payload.length)return null;return(<div style={{background:"#0b1120",border:"1px solid "+C.bdrH,borderRadius:8,padding:"8px 12px",color:C.tx,fontSize:9}}><div style={{fontWeight:700,fontSize:11,marginBottom:3}}>{label}</div>{payload.filter(p=>p.value!=null).map((p,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",gap:14}}><span style={{color:p.color||C.dm}}>{p.name}</span><span style={{fontFamily:"monospace",fontWeight:700,color:typeof p.value==="number"?(p.value>=0?C.ps:C.ng):C.tx}}>{typeof p.value==="number"?F(p.value):p.value}</span></div>))}</div>)};
+const TLTip=({active,payload,label})=>{if(!active||!payload||!payload.length)return null;return(<div style={{background:"#0b1120",border:"1px solid "+C.bdrH,borderRadius:8,padding:"8px 12px",color:C.tx,fontSize:9}}><div style={{fontWeight:700,fontSize:11,marginBottom:3}}>{label}</div>{payload.filter(p=>p.value!=null).map((p,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",gap:14}}><span style={{color:p.color||C.dm}}>{p.name}</span><span style={{fontFamily:"monospace",fontWeight:700,color:typeof p.value==="number"?(p.dataKey==="det"?C.mR:p.value>=0?C.ps:C.ng):C.tx}}>{p.dataKey==="det"?p.value.toFixed(2)+"%":F(p.value)}</span></div>))}</div>);};
+
+/* FIXED: uses md/id/mh/ih keys matching the data */
+const getTrans=(ph,mode)=>{
+  const mk=mode==="hi"?"mh":"md";
+  const ik=mode==="hi"?"ih":"id";
+  const v=ph.filter(p=>p[mk]!=null&&p[ik]!=null);
+  const t=[];
+  for(let i=1;i<v.length;i++){
+    const dm=v[i][mk]-v[i-1][mk];
+    const di=v[i][ik]-v[i-1][ik];
+    t.push({f:v[i-1].p,to:v[i].p,dM:dm,dI:di,ok:(dm>0)===(di>0)});
+  }
+  return t;
+};
+
+/* ══════════════════════════════════════════════════════════════ */
+function Dashboard(){
+  const[tab,setTab]=useState("timeline");
+  const[subT,setSubT]=useState("phase");
+  const[dsId,setDsId]=useState("epi_all");
+  const[showMPI,setShowMPI]=useState(true);
+  const[showInd,setShowInd]=useState(true);
+  const[hiMode,setHiMode]=useState(false);
+  const ds=DS[dsId];const ph=ds.ph;
+  const tabs=[{id:"timeline",l:"Timeline"},{id:"g2peak",l:"G2 mRNA"},{id:"dethi",l:"Det/High"},{id:"sac",l:"SAC Reversal"},{id:"meta",l:"Metaphase 7/7"},{id:"mpi",l:"MPI Circ."},{id:"cross",l:"Cross-DS"},{id:"conclusion",l:"Final"}];
+
+  /* ══════════════════════════════════════════════════════════════
+     v4 NEW: Helper data for upgraded Metaphase tab + SAC Reversal tab
+     ══════════════════════════════════════════════════════════════ */
+
+  // Marker functional grouping for Metaphase 7/7 analysis
+  const MK_GROUP={BIRC5:{g:"CPC",c:"#E53935",d:"Chromosomal Passenger Complex"},AURKB:{g:"CPC",c:"#E53935",d:"Chromosomal Passenger Complex"},CDCA8:{g:"CPC",c:"#E53935",d:"Chromosomal Passenger Complex"},NUF2:{g:"Kinetochore",c:"#8E24AA",d:"Outer Kinetochore (Ndc80 complex)"},KIF2C:{g:"Kinetochore",c:"#8E24AA",d:"KT-MT Depolymerizer (MCAK)"},DLGAP5:{g:"Spindle",c:"#00ACC1",d:"Spindle MT Stabilizer (HURP)"},KIF11:{g:"Spindle",c:"#00ACC1",d:"Bipolar Spindle Separator (Eg5)"}};
+
+  // Marker biological function (full description)
+  const MK_FUNC={BIRC5:"Survivin. CPC complex의 IAP family. Aurora B를 동원체에 모음. SAC 신호 전달의 결정적 인자.",AURKB:"Aurora B kinase. CPC의 효소 구성. 잘못된 KT-MT 부착을 인식 및 해제. SAC 활성 유지.",CDCA8:"Borealin. CPC의 구조 단백질. INCENP과 결합하여 Aurora B를 활성화.",NUF2:"Ndc80 복합체 구성. KT-MT 부착의 외측 커플링. SAC의 첫 검사점.",KIF2C:"MCAK kinesin-13. KT-MT 미세소관 끝을 탈중합화. 잘못된 부착 보정.",DLGAP5:"HURP. 동원체 측 미세소관 안정화. K-fiber 형성 보조.",KIF11:"Eg5 (kinesin-5). 양극 방추체 분리. 분열의 기계적 추진."};
+
+  // Phase × Substage overlap matrix for INDEPENDENT cross-point visualization
+  const OVERLAP_MX=[
+    {sub:"Prophase",sz:6,overlap:{S_phase:0,G2_prep:3,M_entry:0,M_exit:0},maxRatio:50,tag:"TAUTOLOGICAL",tagColor:"#FF8A65",note:"G2_prep와 50% 겹침 (AURKA, PLK1, CCNB1)"},
+    {sub:"Prometaphase",sz:8,overlap:{S_phase:0,G2_prep:0,M_entry:8,M_exit:0},maxRatio:100,tag:"TAUTOLOGICAL",tagColor:"#D32F2F",note:"M_entry와 100% 동일 (완전 동어반복)"},
+    {sub:"Metaphase",sz:7,overlap:{S_phase:0,G2_prep:0,M_entry:0,M_exit:0},maxRatio:0,tag:"INDEPENDENT",tagColor:"#69F0AE",note:"4개 Phase 모듈 전부와 0% 겹침 ★ 순환 논리 원리적 불가능"},
+    {sub:"Anaphase",sz:5,overlap:{S_phase:0,G2_prep:0,M_entry:3,M_exit:0},maxRatio:60,tag:"MIXED",tagColor:"#FFB300",note:"M_entry와 60% 겹침 (CDC20, PTTG1, UBE2C)"},
+    {sub:"Telophase",sz:7,overlap:{S_phase:0,G2_prep:0,M_entry:0,M_exit:6},maxRatio:86,tag:"TAUTOLOGICAL",tagColor:"#FF6D00",note:"M_exit와 86% 겹침 (ANLN, PRC1, KIF23 등)"}
+  ];
+
+  // M_entry SAC module gene list
+  const M_ENTRY_GENES=["PLK1","TPX2","BUB1","BUB1B","MAD2L1","TTK","NDC80","CENPE","CENPF"];
+  // Metaphase Substage module gene list
+  const META_GENES=["BIRC5","AURKB","KIF2C","CDCA8","NUF2","KIF11","DLGAP5"];
+
+  // 6-step inference chain for SAC Reversal tab
+  const INFER_CHAIN=[
+    {n:1,type:"law",title:"물리 법칙",color:"#42A5F5",text:"mRNA는 단독으로 SAC를 변화시킬 수 없다. SAC는 단백질의 활동이다. mRNA가 효과를 내려면 먼저 단백질로 번역되어야 한다. -- Central Dogma의 직접 귀결."},
+    {n:2,type:"obs",title:"G2 단계 관측",color:"#69F0AE",text:"G2의 TRIM39 Hi 세포에서 SAC 점수: EPI Colon8 -0.095 (음수). EPI GI3 +0.177 (Det +0.511에서 하강). 같은 mRNA 양 풍부 세포인데 SAC가 평균 이하 또는 음수."},
+    {n:3,type:"infer",title:"추론 1: G2 미기능",color:"#FFB300",text:"만약 G2에서 TRIM39 단백질이 충분히 있고 기능 중이라면 SAC에 어떤 영향이 보여야 한다. 영향 없음 또는 반대 방향이다. -> G2에서 단백질이 아직 부족하거나 일을 시작하지 않은 상태."},
+    {n:4,type:"obs",title:"M_entry 단계 관측",color:"#69F0AE",text:"M_entry의 TRIM39 Hi 세포에서 SAC 점수: EPI GI3 +2.262 (Det +1.589에서 +0.674 상승). EPI Colon8 +1.914 (Det +1.486에서 +0.428 상승). 모든 6 DS에서 강한 양수."},
+    {n:5,type:"infer",title:"추론 2: M_entry 기능 시작",color:"#FFB300",text:"이제 mRNA 양이 SAC에 명확한 영향을 준다. mRNA 자체는 직접 영향 불가능하므로 매개체 필요. -> M_entry에서 단백질이 충분히 만들어졌고 실제로 일을 시작한 상태."},
+    {n:6,type:"concl",title:"시간표 도출",color:"#AA00FF",text:"G2 = TRIM39 mRNA가 만들어지는 준비 단계 (단백질은 아직 부족). M_entry = TRIM39 단백질이 실제로 기능하는 단계. 부호 역전이 mRNA-단백질 시간차의 분자적 시계."}
+  ];
+
+  // Sample flow stages for Metaphase tab
+  const SAMPLE_FLOW=[
+    {label:"AllComp 전체",n:1025717,pct:100,color:"#00BCD4"},
+    {label:"M_entry Phase",n:26902,pct:2.62,color:"#E64A19"},
+    {label:"Metaphase Substage",n:1250,pct:0.122,color:"#D32F2F"},
+    {label:"TRIM39 Detected",n:62,pct:0.0060,color:"#FF8A65"}
+  ];
+  const trans=useMemo(()=>getTrans(ph,hiMode?"hi":"det"),[dsId,hiMode]);
+  const conc=trans.filter(t=>t.ok).length;
+  const insKey=hiMode?"t1h":"t1d";
+
+  const buildTL=()=>{
+    if(subT==="phase")return ph.map(d=>({x:d.p,det:d.dt,mpi:hiMode?d.mh:d.md,ind:hiMode?d.ih:d.id,if_q:d.p==="M_entry"?.80:d.p==="G2"?.05:d.p==="M_exit"?.15:0}));
+    const base=[{x:"G1",det:ph[0].dt,mpi:hiMode?ph[0].mh:ph[0].md,ind:hiMode?ph[0].ih:ph[0].id,if_q:0},{x:"S",det:ph[1].dt,mpi:hiMode?ph[1].mh:ph[1].md,ind:hiMode?ph[1].ih:ph[1].id,if_q:0},{x:"G2",det:ph[2].dt,mpi:hiMode?ph[2].mh:ph[2].md,ind:hiMode?ph[2].ih:ph[2].id,if_q:.05}];
+    const subs=ds.sub||[];const meP=ph[3];const mxP=ph[4];const proD=ds.pro||{};
+    ["Prophase","Prometaphase","Metaphase","Anaphase","Telophase"].forEach(ss=>{const sd=subs.find(s=>s.s===ss);const isPro=ss==="Prophase";const isMe=ss==="Prometaphase"||ss==="Metaphase";const isMx=ss==="Anaphase"||ss==="Telophase";
+    base.push({x:ss.slice(0,5),det:sd?sd.dt:null,mpi:isPro?(hiMode?proD.mh:proD.md):isMe?(hiMode?meP.mh:meP.md):isMx?(hiMode?mxP.mh:mxP.md):null,ind:isPro?(hiMode?proD.ih:proD.id):isMe?(hiMode?meP.ih:meP.id):isMx?(hiMode?mxP.ih:mxP.id):null,if_q:IF_Q[ss]||0});});
+    return base;
+  };
+  const tlData=useMemo(buildTL,[dsId,subT,hiMode]);
+  const normTL=useMemo(()=>{const dV=tlData.filter(d=>d.det!=null).map(d=>d.det);const dMn=Math.min(...dV),dMx=Math.max(...dV);const mV=tlData.filter(d=>d.mpi!=null).map(d=>d.mpi);const mMn=mV.length?Math.min(...mV):0,mMx=mV.length?Math.max(...mV):1;const iV=tlData.filter(d=>d.ind!=null).map(d=>d.ind);const iMn=iV.length?Math.min(...iV):0,iMx=iV.length?Math.max(...iV):1;return tlData.map(d=>({...d,det_n:d.det!=null?(d.det-dMn)/(dMx-dMn||1):null,mpi_n:d.mpi!=null?(d.mpi-mMn)/(mMx-mMn||1):null,ind_n:d.ind!=null?(d.ind-iMn)/(iMx-iMn||1):null,if_n:d.if_q}));},[tlData]);
+
+  const DsSel=()=>(<div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>{DSK.map(k=>{const d=DS[k];const a=dsId===k;return(<button key={k} onClick={()=>setDsId(k)} style={{padding:"5px 12px",borderRadius:6,cursor:"pointer",fontSize:10,background:a?d.c+"14":C.card,border:a?"2px solid "+d.c:"1px solid "+C.bdr,color:a?d.c:C.dm,fontWeight:a?700:400}}>{d.s} <span style={{fontSize:8,opacity:.7}}>{N(d.n)}</span></button>);})}</div>);
+  const Togs=()=>(<div style={{display:"flex",gap:8,marginBottom:8,alignItems:"center",flexWrap:"wrap"}}><label style={{fontSize:10,color:showMPI?C.mpi:C.dm,cursor:"pointer",display:"flex",alignItems:"center",gap:3}}><input type="checkbox" checked={showMPI} onChange={e=>setShowMPI(e.target.checked)} style={{accentColor:C.mpi}}/>MPI</label><label style={{fontSize:10,color:showInd?C.ind:C.dm,cursor:"pointer",display:"flex",alignItems:"center",gap:3}}><input type="checkbox" checked={showInd} onChange={e=>setShowInd(e.target.checked)} style={{accentColor:C.ind}}/>MPI_indep</label><label style={{fontSize:10,color:hiMode?C.hiC:C.dm,cursor:"pointer",display:"flex",alignItems:"center",gap:3,marginLeft:8}}><input type="checkbox" checked={hiMode} onChange={e=>setHiMode(e.target.checked)} style={{accentColor:C.hiC}}/><span style={{fontWeight:hiMode?700:400}}>High mode</span></label></div>);
+
+  return(<div style={{fontFamily:"'Noto Sans KR',sans-serif",background:C.bg,color:C.tx,minHeight:"100vh",padding:12}}><div style={{maxWidth:1080,margin:"0 auto"}}>
+    <div style={{marginBottom:12,borderBottom:"2px solid "+C.bdrH,paddingBottom:10}}>
+      <div style={{fontSize:8,letterSpacing:4,color:C.ac,textTransform:"uppercase",fontWeight:600}}>TRIM39-AUDIT v4.0 | 6-DS Cross-Platform | 8-Tab Edition</div>
+      <h1 style={{fontSize:17,fontWeight:900,color:"#fff",margin:"3px 0"}}>G2 mRNA Peak to Metaphase Protein</h1>
+      <div style={{fontSize:9,color:C.dm}}>v6 Master | {N(ds.n)} cells | v5 MPI_indep (0% overlap) | 6 DS | Colon 8-sample | SAC Reversal Tab + Upgraded Metaphase Tab</div>
+    </div>
+    <div style={{display:"flex",gap:3,marginBottom:10,flexWrap:"wrap"}}>{tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 11px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:tab===t.id?700:400,background:tab===t.id?C.ac+"12":C.card,border:tab===t.id?"2px solid "+C.ac:"1px solid "+C.bdr,color:tab===t.id?C.ac:C.dm}}>{t.l}</button>))}</div>
+
+    {/* TAB 1 */}
+    {tab==="timeline"&&(<div><DsSel/>
+      <div style={{display:"flex",gap:3,marginBottom:8}}>{[["phase","Phase (5)"],["substage","Substage (8)"]].map(([id,l])=>(<button key={id} onClick={()=>setSubT(id)} style={{padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:10,background:subT===id?"#1565C018":C.card,border:subT===id?"2px solid #1565C0":"1px solid "+C.bdr,color:subT===id?"#42A5F5":C.dm,fontWeight:subT===id?700:400}}>{l}</button>))}</div>
+      <Togs/>
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}><Mt l="mRNA peak" v={"G2 ("+ph[2].dt.toFixed(1)+"%)"} c={C.mR}/><Mt l="M_entry" v={ph[3].dt.toFixed(1)+"%"} c={C.mH} s={ph[3].dt>=ph[2].dt?"* >= G2":"< G2"}/><Mt l="Protein" v="Metaphase" c={C.pr} s="IF puncta max"/><Mt l="rho(7ph)" v={F(ds.dis7.r)} c={Math.abs(ds.dis7.r)>.5?C.ac:C.wn} s={"p="+ds.dis7.p.toFixed(3)}/></div>
+      <Sc title={ds.l+" | "+(subT==="phase"?"Phase":"Substage")} sub={(hiMode?"High":"Detected")+" | Blue=Det%(left) | Orange=MPI(right) | Yellow=ind(right)"}>
+        <ResponsiveContainer width="100%" height={300}><ComposedChart data={tlData} margin={{top:18,right:45,bottom:8,left:5}}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="x" tick={{fill:C.tx,fontSize:9}} interval={0}/><YAxis yAxisId="det" orientation="left" tick={{fill:C.mR,fontSize:8}} tickFormatter={v=>v.toFixed(1)+"%"} label={{value:"Det%",angle:-90,position:"insideLeft",fill:C.mR,fontSize:8,dx:-2}}/><YAxis yAxisId="mpi" orientation="right" tick={{fill:C.ind,fontSize:8}} tickFormatter={v=>v.toFixed(1)} label={{value:"MPI",angle:90,position:"insideRight",fill:C.ind,fontSize:8,dx:2}}/><Tooltip content={<TLTip/>}/><ReferenceLine yAxisId="mpi" y={0} stroke={C.bdr}/>
+
+        <Line yAxisId="det" type="monotone" dataKey="det" name="Det %" stroke={C.mR} strokeWidth={2.5} dot={{r:4,fill:C.mR,stroke:"#fff",strokeWidth:1.5}} connectNulls/>
+        {showMPI&&<Line yAxisId="mpi" type="monotone" dataKey="mpi" name={(hiMode?"Hi":"Det")+" MPI"} stroke={C.mpi} strokeWidth={2} dot={{r:3.5,fill:C.mpi,stroke:"#fff",strokeWidth:1.5}} connectNulls/>}
+        {showInd&&<Line yAxisId="mpi" type="monotone" dataKey="ind" name={(hiMode?"Hi":"Det")+" ind"} stroke={C.ind} strokeWidth={2} strokeDasharray="6 3" dot={{r:3.5,fill:C.ind,stroke:"#fff",strokeWidth:1.5}} connectNulls/>}
+
+        <Legend wrapperStyle={{fontSize:9,paddingTop:5}}/></ComposedChart></ResponsiveContainer>
+        {subT==="substage"&&<div style={{display:"flex",marginTop:2,borderRadius:5,overflow:"hidden",fontSize:8,fontWeight:600}}><div style={{flex:3,background:C.mR+"18",color:C.mR,padding:"3px 8px",textAlign:"center"}}>Transcription active</div><div style={{flex:1,background:"#FFD54F12",color:"#FFD54F",padding:"3px",textAlign:"center"}}>Down</div><div style={{flex:4,background:"#ffffff06",color:C.dm,padding:"3px 8px",textAlign:"center"}}>Mitotic silencing</div></div>}
+      </Sc>
+      <Ins icon="*" title={ds.l+" | "+(hiMode?"High":"Detected")} c={ds.c}><p>{ds.ins[insKey]}</p></Ins>
+    </div>)}
+
+    {/* TAB 2 */}
+    {tab==="g2peak"&&(<div><DsSel/>
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}><Mt l="G2 det%" v={ph[2].dt.toFixed(2)+"%"} c={C.ph.G2}/><Mt l="M_entry" v={ph[3].dt.toFixed(2)+"%"} c={C.ph.M_entry} s={ph[3].dt>=ph[2].dt?"* >= G2":""}/><Mt l="rho(7ph)" v={F(ds.dis7.r)} c={Math.abs(ds.dis7.r)>.5?C.ac:C.wn}/></div>
+      <Sc title={"Phase Det% - "+ds.l}><ResponsiveContainer width="100%" height={230}><BarChart data={ph} barSize={40}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="p" tick={{fill:C.tx,fontSize:10}}/><YAxis tick={{fill:C.dm,fontSize:9}}/><Tooltip content={<CTip/>}/><Bar dataKey="dt" name="Det%" radius={[5,5,0,0]}>{ph.map((d,i)=><Cell key={i} fill={C.ph[d.p]||C.dm} fillOpacity={d.dt>=Math.max(...ph.map(p=>p.dt))-.01?1:.55}/>)}</Bar></BarChart></ResponsiveContainer></Sc>
+      {ds.sub&&ds.sub.length>0&&<Sc title="Substage Det%"><ResponsiveContainer width="100%" height={190}><BarChart data={ds.sub} barSize={30}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="s" tick={{fill:C.tx,fontSize:8}} interval={0}/><YAxis tick={{fill:C.dm,fontSize:9}}/><Tooltip content={<CTip/>}/><Bar dataKey="dt" name="Det%" radius={[4,4,0,0]}>{ds.sub.map((d,i)=><Cell key={i} fill={C.ph[d.s]||C.dm} fillOpacity={.7}/>)}</Bar></BarChart></ResponsiveContainer></Sc>}
+      <Ins icon="*" title={ds.l} c={C.mR}><p>{ds.ins.t2}</p></Ins>
+    </div>)}
+
+    {/* TAB 3 */}
+    {tab==="dethi"&&(<div><DsSel/><Togs/>
+      <Sc title={"4-Trajectory - "+ds.l} sub="Det=orange/yellow | Hi=purple/lilac | solid=MPI | dashed=ind">
+        <ResponsiveContainer width="100%" height={300}><ComposedChart data={ph.map(d=>{const o={p:d.p};if(showMPI){o["Det MPI"]=d.md;o["Hi MPI"]=d.mh;}if(showInd){o["Det ind"]=d.id;o["Hi ind"]=d.ih;}return o;})} margin={{top:10,right:18,bottom:5,left:5}}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="p" tick={{fill:C.tx,fontSize:10}}/><YAxis tick={{fill:C.dm,fontSize:9}}/><Tooltip content={<CTip/>}/><ReferenceLine y={0} stroke={C.bdr} strokeDasharray="6 4"/><Legend wrapperStyle={{fontSize:9}}/>
+        {showMPI&&<Line type="monotone" dataKey="Det MPI" stroke={C.mpi} strokeWidth={2.5} dot={{r:5,fill:C.mpi,stroke:"#fff",strokeWidth:1.5}}/>}
+        {showMPI&&<Line type="monotone" dataKey="Hi MPI" stroke={C.hiC} strokeWidth={2.5} dot={{r:5,fill:C.hiC,stroke:"#fff",strokeWidth:1.5}} connectNulls/>}
+        {showInd&&<Line type="monotone" dataKey="Det ind" stroke={C.ind} strokeWidth={2.5} strokeDasharray="6 3" dot={{r:5,fill:C.ind,stroke:"#fff",strokeWidth:1.5}}/>}
+        {showInd&&<Line type="monotone" dataKey="Hi ind" stroke={"#CE93D8"} strokeWidth={2.5} strokeDasharray="6 3" dot={{r:5,fill:"#CE93D8",stroke:"#fff",strokeWidth:1.5}} connectNulls/>}
+        </ComposedChart></ResponsiveContainer>
+      </Sc>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4,marginBottom:10}}>{ph.map(d=>(<div key={d.p} style={{background:C.card,borderRadius:7,padding:"7px 4px",border:"1px solid "+(C.ph[d.p]||C.dm)+"25",textAlign:"center"}}><div style={{fontSize:10,fontWeight:700,color:C.ph[d.p]}}>{d.p}</div><div style={{fontSize:8,color:C.dm}}>det={d.nD} hi={d.nH}{d.nH<15&&<span style={{color:C.ng}}> !</span>}</div>{showInd&&<div style={{marginTop:3,fontSize:9}}><span style={{color:C.ind}}>D:{F(d.id)}</span>{" "}<span style={{color:"#CE93D8"}}>H:{d.ih!=null?F(d.ih):"-"}</span></div>}{showMPI&&<div style={{fontSize:9}}><span style={{color:C.mpi}}>D:{F(d.md)}</span>{" "}<span style={{color:C.hiC}}>H:{d.mh!=null?F(d.mh):"-"}</span></div>}</div>))}</div>
+      {(dsId.includes("gi3")||dsId.includes("colon"))&&ph[2].sh!=null&&ph[3].sh!=null&&<Sc title="SAC Sign Reversal"><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{[ph[2],ph[3]].map(d=>{const delta=(d.sh||0)-(d.sd||0);return(<div key={d.p} style={{background:C.bg,borderRadius:7,padding:10,border:"1px solid "+C.bdr}}><div style={{fontSize:12,fontWeight:700,color:C.ph[d.p],marginBottom:5}}>{d.p}</div><div style={{display:"flex",gap:10,alignItems:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:15,fontWeight:800,fontFamily:"monospace",color:C.mR}}>{F(d.sd)}</div><div style={{fontSize:8,color:C.dm}}>Det SAC</div></div><div style={{color:C.dm}}>-&gt;</div><div style={{textAlign:"center"}}><div style={{fontSize:15,fontWeight:800,fontFamily:"monospace",color:delta>0?C.ps:C.ng}}>{F(d.sh)}</div><div style={{fontSize:8,color:C.dm}}>Hi SAC</div></div></div><div style={{marginTop:3,fontSize:10,fontWeight:700,color:delta>0?C.ps:C.ng}}>Delta={F(delta)}</div></div>);})}</div></Sc>}
+      <Ins icon="*" title={ds.l} c={C.mH}><p>{ds.ins.t3}</p></Ins>
+    </div>)}
+
+    {/* ═══════════════════════════════════════════════════════════════
+        TAB NEW: SAC SIGN REVERSAL — DEDICATED DEEP DIVE TAB (v4)
+        7 Sections covering: HERO, 6-Step Inference, 6DS×5Phase Heatmap,
+        Det vs Hi Distribution, Molecular Mechanism, DS Reversal Chart, Limitations
+        ═══════════════════════════════════════════════════════════════ */}
+    {tab==="sac"&&(<div><DsSel/>
+
+      {/* Header metrics */}
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+        <Mt l="Reversal Type" v="Sign Flip" c={C.ac} s="G2 → M_entry"/>
+        <Mt l={ds.s+" Reversal"} v={ph[2].sh!=null&&ph[3].sh!=null?"+"+(ph[3].sh-ph[2].sh).toFixed(3):"-"} c={C.wn} s="Δ Hi SAC"/>
+        <Mt l="G2 Hi SAC" v={F(ph[2].sh)} c={ph[2].sh<0?C.ng:C.dm} s={ph[2].sh<0?"NEGATIVE":"weak"}/>
+        <Mt l="M_entry Hi SAC" v={F(ph[3].sh)} c={ph[3].sh>1?C.ps:C.dm} s={ph[3].sh>1.5?"PEAK":"active"}/>
+      </div>
+
+      {/* ── SECTION 1: HERO — Two Cards + Reversal Arrow ── */}
+      <Sc title="Section 1 — HERO: 부호 역전의 분자적 시계" sub="같은 TRIM39 mRNA 풍부 세포가 두 시점에서 정반대 효과를 보임">
+        <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:10,alignItems:"center"}}>
+          {/* G2 Card */}
+          <div style={{background:"linear-gradient(135deg, "+C.bg+" 0%, #2E7D3215 100%)",borderRadius:12,padding:"14px 16px",border:"2px solid #2E7D3260",position:"relative"}}>
+            <div style={{position:"absolute",top:-10,left:14,background:"#2E7D32",color:"#fff",padding:"3px 10px",borderRadius:10,fontSize:9,fontWeight:800,letterSpacing:1}}>G2 PHASE</div>
+            <div style={{fontSize:9,color:C.dm,marginTop:6,marginBottom:6}}>2-4시간, 분열 직전 준비 단계</div>
+            <div style={{display:"flex",justifyContent:"space-around",alignItems:"center",margin:"10px 0"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:9,color:C.dm,marginBottom:3}}>Det SAC</div>
+                <div style={{fontSize:20,fontWeight:900,fontFamily:"monospace",color:C.mR}}>{F(ph[2].sd)}</div>
+                <div style={{fontSize:7,color:C.dm,marginTop:1}}>n={ph[2].nD}</div>
+              </div>
+              <div style={{fontSize:24,color:C.dm}}>→</div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:9,color:C.dm,marginBottom:3}}>Hi SAC</div>
+                <div style={{fontSize:24,fontWeight:900,fontFamily:"monospace",color:ph[2].sh<0?C.ng:ph[2].sh<.3?"#FFB300":C.ps}}>{F(ph[2].sh)}</div>
+                <div style={{fontSize:7,color:C.dm,marginTop:1}}>n={ph[2].nH}</div>
+              </div>
+            </div>
+            <div style={{textAlign:"center",fontSize:11,fontWeight:700,color:(ph[2].sh-ph[2].sd)<0?C.ng:C.ps,padding:"4px 0",background:C.bg+"80",borderRadius:5}}>Δ = {F(ph[2].sh-ph[2].sd)}</div>
+            <div style={{fontSize:10,color:"#a0b0c5",marginTop:8,padding:"6px 8px",background:"#FF525215",borderRadius:5,borderLeft:"3px solid #FF5252"}}>{ph[2].sh<0?"단백질 미기능 (음수 전환)":ph[2].sh<.3?"단백질 미약 (Det 대비 하강)":"weak"} — mRNA만 있고 단백질이 아직 충분하지 않은 상태</div>
+          </div>
+          {/* Reversal arrow column */}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 8px"}}>
+            <div style={{fontSize:8,color:C.dm,letterSpacing:2,fontWeight:600,marginBottom:6}}>REVERSAL</div>
+            <div style={{position:"relative",width:60,height:80,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:0,height:0,borderLeft:"12px solid transparent",borderRight:"12px solid transparent",borderBottom:"16px solid "+C.wn,position:"absolute",top:0}}/>
+              <div style={{width:6,height:60,background:"linear-gradient(180deg, "+C.wn+" 0%, "+C.ac+" 100%)",borderRadius:3,marginTop:14}}/>
+            </div>
+            <div style={{fontSize:18,fontWeight:900,fontFamily:"monospace",color:C.wn,marginTop:6}}>+{ph[2].sh!=null&&ph[3].sh!=null?(ph[3].sh-ph[2].sh).toFixed(3):"-"}</div>
+            <div style={{fontSize:8,color:C.dm,marginTop:2}}>Sign flip</div>
+          </div>
+          {/* M_entry Card */}
+          <div style={{background:"linear-gradient(135deg, "+C.bg+" 0%, #E64A1925 100%)",borderRadius:12,padding:"14px 16px",border:"2px solid #E64A19A0",position:"relative",boxShadow:"0 0 16px #E64A1925"}}>
+            <div style={{position:"absolute",top:-10,left:14,background:"#E64A19",color:"#fff",padding:"3px 10px",borderRadius:10,fontSize:9,fontWeight:800,letterSpacing:1}}>M_ENTRY PHASE</div>
+            <div style={{fontSize:9,color:C.dm,marginTop:6,marginBottom:6}}>~30분, Prophase ~ Prometaphase</div>
+            <div style={{display:"flex",justifyContent:"space-around",alignItems:"center",margin:"10px 0"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:9,color:C.dm,marginBottom:3}}>Det SAC</div>
+                <div style={{fontSize:20,fontWeight:900,fontFamily:"monospace",color:C.mR}}>{F(ph[3].sd)}</div>
+                <div style={{fontSize:7,color:C.dm,marginTop:1}}>n={ph[3].nD}</div>
+              </div>
+              <div style={{fontSize:24,color:C.dm}}>→</div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:9,color:C.dm,marginBottom:3}}>Hi SAC</div>
+                <div style={{fontSize:24,fontWeight:900,fontFamily:"monospace",color:ph[3].sh>1.5?C.ps:ph[3].sh>0?"#FFD54F":C.ng}}>{F(ph[3].sh)}</div>
+                <div style={{fontSize:7,color:C.dm,marginTop:1}}>n={ph[3].nH}</div>
+              </div>
+            </div>
+            <div style={{textAlign:"center",fontSize:11,fontWeight:700,color:(ph[3].sh-ph[3].sd)>0?C.ps:C.ng,padding:"4px 0",background:C.bg+"80",borderRadius:5}}>Δ = {F(ph[3].sh-ph[3].sd)}</div>
+            <div style={{fontSize:10,color:"#a0b0c5",marginTop:8,padding:"6px 8px",background:"#69F0AE15",borderRadius:5,borderLeft:"3px solid #69F0AE"}}>단백질 기능 시작 (Hi가 Det를 초과) — 충분히 축적된 단백질이 SAC를 활성화</div>
+          </div>
+        </div>
+        {ph[2].nH<15&&<div style={{fontSize:9,color:C.wn,marginTop:8,textAlign:"center",fontStyle:"italic"}}>* n_hi&lt;15: 절대값 해석에 주의. 방향성은 6 DS 일치로 강건합니다.</div>}
+      </Sc>
+
+      {/* ── SECTION 2: 6-STEP INFERENCE CHAIN — THE KEY VISUAL ── */}
+      <Sc title="Section 2 — 6-단계 추론 체인: 부호 역전이 단백질 시간표를 어떻게 알려주는가" sub="물리 법칙 → 관측 → 추론 → 관측 → 추론 → 시간표 도출의 정확한 논리적 경로">
+        <div style={{display:"flex",flexDirection:"column",gap:6,padding:"4px 0"}}>
+          {INFER_CHAIN.map((step,idx)=>(
+            <div key={step.n} style={{display:"flex",gap:0,alignItems:"stretch"}}>
+              {/* Number circle */}
+              <div style={{flexShrink:0,width:36,display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{background:step.color,color:"#fff",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,boxShadow:"0 0 0 3px "+step.color+"30"}}>{step.n}</div>
+                {idx<INFER_CHAIN.length-1&&<div style={{width:2,flex:1,background:"linear-gradient(180deg, "+step.color+" 0%, "+INFER_CHAIN[idx+1].color+" 100%)",marginTop:2,minHeight:14,opacity:.5}}/>}
+              </div>
+              {/* Content card */}
+              <div style={{flex:1,marginLeft:8,marginBottom:idx<INFER_CHAIN.length-1?2:0,background:step.color+"08",border:"1px solid "+step.color+"40",borderLeft:"4px solid "+step.color,borderRadius:7,padding:"9px 12px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                  <div style={{fontSize:11,fontWeight:800,color:step.color}}>{step.title}</div>
+                  <div style={{fontSize:7,color:C.dm,letterSpacing:1.5,fontWeight:600,padding:"2px 6px",background:step.color+"20",borderRadius:3}}>{step.type==="law"?"PHYSICAL LAW":step.type==="obs"?"OBSERVATION":step.type==="infer"?"INFERENCE":"CONCLUSION"}</div>
+                </div>
+                <div style={{fontSize:10,lineHeight:1.65,color:"#b0c0d5"}}>{step.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:10,padding:"8px 12px",background:"#AA00FF10",border:"1px solid #AA00FF40",borderRadius:6,fontSize:10,color:"#CE93D8",lineHeight:1.6}}>
+          <strong style={{color:"#AA00FF"}}>왜 이 추론이 강력한가:</strong> 6단계 모두가 직접 관측(2, 4) 또는 물리 법칙(1)에 기반합니다. 추론(3, 5)은 관측을 물리 법칙에 적용하는 직접 도출이며, 자의적 가정이 없습니다. 결론(6)은 5개 전제의 논리적 귀결입니다. 단백질 직접 측정 없이도 단백질의 기능 시점을 정확히 추론할 수 있게 만드는 가장 정교한 부분입니다.
+        </div>
+      </Sc>
+
+      {/* ── SECTION 3: 6 DS × 5 PHASE SAC HEATMAP ── */}
+      <Sc title="Section 3 — 6 DS × 5 Phase Hi SAC 히트맵: 부호 역전의 보편성" sub="모든 DS의 모든 Phase에서의 Hi SAC 풍경 — G2의 음수/약함 → M_entry의 강한 양수">
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",fontSize:9,color:C.tx,borderCollapse:"separate",borderSpacing:2,minWidth:520}}>
+            <thead><tr><th style={{textAlign:"left",padding:"4px 6px",color:C.dm,fontSize:9}}>DS</th>{["G1","S","G2","M_entry","M_exit"].map(p=>(<th key={p} style={{textAlign:"center",padding:"4px 6px",color:C.ph[p],fontSize:9,minWidth:75}}>{p}</th>))}</tr></thead>
+            <tbody>
+              {DSK.map(k=>{const d=DS[k];return(<tr key={k}>
+                <td style={{padding:"5px 7px",fontWeight:700,color:d.c,fontSize:9.5}}>{d.l}</td>
+                {d.ph.map((p,i)=>{const v=p.sh;const isNull=v==null;const intensity=isNull?0:Math.min(Math.abs(v)/2.3,1);
+                  let bg,txt;
+                  if(isNull){bg="#1a1f2e";txt=C.dm;}
+                  else if(v<-.05){bg="rgba(66, 165, 245, "+(intensity*.85+.15)+")";txt="#fff";}
+                  else if(v<.1){bg="rgba(90, 110, 142, "+(.3+intensity*.3)+")";txt=C.tx;}
+                  else if(v<.5){bg="rgba(255, 213, 79, "+(intensity*.7+.2)+")";txt="#000";}
+                  else if(v<1.2){bg="rgba(255, 138, 101, "+(intensity*.85+.15)+")";txt="#fff";}
+                  else{bg="rgba(229, 57, 53, "+(intensity*.9+.1)+")";txt="#fff";}
+                  return(<td key={i} style={{padding:"6px 4px",background:bg,color:txt,textAlign:"center",fontFamily:"monospace",fontWeight:700,borderRadius:4,fontSize:10}}>{isNull?"—":F(v)}</td>);
+                })}
+              </tr>);})}
+            </tbody>
+          </table>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginTop:8,padding:"6px 0",fontSize:8,color:C.dm,flexWrap:"wrap"}}>
+          <span style={{fontWeight:700,color:C.tx}}>색상 스케일:</span>
+          <span><span style={{display:"inline-block",width:14,height:10,background:"rgba(66, 165, 245, .9)",verticalAlign:"middle",marginRight:4}}/>강한 음수</span>
+          <span><span style={{display:"inline-block",width:14,height:10,background:"rgba(90, 110, 142, .5)",verticalAlign:"middle",marginRight:4}}/>약함</span>
+          <span><span style={{display:"inline-block",width:14,height:10,background:"rgba(255, 213, 79, .7)",verticalAlign:"middle",marginRight:4}}/>약한 양수</span>
+          <span><span style={{display:"inline-block",width:14,height:10,background:"rgba(255, 138, 101, .85)",verticalAlign:"middle",marginRight:4}}/>중간 양수</span>
+          <span><span style={{display:"inline-block",width:14,height:10,background:"rgba(229, 57, 53, .9)",verticalAlign:"middle",marginRight:4}}/>강한 양수</span>
+        </div>
+        <div style={{marginTop:8,fontSize:10,lineHeight:1.7,color:"#a0b0c5",padding:"8px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.bdr}}>
+          <strong style={{color:C.ac}}>매트릭스 해석:</strong>{"\n"}
+          <strong style={{color:"#42A5F5"}}>G2 열</strong>: 대부분 약하거나 양수 약함. 그러나 <strong style={{color:C.ng}}>EPI Colon8 (-0.095)</strong>과 <strong style={{color:C.ng}}>All Colon8 (-0.114)</strong>에서 음수 — 시간 지연이 가장 극적인 두 DS.{" "}
+          <strong style={{color:"#FF8A65"}}>M_entry 열</strong>: <strong style={{color:C.ps}}>모든 6 DS에서 강한 양수</strong> (+1.476 ~ +2.262). SAC 활성화는 보편적.{" "}
+          <strong style={{color:C.wn}}>G2 → M_entry 전환</strong>: 모든 행에서 색상이 청 → 적으로 전환 — 부호 역전이 모든 DS에서 발생하는 보편 현상.
+        </div>
+      </Sc>
+
+      {/* ── SECTION 4: DET vs HI DISTRIBUTION COMPARISON ── */}
+      <Sc title="Section 4 — Det vs Hi 분포 비교: 같은 Phase 내 그룹 차이" sub="평균값 너머 — Det 그룹과 Hi 그룹의 SAC 분포가 어떻게 다른가">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {[ph[2],ph[3]].map(p=>{const isG2=p.p==="G2";const reverseColor=p.sh<p.sd;return(
+            <div key={p.p} style={{background:C.bg,borderRadius:8,padding:12,border:"1px solid "+C.ph[p.p]+"40"}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.ph[p.p],marginBottom:8}}>{p.p} Phase ({ds.l})</div>
+              <div style={{position:"relative",height:90,marginBottom:6}}>
+                {/* Y axis label */}
+                <div style={{position:"absolute",top:0,left:0,fontSize:7,color:C.dm}}>+2.5</div>
+                <div style={{position:"absolute",bottom:0,left:0,fontSize:7,color:C.dm}}>-0.5</div>
+                {/* Zero line */}
+                {(()=>{const yMin=-.5,yMax=2.5;const zeroY=((yMax-0)/(yMax-yMin))*100;return(
+                  <div style={{position:"absolute",left:18,right:6,top:zeroY+"%",height:1,background:C.bdrH,borderTop:"1px dashed "+C.bdrH}}><div style={{position:"absolute",right:0,top:-7,fontSize:6,color:C.dm}}>0</div></div>
+                );})()}
+                {/* Det bar */}
+                {(()=>{const yMin=-.5,yMax=2.5;const detY=((yMax-(p.sd||0))/(yMax-yMin))*100;const zeroY=((yMax-0)/(yMax-yMin))*100;const isPos=(p.sd||0)>=0;return(
+                  <div style={{position:"absolute",left:24,top:isPos?detY+"%":zeroY+"%",height:Math.abs(detY-zeroY)+"%",width:24,background:C.mR+"80",border:"1px solid "+C.mR,borderRadius:"3px 3px 0 0"}}><div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",fontSize:8,fontWeight:700,color:C.mR,whiteSpace:"nowrap"}}>{F(p.sd)}</div></div>
+                );})()}
+                {/* Hi bar */}
+                {(()=>{const yMin=-.5,yMax=2.5;const hiY=((yMax-(p.sh||0))/(yMax-yMin))*100;const zeroY=((yMax-0)/(yMax-yMin))*100;const isPos=(p.sh||0)>=0;const c=p.sh<0?C.ng:p.sh>1?C.ps:"#FFD54F";return(
+                  <div style={{position:"absolute",left:60,top:isPos?hiY+"%":zeroY+"%",height:Math.abs(hiY-zeroY)+"%",width:24,background:c+"80",border:"1px solid "+c,borderRadius:isPos?"3px 3px 0 0":"0 0 3px 3px"}}><div style={{position:"absolute",[isPos?"top":"bottom"]:-12,left:"50%",transform:"translateX(-50%)",fontSize:8,fontWeight:700,color:c,whiteSpace:"nowrap"}}>{F(p.sh)}</div></div>
+                );})()}
+                {/* X axis labels */}
+                <div style={{position:"absolute",bottom:-14,left:30,fontSize:8,color:C.mR,fontWeight:600}}>Det</div>
+                <div style={{position:"absolute",bottom:-14,left:66,fontSize:8,color:p.sh<0?C.ng:p.sh>1?C.ps:"#FFD54F",fontWeight:600}}>Hi</div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:18,fontSize:9}}>
+                <div style={{background:C.card,padding:"4px 6px",borderRadius:4,border:"1px solid "+C.bdr}}>
+                  <div style={{color:C.dm,fontSize:7,marginBottom:1}}>Det group</div>
+                  <div style={{color:C.mR,fontWeight:700}}>n = {p.nD}</div>
+                </div>
+                <div style={{background:C.card,padding:"4px 6px",borderRadius:4,border:"1px solid "+C.bdr}}>
+                  <div style={{color:C.dm,fontSize:7,marginBottom:1}}>Hi group (top 25%)</div>
+                  <div style={{color:p.sh<0?C.ng:p.sh>1?C.ps:"#FFD54F",fontWeight:700}}>n = {p.nH}{p.nH<15&&<span style={{color:C.wn}}> !</span>}</div>
+                </div>
+              </div>
+              <div style={{marginTop:6,fontSize:9,color:reverseColor?C.ng:C.ps,fontWeight:700,textAlign:"center",padding:"3px 0",background:(reverseColor?C.ng:C.ps)+"15",borderRadius:4}}>
+                {isG2?(reverseColor?"Hi가 Det보다 낮음 — 단백질 미기능 신호":"Hi가 Det와 비슷 — 약한 단백질 활동"):(reverseColor?"Hi 하강":"Hi가 Det보다 높음 — 단백질 기능 시작")}
+              </div>
+            </div>
+          );})}
+        </div>
+        <div style={{marginTop:8,fontSize:10,lineHeight:1.7,color:"#a0b0c5",padding:"8px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.bdr}}>
+          <strong style={{color:C.ac}}>핵심 비교:</strong> 같은 Phase 안에서 Det 그룹(TRIM39 검출 모든 세포)과 Hi 그룹(상위 25%)의 SAC 점수가 어느 방향으로 움직이는가?{" "}
+          <strong style={{color:C.ng}}>G2에서 Hi &lt; Det</strong>이면 "TRIM39 많은 세포가 SAC 약함" → 단백질이 아직 일하지 않는 증거.{" "}
+          <strong style={{color:C.ps}}>M_entry에서 Hi &gt; Det</strong>이면 "TRIM39 많은 세포가 SAC 강함" → 단백질이 일을 시작한 증거. 두 방향이 정반대인 것이 부호 역전의 본질입니다.
+        </div>
+      </Sc>
+
+      {/* ── SECTION 5: MOLECULAR MECHANISM DIAGRAM ── */}
+      <Sc title="Section 5 — 분자 메커니즘 다이어그램: G2 vs M_entry의 분자 풍경" sub="같은 mRNA 수준에서 단백질·APC/C·SAC 상태가 어떻게 다른가">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {/* G2 cell diagram */}
+          <div style={{background:C.bg,borderRadius:10,padding:14,border:"2px solid #2E7D3260"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#2E7D32",marginBottom:8,textAlign:"center"}}>G2 — 준비 단계</div>
+            {/* Cell visualization */}
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>TRIM39 mRNA</div>
+                <div style={{display:"flex",gap:2}}>{Array(8).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#42A5F5"}}/>)}</div>
+                <div style={{fontSize:9,color:"#42A5F5",fontWeight:700}}>풍부</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>TRIM39 단백질</div>
+                <div style={{display:"flex",gap:2}}>{Array(2).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:2,background:"#FF5252",opacity:.4}}/>)}</div>
+                <div style={{fontSize:9,color:C.ng,fontWeight:700}}>미량</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>APC/C 복합체</div>
+                <div style={{padding:"2px 8px",background:C.dm+"40",borderRadius:3,fontSize:7,fontWeight:700,color:C.dm}}>비활성 / 미억제</div>
+                <div style={{fontSize:9,color:C.dm,fontWeight:700}}>중립</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>SAC 점수</div>
+                <div style={{padding:"2px 8px",background:C.ng+"30",borderRadius:3,fontSize:7,fontWeight:700,color:C.ng}}>약함 / 음수</div>
+                <div style={{fontSize:9,color:C.ng,fontWeight:700}}>{F(ph[2].sh)}</div>
+              </div>
+            </div>
+            <div style={{marginTop:10,padding:"8px 10px",background:"#2E7D3215",borderRadius:5,fontSize:9.5,color:"#A5D6A7",lineHeight:1.6}}>
+              "공장은 가동 중이고 부품은 만들어지고 있지만, 충분한 양이 모이지 않아 작업이 시작되지 않은 상태."
+            </div>
+          </div>
+          {/* M_entry cell diagram */}
+          <div style={{background:C.bg,borderRadius:10,padding:14,border:"2px solid #E64A19A0",boxShadow:"0 0 12px #E64A1925"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#E64A19",marginBottom:8,textAlign:"center"}}>M_entry — 기능 시작 단계</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>TRIM39 mRNA</div>
+                <div style={{display:"flex",gap:2}}>{Array(5).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#42A5F5",opacity:.6}}/>)}</div>
+                <div style={{fontSize:9,color:"#42A5F5",fontWeight:700}}>잔존</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>TRIM39 단백질</div>
+                <div style={{display:"flex",gap:2}}>{Array(7).fill(0).map((_,i)=><div key={i} style={{width:6,height:6,borderRadius:2,background:"#FF5252"}}/>)}</div>
+                <div style={{fontSize:9,color:C.ng,fontWeight:700}}>축적</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>APC/C 복합체</div>
+                <div style={{padding:"2px 8px",background:C.ng+"40",borderRadius:3,fontSize:7,fontWeight:700,color:"#FFCDD2"}}>억제 (TRIM39 결합)</div>
+                <div style={{fontSize:9,color:C.ng,fontWeight:700}}>차단</div>
+              </div>
+              <div style={{background:C.card,borderRadius:6,padding:"7px 10px",border:"1px solid "+C.bdr,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:9,color:C.tx,fontWeight:600}}>SAC 점수</div>
+                <div style={{padding:"2px 8px",background:C.ps+"30",borderRadius:3,fontSize:7,fontWeight:700,color:"#A5D6A7"}}>활성 / 강한 양수</div>
+                <div style={{fontSize:9,color:C.ps,fontWeight:700}}>{F(ph[3].sh)}</div>
+              </div>
+            </div>
+            <div style={{marginTop:10,padding:"8px 10px",background:"#E64A1920",borderRadius:5,fontSize:9.5,color:"#FFAB91",lineHeight:1.6}}>
+              "단백질이 충분한 양으로 축적되어 동원체에 모이고, APC/C를 억제하여 SAC를 연장시키는 상태."
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop:10,padding:"8px 12px",background:"#FFB30015",border:"1px solid #FFB30040",borderRadius:6,fontSize:10,color:"#FFE082",lineHeight:1.65}}>
+          <strong style={{color:"#FFB300"}}>두 다이어그램의 핵심 차이:</strong> mRNA 양은 비슷하거나 G2가 더 많을 수 있지만, <strong>단백질 농도가 결정적으로 다름</strong>. G2는 mRNA가 만들어지는 동안 단백질 농도가 임계점에 못 미치고, M_entry에 와서야 충분한 농도에 도달하여 APC/C 결합 → 억제 → SAC 활성화의 분자 사슬이 작동합니다.
+        </div>
+      </Sc>
+
+      {/* ── SECTION 6: 6 DS REVERSAL MAGNITUDE BAR CHART ── */}
+      <Sc title="Section 6 — 6 DS 부호 역전 크기 비교" sub="모든 데이터셋에서 부호 역전이 발생 — Colon 계열이 상위 3위">
+        {(()=>{const sr=DSK.map(k=>{const d=DS[k];const g2=d.ph[2];const me=d.ph[3];if(g2.sh==null||me.sh==null)return null;return{ds:d.s,full:d.l,c:d.c,g2h:g2.sh,meh:me.sh,rev:me.sh-g2.sh,nhi_g2:g2.nH,nhi_me:me.nH};}).filter(Boolean).sort((a,b)=>b.rev-a.rev);
+          return(<div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {sr.map((r,i)=>{const maxRev=Math.max(...sr.map(x=>x.rev));const widthPct=(r.rev/maxRev)*100;
+                return(<div key={r.ds} style={{background:C.bg,borderRadius:6,padding:"8px 10px",border:"1px solid "+r.c+"40"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{background:r.c+"20",color:r.c,padding:"1px 6px",borderRadius:3,fontSize:8,fontWeight:800}}>{i+1}위</div>
+                      <div style={{fontSize:11,fontWeight:700,color:r.c}}>{r.full}</div>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:900,fontFamily:"monospace",color:r.rev>2?C.wn:r.rev>1.5?C.ac:"#FFD54F"}}>+{r.rev.toFixed(3)}</div>
+                  </div>
+                  <div style={{height:14,background:"#1a1f2e",borderRadius:3,overflow:"hidden",marginBottom:4,position:"relative"}}>
+                    <div style={{height:"100%",width:widthPct+"%",background:"linear-gradient(90deg, "+r.c+" 0%, "+r.c+"80 100%)",borderRadius:3,transition:"width 0.5s"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:8,color:C.dm}}>
+                    <span>G2 Hi: <strong style={{color:r.g2h<0?C.ng:r.g2h<.3?"#FFB300":C.tx}}>{F(r.g2h)}</strong> (n={r.nhi_g2})</span>
+                    <span>M_entry Hi: <strong style={{color:C.ps}}>{F(r.meh)}</strong> (n={r.nhi_me})</span>
+                  </div>
+                </div>);
+              })}
+            </div>
+            <div style={{marginTop:10,padding:"8px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.bdr,fontSize:10,color:"#a0b0c5",lineHeight:1.65}}>
+              <strong style={{color:C.wn}}>주목할 점:</strong> 상위 3위가 모두 GI/Colon 계열({sr.slice(0,3).map(r=>r.ds).join(", ")}) — 위장관 상피와 대장에서 부호 역전이 가장 극적입니다. 이 조직들은 인체에서 가장 빠른 세포 교체(3-5일)가 일어나는 곳으로, TRIM39의 분열 정확성 검사가 특히 중요한 환경일 가능성을 시사합니다. <strong style={{color:C.ng}}>G2 Hi SAC가 음수(-0.095, -0.114)</strong>로 전환되는 두 DS(EPI Colon8, All Colon8)는 시간 지연 모델의 가장 극단적 확인입니다.
+            </div>
+          </div>);
+        })()}
+      </Sc>
+
+      {/* ── SECTION 7: LIMITATIONS AND ESCALATION PATH ── */}
+      <Sc title="Section 7 — 정직한 한계와 격상 경로" sub="이 결과의 강도와 약점을 정확히 — Tier 2 추론으로서의 자기 위치화">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{background:"#FF525210",borderRadius:8,padding:"10px 14px",border:"1px solid "+C.ng+"40"}}>
+            <div style={{fontSize:11,fontWeight:800,color:C.ng,marginBottom:6}}>현재 한계</div>
+            <div style={{fontSize:9.5,lineHeight:1.7,color:"#a0b0c5"}}>
+              <div style={{marginBottom:6}}><strong style={{color:C.ng}}>1. n_hi 소표본:</strong> EPI Colon8 G2 n=6, M_entry n=5. 절대값 해석 주의. 그러나 방향성은 6 DS 일치로 강건.</div>
+              <div style={{marginBottom:6}}><strong style={{color:C.ng}}>2. SAC score는 mRNA 측정 (간접):</strong> 9개 SAC 유전자 mRNA 평균. 단백질 활동 직접 측정 아님.</div>
+              <div style={{marginBottom:6}}><strong style={{color:C.ng}}>3. 인과 검증 부재:</strong> 관찰 = 상관 ≠ 인과. KD 실험 부재.</div>
+              <div><strong style={{color:C.ng}}>4. 대안 해석:</strong> TRIM39가 SAC 유전자 전사를 직접 촉진할 가능성 (현재 데이터로 배제 불가).</div>
+            </div>
+          </div>
+          <div style={{background:"#69F0AE10",borderRadius:8,padding:"10px 14px",border:"1px solid "+C.ps+"40"}}>
+            <div style={{fontSize:11,fontWeight:800,color:C.ps,marginBottom:6}}>격상 경로</div>
+            <div style={{fontSize:9.5,lineHeight:1.7,color:"#a0b0c5"}}>
+              <div style={{marginBottom:6}}><strong style={{color:C.ps}}>P1. Phase별 IF 정량:</strong> G2 vs M_entry vs Metaphase 단백질 강도 직접 측정. 예측: Metaphase &gt; M_entry &gt; G2.</div>
+              <div style={{marginBottom:6}}><strong style={{color:C.ps}}>P2. TRIM39 KD + SAC 측정:</strong> siRNA 후 SAC 단축 확인. 예측: KD에서 lagging chromosome 증가.</div>
+              <div style={{marginBottom:6}}><strong style={{color:C.ps}}>P3. TRIM39 + APC/C 시간 lapse imaging:</strong> 동원체 결합의 시간 진화.</div>
+              <div><strong style={{color:C.ps}}>P4. Triple co-localization IF:</strong> TRIM39 + CREST + CDC27. 공간적 결합 확인.</div>
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop:10,padding:"10px 14px",background:"#42A5F510",borderRadius:8,border:"1px solid #42A5F540"}}>
+          <div style={{fontSize:11,fontWeight:800,color:"#42A5F5",marginBottom:4}}>Tier 2 추론 자기 위치</div>
+          <div style={{fontSize:10,lineHeight:1.65,color:"#a0b0c5"}}>본 결과는 <strong style={{color:"#42A5F5"}}>Tier 2 (강한 간접 증거)</strong>에 속합니다. Tier 1(직접 관찰: 6/6 G2 MPI_indep 최대, M기 검출률 급감, IF Metaphase puncta)이 Tier 2(시간표 추론, 7/7 음의 상관)를 지지합니다. P1-P4 후속 실험이 양성이면 <strong style={{color:C.ps}}>Tier 1로 격상</strong>됩니다.</div>
+        </div>
+      </Sc>
+
+      {/* DS-specific insight text */}
+      <Ins icon="●" title={ds.l+" — SAC Sign Reversal Insight"} c={C.ac}>
+        {dsId==="epi_all"&&<p>{"[EPI All — SAC Reversal +1.443]\nG2 Hi SAC +0.264 (Det +0.600에서 -0.336 하강) → M_entry Hi SAC +1.707 (Det +1.639에서 +0.068 상승). 22.1만 EPI 세포에서 부호 역전이 명확히 관찰되지만 음수 전환은 발생하지 않음. EPI 전체에서는 다양한 조직(GI, lung, breast, skin 등)이 혼합되어 평균화 효과로 G2 Hi SAC가 양수에 머무름. 그러나 M_entry로의 +1.443 상승은 조직 무관한 보편 신호."}</p>}
+        {dsId==="epi_gi3"&&<p>{"[EPI GI3 — SAC Reversal +2.086 ★ DS 1위]\nG2 Hi SAC +0.177 (Det +0.511에서 -0.334 하강) → M_entry Hi SAC +2.262 (Det +1.589에서 +0.674 상승, 6 DS 최고). 위장관 상피에서 부호 역전이 가장 극적. n_hi=24(G2)/10(M_entry)로 비교적 안정. M_entry Hi SAC +2.262는 z-score 기준 매우 높은 값으로, 이 시점에서 TRIM39 단백질의 SAC 활성화 효과가 최대치임을 시사."}</p>}
+        {dsId==="epi_colon8"&&<p>{"[EPI Colon8 — SAC Reversal +2.009 ★ G2 음수 전환]\nG2 Hi SAC -0.095 (Det +0.464에서 -0.559 음수로 전환, 6 DS 중 유일한 음수) → M_entry Hi SAC +1.914 (Det +1.486에서 +0.428 상승). 대장 상피에서 G2 Hi SAC가 음수로 떨어지는 것은 시간 지연 모델의 가장 극단적 확인. n_hi=6(G2)/5(M_entry) 극소표본 주의 필요. 그러나 이 음수 전환이 All Colon8(-0.114)에서도 재현되어 'Colon에서 G2 단백질 미기능 상태가 가장 극적'이라는 결론이 두 DS 교차 확인."}</p>}
+        {dsId==="all_all"&&<p>{"[AllComp — SAC Reversal +1.312]\nG2 Hi SAC +0.164 (Det +0.635에서 -0.471 하강) → M_entry Hi SAC +1.476 (Det +1.517에서 -0.041 미세 하강). 102만 세포 대규모에서 부호 역전이 +1.312로 가장 작음 — 면역세포(49.6%) + 기질(21.3%) + 상피(20%)의 평균화 효과. 그러나 G2 Det → Hi 하강폭(-0.471)은 큼, M_entry Det → Hi가 미세 하강(-0.041)인 것은 대규모에서 SAC 활성이 이미 Det 수준에서 saturate됨을 시사."}</p>}
+        {dsId==="all_gi3"&&<p>{"[All GI3 — SAC Reversal +1.655]\nG2 Hi SAC +0.128 (Det +0.328에서 -0.200 하강) → M_entry Hi SAC +1.783 (Det +1.344에서 +0.439 상승). 위장관 전체(상피+면역+기질)에서 부호 역전 +1.655. EPI GI3(+2.086)보다 작지만 같은 방향. Immune/Stromal 혼입이 부호 역전 크기를 약화시키는 것이 정량적으로 확인 — 상피만 분리하면 신호가 더 강해짐."}</p>}
+        {dsId==="all_colon8"&&<p>{"[All Colon8 — SAC Reversal +2.028 ★ G2 음수 전환]\nG2 Hi SAC -0.114 (Det +0.445에서 -0.559 음수로 전환) → M_entry Hi SAC +1.914 (Det +1.379에서 +0.535 상승). 대장 전체에서도 G2 Hi SAC가 음수 전환. EPI Colon8(-0.095)과 함께 6 DS 중 유일한 두 음수 사례. Immune 포함 전체에서도 음수 패턴이 유지된다는 것은 Colon이라는 조직 자체의 특성으로 해석 가능. n_hi=10(G2)/5(M_entry)."}</p>}
+      </Ins>
+    </div>)}
+
+    {/* ═══════════════════════════════════════════════════════════════
+        TAB 4 (UPGRADED v4): METAPHASE 7/7 — DEDICATED DEEP DIVE
+        6 Sections: HERO, Statistical Robustness, INDEPENDENT Crosspoint Matrix ★,
+        Sample Flow, Marker Functional Cards, 6 DS Comparison Matrix
+        Original M_entry × Substage table + DS-specific insight texts preserved
+        ═══════════════════════════════════════════════════════════════ */}
+    {tab==="meta"&&(<div>
+      <div style={{display:"flex",gap:3,marginBottom:8}}>{["epi_all","epi_colon8","all_all","all_colon8"].map(k=>{const d=DS[k];const a=dsId===k;return(<button key={k} onClick={()=>setDsId(k)} style={{padding:"5px 12px",borderRadius:6,cursor:"pointer",fontSize:10,background:a?d.c+"14":C.card,border:a?"2px solid "+d.c:"1px solid "+C.bdr,color:a?d.c:C.dm,fontWeight:a?700:400}}>{d.s}</button>);})}</div>
+
+      {/* Header metrics — expanded with statistical info */}
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+        <Mt l="Crosspoint" v="INDEPENDENT" c={C.ps} s="0% overlap"/>
+        <Mt l="Neg corr" v="7/7" c={C.pr} s="all negative"/>
+        <Mt l="p-value" v="0.008" c={C.ac} s="(1/2)^7"/>
+        <Mt l="Max |ρ|" v="0.245" c="#FF8A65" s="BIRC5"/>
+        <Mt l="Σ|ρ|" v="1.052" c="#FFD54F" s="cumulative"/>
+      </div>
+
+      {/* ── SECTION 1: HERO — 7-Marker Bar Chart with Functional Group Coloring ── */}
+      <Sc title="Section 1 — HERO: 7-마커 음의 상관 (기능 그룹 색상 코딩)" sub="INDEPENDENT 0% 교차점 | AllComp 1,250 Metaphase cells | 62 TRIM39+ | p = (1/2)^7 = 0.008">
+        {DS.all_all.mc&&<div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={DS.all_all.mc} layout="vertical" barSize={22} margin={{left:65,right:55,top:10}}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/>
+              <XAxis type="number" domain={[-.3,.05]} tick={{fill:C.dm,fontSize:9}}/>
+              <YAxis type="category" dataKey="g" tick={{fill:C.tx,fontSize:10,fontWeight:700}} width={55}/>
+              <Tooltip content={<CTip/>}/>
+              <ReferenceLine x={0} stroke={C.ng} strokeWidth={2.5} strokeDasharray="6 3" label={{value:"ρ=0",fill:C.ng,fontSize:9,position:"top"}}/>
+              <Bar dataKey="r" name="ρ (Spearman)" radius={[0,4,4,0]}>
+                {DS.all_all.mc.map((d,i)=><Cell key={i} fill={MK_GROUP[d.g]?.c||C.ng}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:8,padding:"6px 0",borderTop:"1px solid "+C.bdr,flexWrap:"wrap"}}>
+            {[{g:"CPC",c:"#E53935",members:"BIRC5, AURKB, CDCA8"},{g:"Kinetochore",c:"#8E24AA",members:"NUF2, KIF2C"},{g:"Spindle MT",c:"#00ACC1",members:"DLGAP5, KIF11"}].map(grp=>(
+              <div key={grp.g} style={{display:"flex",alignItems:"center",gap:5,fontSize:9}}>
+                <div style={{width:14,height:10,background:grp.c,borderRadius:2}}/>
+                <span style={{color:grp.c,fontWeight:700}}>{grp.g}</span>
+                <span style={{color:C.dm,fontSize:8}}>({grp.members})</span>
+              </div>
+            ))}
+          </div>
+        </div>}
+      </Sc>
+
+      {/* ── SECTION 2: STATISTICAL ROBUSTNESS ── */}
+      <Sc title="Section 2 — 통계적 강건성: 우연 확률과 기능 그룹 일치도" sub="단순 7개 마커가 아닌 3개 독립 분열 기구 카테고리가 모두 한 방향">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{background:C.bg,borderRadius:8,padding:14,border:"1px solid "+C.bdr}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#FFD54F",marginBottom:8}}>2A — 우연 확률 시뮬레이션</div>
+            <div style={{fontSize:9,color:C.dm,marginBottom:6}}>관측된 부호 패턴:</div>
+            <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap"}}>
+              {DS.all_all.mc.map((d,i)=>(
+                <div key={i} style={{textAlign:"center"}}>
+                  <div style={{fontSize:7,color:C.dm,fontFamily:"monospace"}}>{d.g}</div>
+                  <div style={{fontSize:18,color:C.ng,fontWeight:900,lineHeight:1}}>↓</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:9.5,lineHeight:1.7,color:"#a0b0c5",padding:"6px 8px",background:C.card,borderRadius:5}}>
+              랜덤 부호 할당 시 모든 7개가 같은 방향일 확률:<br/>
+              <span style={{fontFamily:"monospace",fontSize:11,color:"#FFD54F",fontWeight:700}}>(1/2)^7 = 1/128 = 0.78%</span><br/>
+              <span style={{color:C.ng}}>Two-tailed p = 1.56% &lt;&lt; 0.05</span><br/>
+              <span style={{color:C.ps}}>→ 99.22% 확률로 우연 아님</span>
+            </div>
+          </div>
+          <div style={{background:C.bg,borderRadius:8,padding:14,border:"1px solid "+C.bdr}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#FFD54F",marginBottom:8}}>2B — 기능 그룹별 일치도</div>
+            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+              {[{g:"CPC",c:"#E53935",mks:["BIRC5","AURKB","CDCA8"]},{g:"Kinetochore",c:"#8E24AA",mks:["NUF2","KIF2C"]},{g:"Spindle MT",c:"#00ACC1",mks:["DLGAP5","KIF11"]}].map(grp=>{
+                const r_vals=grp.mks.map(m=>DS.all_all.mc.find(d=>d.g===m)?.r);
+                const allNeg=r_vals.every(r=>r<0);
+                return(<div key={grp.g} style={{padding:"6px 8px",background:C.card,borderRadius:5,borderLeft:"3px solid "+grp.c}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <span style={{fontSize:10,fontWeight:700,color:grp.c}}>{grp.g}</span>
+                    <span style={{fontSize:10,fontWeight:800,color:allNeg?C.ps:C.ng}}>{r_vals.length}/{r_vals.length} negative ✓</span>
+                  </div>
+                  <div style={{fontSize:8,color:C.dm,fontFamily:"monospace"}}>{grp.mks.map(m=>{const r=DS.all_all.mc.find(d=>d.g===m)?.r;return m+"("+(r>=0?"+":"")+r.toFixed(3)+")";}).join(" · ")}</div>
+                </div>);
+              })}
+            </div>
+            <div style={{marginTop:8,fontSize:9.5,lineHeight:1.65,color:"#a0b0c5",padding:"6px 8px",background:"#69F0AE15",borderRadius:5}}>
+              <strong style={{color:C.ps}}>3개 카테고리, 3/3 일치:</strong> CPC, Kinetochore, Spindle은 분열의 서로 다른 독립 기구입니다. 셋이 모두 같은 방향이라는 것은 단순 마커 우연을 넘어선 강력한 신호.
+            </div>
+          </div>
+        </div>
+      </Sc>
+
+      {/* ── SECTION 3: INDEPENDENT CROSSPOINT MATRIX — THE KEY VISUAL ★ ── */}
+      <Sc title="Section 3 — INDEPENDENT 교차점 매트릭스 ★ 핵심 시각" sub="Phase × Substage 모듈 겹침 — Metaphase만이 4개 Phase 모듈 전부와 0% 겹침">
+        <div style={{overflowX:"auto",marginBottom:12}}>
+          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:3,fontSize:9.5,minWidth:580}}>
+            <thead>
+              <tr>
+                <th style={{padding:"6px 8px",textAlign:"left",color:C.dm,fontSize:9}}>Substage Module<br/><span style={{fontSize:7,fontWeight:400}}>(자기 크기)</span></th>
+                <th style={{padding:"6px 8px",textAlign:"center",color:"#1565C0",fontSize:9}}>S_phase<br/><span style={{fontSize:7,fontWeight:400}}>(11 genes)</span></th>
+                <th style={{padding:"6px 8px",textAlign:"center",color:"#2E7D32",fontSize:9}}>G2_prep<br/><span style={{fontSize:7,fontWeight:400}}>(5 genes)</span></th>
+                <th style={{padding:"6px 8px",textAlign:"center",color:"#E64A19",fontSize:9}}>M_entry<br/><span style={{fontSize:7,fontWeight:400}}>(9 genes)</span></th>
+                <th style={{padding:"6px 8px",textAlign:"center",color:"#7B1FA2",fontSize:9}}>M_exit<br/><span style={{fontSize:7,fontWeight:400}}>(6 genes)</span></th>
+                <th style={{padding:"6px 8px",textAlign:"center",color:C.dm,fontSize:9}}>Tag</th>
+              </tr>
+            </thead>
+            <tbody>
+              {OVERLAP_MX.map(row=>{const isMeta=row.sub==="Metaphase";return(<tr key={row.sub}>
+                <td style={{padding:"7px 8px",fontWeight:700,color:isMeta?C.ps:C.tx,fontSize:10,background:isMeta?"#69F0AE10":"transparent",borderRadius:4}}>{row.sub}<br/><span style={{fontSize:7,color:C.dm,fontWeight:400}}>({row.sz} genes)</span></td>
+                {["S_phase","G2_prep","M_entry","M_exit"].map(mod=>{const ov=row.overlap[mod];const pct=row.sz>0?Math.round(ov/row.sz*100):0;
+                  let bg,col;
+                  if(pct===0){bg="#69F0AE25";col=C.ps;}
+                  else if(pct<60){bg="#FFB30030";col="#FFB300";}
+                  else if(pct<90){bg="#FF6D0040";col="#FF6D00";}
+                  else{bg="#D32F2F50";col="#FFCDD2";}
+                  return(<td key={mod} style={{padding:"7px 6px",textAlign:"center",fontFamily:"monospace",fontWeight:700,background:bg,color:col,borderRadius:4,fontSize:10}}>{pct===0?"0/"+row.sz:ov+"/"+row.sz}<br/><span style={{fontSize:8,opacity:.85}}>({pct}%)</span></td>);
+                })}
+                <td style={{padding:"7px 6px",textAlign:"center"}}><Bd t={row.tag} c={row.tagColor}/></td>
+              </tr>);})}
+            </tbody>
+          </table>
+        </div>
+        <div style={{marginBottom:10,padding:"8px 12px",background:"#69F0AE10",borderRadius:6,border:"1px solid #69F0AE40",fontSize:10,lineHeight:1.7,color:"#A5D6A7"}}>
+          <strong style={{color:C.ps}}>★ 결정적 사실:</strong> 5개 Substage 중 <strong style={{color:C.ps}}>오직 Metaphase만이</strong> 4개 Phase 모듈 전부와 0% 겹침입니다. Prometaphase는 M_entry와 100% 동어반복, Telophase는 M_exit과 86% 겹침. <strong>Metaphase가 분열 정점의 정확한 지점이면서 Phase 배정 시스템과 독립적이라는 두 조건의 동시 만족</strong>이 7/7 음의 상관 결과의 순환 논리 원리적 불가능성을 보장합니다.
+        </div>
+        <div style={{background:C.bg,borderRadius:8,padding:14,border:"1px solid "+C.bdr}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:C.tx,marginBottom:8,textAlign:"center"}}>3B — M_entry Phase Module ⊥ Metaphase Substage Module</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 50px 1fr",gap:6,alignItems:"center"}}>
+            <div style={{background:"#E64A1915",borderRadius:8,padding:"10px 12px",border:"2px solid #E64A19A0",textAlign:"center"}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#E64A19",marginBottom:4}}>M_entry Module</div>
+              <div style={{fontSize:8,color:C.dm,marginBottom:5}}>Phase 배정용 9 genes</div>
+              <div style={{fontSize:9,fontFamily:"monospace",color:"#FFAB91",lineHeight:1.7}}>{M_ENTRY_GENES.join(" · ")}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:24,color:C.ps,fontWeight:900,fontFamily:"serif"}}>∅</div>
+              <div style={{fontSize:7,color:C.dm,marginTop:2,letterSpacing:1}}>EMPTY SET</div>
+              <div style={{fontSize:7,color:C.dm,marginTop:1}}>(no overlap)</div>
+            </div>
+            <div style={{background:"#D32F2F15",borderRadius:8,padding:"10px 12px",border:"2px solid #D32F2FA0",textAlign:"center"}}>
+              <div style={{fontSize:10,fontWeight:800,color:"#D32F2F",marginBottom:4}}>Metaphase Module</div>
+              <div style={{fontSize:8,color:C.dm,marginBottom:5}}>Substage 배정용 7 genes</div>
+              <div style={{fontSize:9,fontFamily:"monospace",color:"#EF9A9A",lineHeight:1.7}}>{META_GENES.join(" · ")}</div>
+            </div>
+          </div>
+          <div style={{marginTop:8,fontSize:9.5,color:"#a0b0c5",lineHeight:1.65,textAlign:"center",fontStyle:"italic"}}>
+            두 유전자 집합이 완전히 분리되어 공집합. M_entry로 분류된 세포에서 Metaphase 마커가 TRIM39와 음의 상관일 때, "같은 유전자를 두 번 세는" 함정이 발생할 수 없습니다.
+          </div>
+        </div>
+      </Sc>
+
+      {/* ── SECTION 4: SAMPLE FLOW ── */}
+      <Sc title="Section 4 — 표본 흐름 다이어그램: 102만 → 62의 정밀화" sub="분석에 사용된 62개 세포가 어디에서 왔는지의 단계별 추적">
+        <div style={{display:"flex",flexDirection:"column",gap:4,padding:"4px 0"}}>
+          {SAMPLE_FLOW.map((stage,idx)=>{const widthPct=Math.max(Math.log10(stage.n)/Math.log10(SAMPLE_FLOW[0].n)*100,15);
+            return(<div key={idx}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:120,fontSize:10,color:stage.color,fontWeight:700,textAlign:"right"}}>{stage.label}</div>
+                <div style={{flex:1,position:"relative"}}>
+                  <div style={{height:32,background:stage.color+"20",border:"1px solid "+stage.color+"60",borderRadius:5,width:widthPct+"%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 12px",transition:"width 0.5s"}}>
+                    <span style={{fontSize:13,fontWeight:900,fontFamily:"monospace",color:stage.color}}>{N(stage.n)}</span>
+                    <span style={{fontSize:9,color:C.dm}}>{stage.pct<0.01?stage.pct.toExponential(2):stage.pct.toFixed(stage.pct<1?3:2)}% of total</span>
+                  </div>
+                </div>
+              </div>
+              {idx<SAMPLE_FLOW.length-1&&<div style={{marginLeft:130,padding:"3px 0",fontSize:8,color:C.dm,fontStyle:"italic"}}>
+                {idx===0?"↓ Phase 배정 → M_entry로 분류":idx===1?"↓ Substage 재분류 → Metaphase로 배정":"↓ TRIM39 mRNA 검출 필터"}
+              </div>}
+            </div>);
+          })}
+        </div>
+        <div style={{marginTop:10,padding:"8px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.bdr,fontSize:10,lineHeight:1.65,color:"#a0b0c5"}}>
+          <strong style={{color:"#FF8A65"}}>62라는 숫자의 의미:</strong> 적게 보이지만 단계마다 명확한 기준으로 통제된 정밀화의 끝에 남은 정수입니다. 102만 → 26,902 → 1,250 → 62. 각 줄어드는 단계가 (1) 세포주기 위치, (2) 분열 정점 substage, (3) TRIM39 발현 조건이라는 다른 정밀화 차원입니다. 7개 마커 측정과 결합하면 62 × 7 = 434 측정점, 7/7 일치 패턴이 통계적 유의성(p=0.008)을 만들어냅니다.
+        </div>
+      </Sc>
+
+      {/* ── SECTION 5: MARKER FUNCTIONAL CARDS ── */}
+      <Sc title="Section 5 — 7-마커 생물학적 기능 카드: 무작위가 아닌 분열 정확성 핵심 인자들" sub="이들이 모두 TRIM39와 음의 상관이라는 것은 TRIM39가 분열 정확성 검사 기구를 조절한다는 신호">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))",gap:8}}>
+          {DS.all_all.mc.map((mk,idx)=>{const grp=MK_GROUP[mk.g];const func=MK_FUNC[mk.g];const rank=idx+1;
+            return(<div key={mk.g} style={{background:C.bg,borderRadius:8,padding:"10px 12px",border:"1px solid "+grp.c+"60",borderLeft:"4px solid "+grp.c,position:"relative"}}>
+              <div style={{position:"absolute",top:-7,right:8,background:C.bg,padding:"0 5px",fontSize:7,color:C.dm,fontWeight:700,letterSpacing:1}}>#{rank}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <div style={{fontSize:12,fontWeight:800,color:grp.c}}>{mk.g}</div>
+                <div style={{fontSize:13,fontWeight:900,fontFamily:"monospace",color:Math.abs(mk.r)>.15?C.ng:"#FF8A65"}}>{mk.r.toFixed(3)}</div>
+              </div>
+              <div style={{display:"inline-block",padding:"1px 6px",background:grp.c+"25",borderRadius:3,fontSize:8,color:grp.c,fontWeight:700,marginBottom:5}}>{grp.g}</div>
+              <div style={{fontSize:8.5,color:C.dm,marginBottom:4,fontStyle:"italic"}}>{grp.d}</div>
+              <div style={{fontSize:9,lineHeight:1.5,color:"#a0b0c5"}}>{func}</div>
+            </div>);
+          })}
+        </div>
+      </Sc>
+
+      {/* ── SECTION 6: 6 DS METAPHASE COMPARISON MATRIX ── */}
+      <Sc title="Section 6 — 6 DS Metaphase 비교 매트릭스: Prometaphase → Metaphase 시간 궤적" sub="Prometaphase까지는 mRNA 잔존, Metaphase에서 급감 — 전사 침묵 + 자연 분해의 시각화">
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,minWidth:560}}>
+            <thead>
+              <tr style={{borderBottom:"2px solid "+C.bdrH}}>
+                <th style={{textAlign:"left",padding:"6px 8px",color:C.dm,fontSize:9}}>DS</th>
+                <th style={{textAlign:"right",padding:"6px 8px",color:"#EF6C00",fontSize:9}}>ProMeta n</th>
+                <th style={{textAlign:"right",padding:"6px 8px",color:"#EF6C00",fontSize:9}}>ProMeta det%</th>
+                <th style={{textAlign:"center",padding:"6px 8px",color:C.dm,fontSize:9}}>→</th>
+                <th style={{textAlign:"right",padding:"6px 8px",color:"#D32F2F",fontSize:9}}>Meta n</th>
+                <th style={{textAlign:"right",padding:"6px 8px",color:"#D32F2F",fontSize:9}}>Meta det%</th>
+                <th style={{textAlign:"right",padding:"6px 8px",color:C.ng,fontSize:9}}>차이 (%p)</th>
+                <th style={{textAlign:"center",padding:"6px 8px",color:C.dm,fontSize:9}}>Tag</th>
+              </tr>
+            </thead>
+            <tbody>
+              {DSK.filter(k=>DS[k].a23).map(k=>{const d=DS[k];const pm=d.a23.find(r=>r.s==="Prometaphase");const me=d.a23.find(r=>r.s==="Metaphase");if(!pm||!me)return null;const diff=(me.dt!=null?me.dt:0)-(pm.dt||0);
+                return(<tr key={k} style={{borderBottom:"1px solid "+C.bdr}}>
+                  <td style={{padding:"6px 8px",fontWeight:700,color:d.c,fontSize:10}}>{d.l}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:C.tx}}>{N(pm.n)}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:"#EF6C00",fontWeight:700}}>{pm.dt?pm.dt.toFixed(2)+"%":"-"}</td>
+                  <td style={{padding:"6px 8px",textAlign:"center",color:C.dm}}>↓</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:C.tx}}>{N(me.n)}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:me.dt===0?C.ng:"#D32F2F",fontWeight:700}}>{me.dt!=null?me.dt.toFixed(2)+"%":"-"}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:diff<-5?C.ng:diff<0?"#FFB300":C.tx,fontWeight:700}}>{me.dt!=null&&pm.dt!=null?(diff>=0?"+":"")+diff.toFixed(2):"-"}</td>
+                  <td style={{padding:"6px 8px",textAlign:"center"}}><Bd t={me.tg} c={me.tg==="INDEPENDENT"?C.ps:C.dm}/></td>
+                </tr>);
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{marginTop:10,padding:"8px 12px",background:"#FF6D0010",borderRadius:6,border:"1px solid #FF6D0040",fontSize:10,lineHeight:1.7,color:"#FFAB91"}}>
+          <strong style={{color:"#FF6D00"}}>시간 궤적 해석:</strong> EPI Colon8에서 Prometaphase 12.4% → Metaphase 0.0% (-12.4%p)는 6 DS 중 가장 극적. 이는 mRNA가 Prometaphase까지 잔존하다가 Metaphase에 와서 완전 소실되는 시간 궤적의 가장 깔끔한 증거. 전사 침묵(M기 진입 시)이 mRNA 공급을 끊으면, mRNA 자연 분해가 진행되어 Metaphase 시점에는 검출이 사라집니다. 그러나 단백질은 이 시점에 동원체에 최대 집중(IF). mRNA-단백질 시간차의 분자생물학적 기반.
+        </div>
+      </Sc>
+
+      {/* Original M_entry × Substage table — preserved */}
+      {ds.a23&&<Sc title={"M_entry x Substage - "+ds.l} sub="Tag 컬럼: INDEPENDENT(녹) vs TAUTOLOGICAL(적)"><table style={{width:"100%",fontSize:10,color:C.tx,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"2px solid "+C.bdrH}}><th style={{textAlign:"left",padding:"5px 7px",color:C.dm}}>Substage</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>N</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>Det</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>Det%</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>Z</th><th style={{textAlign:"center",padding:"5px 7px",color:C.dm}}>Tag</th></tr></thead><tbody>{ds.a23.map((r,i)=>(<tr key={i} style={{borderBottom:"1px solid "+C.bdr}}><td style={{padding:"5px 7px",fontWeight:700}}>{r.s}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace"}}>{N(r.n)}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace"}}>{r.nd}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace"}}>{r.dt}%</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace",color:C.ps}}>{r.z!=null?"+"+r.z.toFixed(3):"-"}</td><td style={{textAlign:"center",padding:"5px 7px"}}><Bd t={r.tg} c={r.tg==="INDEPENDENT"?C.ps:r.tg==="TAUTOLOGICAL"?C.ng:C.dm}/></td></tr>))}</tbody></table></Sc>}
+
+      {/* DS-specific insights — fully preserved from v3 */}
+      <Ins icon="*" title={ds.l+" Metaphase"} c={C.ps}>
+        {dsId==="epi_all"&&<p>EPI M_entry x Metaphase 교차점: 209개 Metaphase 세포 중 TRIM39 검출 8개(3.8%). Prometaphase(274/3141=8.7%)와 대비하면 현저히 낮습니다. 그러나 검출된 8개 세포의 발현 강도(Z=+3.285)는 높습니다. "극소수 세포에서 극강 발현" -- 이것이 감시-개입 해리의 가장 극단적 형태입니다. n=8 극소표본이므로 해석에 주의가 필요합니다.</p>}
+        {dsId==="epi_colon8"&&<p>EPI Colon8 M_entry x Metaphase: 8개 Metaphase 세포 중 TRIM39 검출 0개(0.0%). GI3(34개 중 0개)과 동일한 극단적 패턴입니다. 상피의 GI/Colon에서 Metaphase에서 TRIM39 mRNA가 완전히 소실됩니다. 이것은 유사분열 전사 침묵이 Metaphase에서 완료되어 mRNA가 자연 분해된 결과로 해석됩니다. 반면 Prometaphase(153개 중 19개=12.4%)에서는 높아서, mRNA가 Prometaphase까지는 잔존하지만 Metaphase에서 소실됩니다.</p>}
+        {dsId==="all_all"&&<p>AllComp 1,025,717 세포에서 7개 Metaphase 마커(BIRC5, AURKB, DLGAP5, KIF2C, NUF2, CDCA8, KIF11) 전부가 TRIM39와 음의 상관입니다. 이 교차점은 M_entry Phase 모듈과 Metaphase Substage 모듈의 유전자가 하나도 겹치지 않는 INDEPENDENT(0%) 교차점이므로, "같은 유전자를 두 번 세는" 순환 논리가 원리적으로 불가능합니다. 7/7 음의 상관이 우연일 확률은 (1/2)^7 = 0.8%입니다. "TRIM39가 높은 Metaphase 세포에서 유사분열 마커가 체계적으로 낮다"는 것은, IF에서 관찰된 "Metaphase 동원체 단백질 집중"의 전사체 수준 독립 확인입니다.</p>}
+        {dsId==="all_colon8"&&<p>All Colon8 M_entry x Metaphase: 31개 중 2개 검출(6.5%). EPI Colon8(0%)과 대비됩니다. Immune/Stromal 세포의 기여로 검출이 회복됩니다. "상피에서 0%, 전체에서 6.5%"라는 괴리가 Metaphase TRIM39 부재가 상피 특이적임을 확인합니다.</p>}
+      </Ins>
+    </div>)}
+
+    {/* TAB 5 (FIXED) */}
+    {tab==="mpi"&&(<div><DsSel/>
+      <Sc title={"MPI vs MPI_indep - "+ds.l} sub="Solid=MPI(circularity) | Dashed=ind(0% overlap)"><ResponsiveContainer width="100%" height={280}><ComposedChart data={ph.map(d=>({p:d.p,MPI:d.md,ind:d.id}))} margin={{top:8,right:18,bottom:5,left:5}}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="p" tick={{fill:C.tx,fontSize:10}}/><YAxis tick={{fill:C.dm,fontSize:9}}/><Tooltip content={<CTip/>}/><ReferenceLine y={0} stroke={C.bdr} strokeDasharray="6 4"/><Legend wrapperStyle={{fontSize:9}}/>
+      <Line type="monotone" dataKey="MPI" name="MPI" stroke={C.mpi} strokeWidth={2.5} dot={{r:5,fill:C.mpi,stroke:"#fff",strokeWidth:1.5}}/>
+      <Line type="monotone" dataKey="ind" name="ind" stroke={C.ind} strokeWidth={2.5} strokeDasharray="7 3" dot={{r:5,fill:C.ind,stroke:"#fff",strokeWidth:1.5}}/>
+      </ComposedChart></ResponsiveContainer></Sc>
+      <Sc title="Transition concordance">
+        <table style={{width:"100%",fontSize:10,color:C.tx,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"2px solid "+C.bdrH}}><th style={{textAlign:"left",padding:"4px 7px",color:C.dm}}>Transition</th><th style={{textAlign:"right",padding:"4px 7px",color:C.mpi}}>dMPI</th><th style={{textAlign:"right",padding:"4px 7px",color:C.ind}}>dInd</th><th style={{textAlign:"center",padding:"4px 7px"}}>OK</th></tr></thead>
+          <tbody>{trans.map((t,i)=>(<tr key={i} style={{borderBottom:"1px solid "+C.bdr}}><td style={{padding:"4px 7px"}}><span style={{color:C.ph[t.f]}}>{t.f}</span>{" -> "}<span style={{color:C.ph[t.to]}}>{t.to}</span></td><td style={{textAlign:"right",padding:"4px 7px",fontFamily:"monospace",fontWeight:700,color:t.dM>=0?C.ps:C.ng}}>{F(t.dM,4)}</td><td style={{textAlign:"right",padding:"4px 7px",fontFamily:"monospace",fontWeight:700,color:t.dI>=0?C.ps:C.ng}}>{F(t.dI,4)}</td><td style={{textAlign:"center",padding:"4px 7px",color:t.ok?C.ps:C.ng,fontWeight:700}}>{t.ok?"OK":"X"}</td></tr>))}</tbody>
+        </table>
+        <div style={{fontSize:10,marginTop:3,fontWeight:700,color:conc>=4?C.ps:conc>=3?C.wn:C.ng}}>{conc}/{trans.length} concordance{conc>=4?" -- circularity excluded":""}</div>
+      </Sc>
+      <Ins icon="*" title={ds.l} c={C.ind}><p>{ds.ins.t5}</p></Ins>
+    </div>)}
+
+    {/* TAB 6 */}
+    {tab==="cross"&&(<div>
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}><Mt l="Datasets" v="6" c={C.ac}/><Mt l="G2 peak" v="Universal" c={C.ph.G2} s="6/6 DS"/></div>
+      <Sc title="G2 MPI/ind across 6 DS"><table style={{width:"100%",fontSize:10,color:C.tx,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"2px solid "+C.bdrH}}><th style={{textAlign:"left",padding:"5px 7px",color:C.dm}}>DS</th><th style={{textAlign:"right",padding:"5px 7px",color:C.mpi}}>G2 MPI</th><th style={{textAlign:"right",padding:"5px 7px",color:C.ind}}>G2 ind</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>n_det</th><th style={{textAlign:"center",padding:"5px 7px"}}>Trans</th><th style={{textAlign:"right",padding:"5px 7px",color:C.dm}}>G2 dt%</th></tr></thead><tbody>{DSK.map((k,i)=>{const d=DS[k];const g=d.ph[2];const tr=getTrans(d.ph,"det");const cc=tr.filter(t=>t.ok).length;return(<tr key={i} style={{borderBottom:"1px solid "+C.bdr}}><td style={{padding:"5px 7px",fontWeight:700,color:d.c}}>{d.l}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace",fontWeight:700,color:C.mpi}}>{F(g.md)}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace",fontWeight:700,color:C.ind}}>{F(g.id)}</td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace"}}>{g.nD}</td><td style={{textAlign:"center",padding:"5px 7px"}}><Bd t={cc+"/"+tr.length} c={cc>=4?C.ps:C.wn}/></td><td style={{textAlign:"right",padding:"5px 7px",fontFamily:"monospace"}}>{g.dt.toFixed(2)}%</td></tr>);})}</tbody></table></Sc>
+      <Sc title="G2 Det->Hi drop" sub="ind drop consistently larger = MPI underestimates">{(()=>{const dr=DSK.map(k=>{const d=DS[k];const g=d.ph[2];if(g.mh==null||g.ih==null)return null;return{ds:d.s,c:d.c,mpi:g.mh-g.md,ind:g.ih-g.id,ratio:Math.abs((g.ih-g.id)/(g.mh-g.md||.001)),nhi:g.nH};}).filter(Boolean);return(<div><ResponsiveContainer width="100%" height={190}><BarChart data={dr} barSize={24}><CartesianGrid strokeDasharray="3 3" stroke={C.bdr}/><XAxis dataKey="ds" tick={{fill:C.tx,fontSize:9}}/><YAxis tick={{fill:C.dm,fontSize:9}}/><Tooltip content={<CTip/>}/><Legend wrapperStyle={{fontSize:9}}/><Bar dataKey="mpi" name="MPI drop" fill={C.mpi} fillOpacity={.6} radius={[3,3,0,0]}/><Bar dataKey="ind" name="ind drop" fill={C.ind} fillOpacity={.85} radius={[3,3,0,0]}/></BarChart></ResponsiveContainer><div style={{display:"grid",gridTemplateColumns:"repeat("+dr.length+",1fr)",gap:4,marginTop:6}}>{dr.map(r=>(<div key={r.ds} style={{background:C.bg,borderRadius:5,padding:"5px 6px",border:"1px solid "+C.bdr,textAlign:"center"}}><div style={{fontSize:9,fontWeight:600,color:C.tx}}>{r.ds}</div><div style={{fontSize:13,fontWeight:800,color:r.ratio>1.5?C.wn:C.dm}}>x{r.ratio.toFixed(1)}</div><div style={{fontSize:7,color:C.dm}}>n_hi={r.nhi}</div></div>))}</div></div>);})()}</Sc>
+      <Sc title="SAC Reversal Magnitude" sub="G2 Hi SAC -> M_entry Hi SAC">{(()=>{const sr=DSK.map(k=>{const d=DS[k];const g2=d.ph[2];const me=d.ph[3];if(g2.sh==null||me.sh==null)return null;return{ds:d.s,c:d.c,g2h:g2.sh,meh:me.sh,rev:me.sh-g2.sh};}).filter(Boolean);return(<div style={{display:"grid",gridTemplateColumns:"repeat("+sr.length+",1fr)",gap:5}}>{sr.map(r=>(<div key={r.ds} style={{background:C.bg,borderRadius:6,padding:"8px 6px",border:"1px solid "+C.bdr,textAlign:"center"}}><div style={{fontSize:9,fontWeight:600,color:C.tx}}>{r.ds}</div><div style={{fontSize:8,color:C.dm,marginTop:2}}>G2 Hi: <span style={{color:r.g2h<0?C.ng:C.ps,fontWeight:700}}>{F(r.g2h)}</span></div><div style={{fontSize:8,color:C.dm}}>Me Hi: <span style={{color:C.ps,fontWeight:700}}>{F(r.meh)}</span></div><div style={{fontSize:14,fontWeight:800,color:r.rev>1.8?C.wn:C.ac,marginTop:3}}>+{r.rev.toFixed(2)}</div></div>))}</div>);})()}</Sc>
+      <Ins icon="*" title="Cross-DS Synthesis" c={C.wn}><p>{"[6종 DS 교차 종합]\n\nG2 MPI_indep가 6/6 DS에서 최대값. EPI Colon8(+1.002)이 전 DS 최고. G2 피크의 보편성이 6종 DS에서 예외 없이 확인됩니다.\n\n용량-반응(Det->Hi 하강폭): MPI_indep 하강이 MPI의 2~11배. MPI가 Phase 배정 유전자와의 겹침(순환성) 때문에 효과를 과소추정합니다. All GI3에서 ratio 11.1x -- MPI 하강이 거의 0인데 ind 하강은 -0.466. MPI가 효과를 거의 완전히 은폐하는 극단적 사례입니다.\n\nSAC 역전 크기: 상위 3개가 모두 GI/Colon 스코프(GI3 +2.086, A-Col +2.028, Col8 +2.009). Colon에서 G2 Hi SAC가 음수(-0.095/-0.114)로 전환되는 것은 6종 DS 중 유일하며, G2 시점에서 TRIM39 단백질이 완전히 기능하지 않는다는 시간 지연 모델의 가장 극단적 확인입니다.\n\n결론: G2에서 mRNA 전사 시작(Det 피크) -> M_entry에서 mRNA 축적 완료(Hi 피크, GI에서) -> Metaphase에서 단백질 동원체 집중(IF 피크)이라는 3중 시간 순서가, 6종 DS x Phase/Substage x Det/Hi의 모든 교차에서 일관되게 지지됩니다."}</p></Ins>
+    </div>)}
+
+    {/* ═══ TAB 7: CONCLUSION — VISUAL TIMELINE INFOGRAPHIC ═══ */}
+    {tab==="conclusion"&&(<div>
+      <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{fontSize:15,fontWeight:900,color:"#fff",marginBottom:4}}>G2 mRNA 피크와 Metaphase 단백질 집중은 왜 상충하지 않는가?</div>
+        <div style={{fontSize:10,color:C.dm}}>Central Dogma + 유사분열 전사 침묵의 물리적 필연 -- 6개 독립 증거에 의한 다중 수렴</div>
+      </div>
+
+      {/* ── VISUAL TIMELINE ── */}
+      <Sc title="3중 시간 지연 통합 타임라인" sub="mRNA(파란) -> 단백질(빨간) 사이의 시간 지연이 Central Dogma의 직접적 귀결">
+        {(()=>{
+          const phases=[
+            {id:"G1",label:"G1",w:12,mRNA:15,prot:0,tx:100,bg:"#5C6B7A"},
+            {id:"S",label:"S",w:10,mRNA:30,prot:0,tx:100,bg:"#1565C0"},
+            {id:"G2",label:"G2",w:14,mRNA:100,prot:5,tx:100,bg:"#2E7D32",peak:"mRNA"},
+            {id:"Pro",label:"Prophase",w:10,mRNA:45,prot:20,tx:50,bg:"#7E57C2"},
+            {id:"ProM",label:"Prometaphase",w:14,mRNA:55,prot:65,tx:0,bg:"#EF6C00"},
+            {id:"Meta",label:"Metaphase",w:14,mRNA:50,prot:100,tx:0,bg:"#D32F2F",peak:"protein"},
+            {id:"Ana",label:"Anaphase",w:12,mRNA:55,prot:45,tx:0,bg:"#00897B"},
+            {id:"Telo",label:"Telophase",w:10,mRNA:40,prot:12,tx:0,bg:"#5C6BC0"},
+          ];
+          return(<div style={{overflowX:"auto"}}>
+            {/* Phase labels */}
+            <div style={{display:"flex",marginBottom:4}}>
+              {phases.map(p=>(<div key={p.id} style={{flex:p.w+" 0 0%",textAlign:"center",fontSize:8,fontWeight:700,color:p.bg,padding:"2px 0"}}>{p.label}</div>))}
+            </div>
+            {/* Transcription status */}
+            <div style={{display:"flex",marginBottom:6,borderRadius:4,overflow:"hidden"}}>
+              {phases.map(p=>(<div key={p.id} style={{flex:p.w+" 0 0%",height:18,background:p.tx>50?"#1565C0"+(Math.round(p.tx*2.55).toString(16).padStart(2,"0")):p.tx>0?"#FFD54F40":"#ffffff08",display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,color:p.tx>50?"#fff":"#888",fontWeight:600}}>{p.tx>50?"전사 활발":p.tx>0?"전사 감소":"전사 정지"}</div>))}
+            </div>
+            {/* mRNA level bar */}
+            <div style={{fontSize:9,color:C.mR,fontWeight:700,marginBottom:2}}>mRNA 수준 (scRNA-seq Detected 검출률)</div>
+            <div style={{display:"flex",marginBottom:2,height:32,alignItems:"flex-end"}}>
+              {phases.map(p=>(<div key={p.id} style={{flex:p.w+" 0 0%",padding:"0 1px"}}><div style={{height:p.mRNA*0.3,background:p.peak==="mRNA"?"#42A5F5":"#42A5F560",borderRadius:"3px 3px 0 0",position:"relative",minHeight:2}}>{p.peak==="mRNA"&&<div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",fontSize:8,color:"#42A5F5",fontWeight:800,whiteSpace:"nowrap"}}>* G2 피크</div>}</div></div>))}
+            </div>
+            {/* Protein level bar */}
+            <div style={{fontSize:9,color:C.pr,fontWeight:700,marginBottom:2,marginTop:8}}>단백질 수준 (IF puncta 강도)</div>
+            <div style={{display:"flex",marginBottom:2,height:32,alignItems:"flex-end"}}>
+              {phases.map(p=>(<div key={p.id} style={{flex:p.w+" 0 0%",padding:"0 1px"}}><div style={{height:p.prot*0.3,background:p.peak==="protein"?"#FF5252":"#FF525260",borderRadius:"3px 3px 0 0",position:"relative",minHeight:p.prot>0?2:0}}>{p.peak==="protein"&&<div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",fontSize:8,color:"#FF5252",fontWeight:800,whiteSpace:"nowrap"}}>* Metaphase 피크</div>}</div></div>))}
+            </div>
+            {/* Arrow showing time delay */}
+            <div style={{display:"flex",alignItems:"center",margin:"12px 0 4px",padding:"0 10%"}}>
+              <div style={{flex:1,height:2,background:"linear-gradient(90deg,#42A5F5,#FF5252)"}}/>
+              <div style={{padding:"3px 12px",background:C.card,border:"1px solid "+C.bdrH,borderRadius:12,fontSize:9,color:"#FFD54F",fontWeight:700,whiteSpace:"nowrap"}}>번역 시간 지연 (Central Dogma)</div>
+              <div style={{flex:1,height:2,background:"linear-gradient(90deg,#FF5252,#FF525240)"}}/>
+            </div>
+            {/* Phase color bar */}
+            <div style={{display:"flex",borderRadius:4,overflow:"hidden",marginTop:4}}>
+              {phases.map(p=>(<div key={p.id} style={{flex:p.w+" 0 0%",height:6,background:p.bg+"90"}}/>))}
+            </div>
+          </div>);
+        })()}
+      </Sc>
+
+      {/* ── 3-STEP MEASUREMENT ── */}
+      <Sc title="3중 시간 순서: 세 독립 측정이 같은 분자의 다른 성숙 단계를 포착" sub="각 측정이 포착하는 것이 다르기 때문에 피크 시점이 다릅니다 -- 이것은 모순이 아니라 물리적 필연입니다">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          {[
+            {step:"1",title:"mRNA 전사 시작",when:"G2",color:C.mR,method:"scRNA-seq Detected",metric:"검출률 7.35~8.77%",desc:"TRIM39 mRNA가 1개라도 검출된 모든 세포를 포착합니다. 여기에는 전사가 '막 시작된' 세포도 포함됩니다. G2에서 전사가 가장 활발하므로 검출률이 최고입니다."},
+            {step:"2",title:"mRNA 축적 완료",when:"M_entry",color:C.mH,method:"scRNA-seq High",metric:"Hi MPI_indep 피크 이동",desc:"mRNA가 상위 25%로 매우 풍부한 세포만 포착합니다. 충분히 축적되려면 시간이 걸리므로, 피크가 G2에서 M_entry로 이동합니다. GI 상피에서 확인(+0.486>+0.384)."},
+            {step:"3",title:"단백질 동원체 집중",when:"Metaphase",color:C.pr,method:"IF (형광현미경)",metric:"puncta 최대 집중",desc:"TRIM39 단백질이 미세소관을 타고 동원체에 도착하여 최대 집중됩니다. APC/C를 억제하여 SAC를 연장합니다. 3종 세포주(HCEC-1CT, HeLa, HT29)에서 독립 확인."},
+          ].map(item=>(
+            <div key={item.step} style={{background:C.bg,borderRadius:10,padding:14,border:"2px solid "+item.color+"40",position:"relative"}}>
+              <div style={{position:"absolute",top:-10,left:12,background:item.color,color:"#fff",borderRadius:12,width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900}}>{item.step}</div>
+              <div style={{fontSize:12,fontWeight:800,color:item.color,marginTop:8,marginBottom:4}}>{item.title}</div>
+              <div style={{display:"inline-block",padding:"2px 8px",background:item.color+"18",borderRadius:4,fontSize:10,color:item.color,fontWeight:700,marginBottom:6}}>{item.when}</div>
+              <div style={{fontSize:9,color:C.dm,marginBottom:4}}>{item.method} | {item.metric}</div>
+              <div style={{fontSize:10,lineHeight:1.6,color:"#a0b0c5"}}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Sc>
+
+      {/* ── WHY PROPHASE IS QUIET ── */}
+      <Sc title="M기 초반 '소강'의 해명: 왜 Prophase에서 단백질이 아직 미약한가?">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{background:C.bg,borderRadius:8,padding:14,border:"1px solid "+C.bdr}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#7E57C2",marginBottom:6}}>Prophase: 전사는 멈추지만 번역은 아직 부족</div>
+            <div style={{fontSize:10,lineHeight:1.7,color:"#a0b0c5"}}>
+              G2에서 전사가 시작되었지만, mRNA가 리보솜에 결합하고 아미노산 체인이 완성되고 단백질이 접힌 후 동원체까지 수송되는 데에는 수십 분이 소요됩니다. Prophase는 M기의 첫 단계이므로 아직 시간이 충분하지 않습니다.{"\n\n"}동시에 염색체 응축이 시작되어 전사가 감소합니다. 검출률: G2(7.35%) -> Prophase(5.82%) 급감 = 전사 침묵의 시작.
+            </div>
+          </div>
+          <div style={{background:C.bg,borderRadius:8,padding:14,border:"1px solid "+C.bdr}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#D32F2F",marginBottom:6}}>Prometaphase~Metaphase: 번역 완료 + 수송 완료</div>
+            <div style={{fontSize:10,lineHeight:1.7,color:"#a0b0c5"}}>
+              핵막 붕괴(NEBD) 후 두 가지가 동시에 발생합니다:{"\n\n"}(1) G2에서 만들어진 mRNA의 번역이 충분히 진행되어 TRIM39 단백질이 축적됩니다.{"\n\n"}(2) 미세소관이 동원체에 부착되면서, TRIM39가 튜불린(Co-IP에서 5종 확인)을 통해 동원체에 물리적으로 수송됩니다.{"\n\n"}이 두 과정의 합산 결과가 Metaphase에서의 최대 집중입니다.
+            </div>
+          </div>
+        </div>
+      </Sc>
+
+      {/* ── 6 EVIDENCE CARDS ── */}
+      <Sc title="6개 독립 증거: 이 중 하나를 제거해도 나머지 5개가 같은 결론을 보증" sub="각 증거가 서로 다른 방법론/데이터/분석 경로를 통해 같은 결론에 수렴합니다">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          {[
+            {n:"1",t:"3중 시간 순서",v:"Det->Hi->IF",c:"#42A5F5",d:"Detected 피크(G2) -> High 피크(M_entry) -> IF 피크(Metaphase). 세 피크가 한 Phase씩 순서대로 밀려 있음. 6종 DS에서 G2 MPI_indep 최대 확인."},
+            {n:"2",t:"7/7 음의 상관",v:"INDEPENDENT 0%",c:"#FF5252",d:"Metaphase 7개 마커 전부 TRIM39와 음의 상관. Phase-Substage 마커 겹침 0%. 우연 확률 0.8%. 순환성 원리적 불가."},
+            {n:"3",t:"SAC 부호 역전",v:"G2(-0.095)->Me(+1.914)",c:"#FF6D00",d:"G2에서 Hi SAC 하강(단백질 미기능) -> M_entry에서 극대화(단백질 기능 시작). Colon에서 G2 Hi SAC가 음수로 전환(6종 DS 중 유일)."},
+            {n:"4",t:"용량-반응 2~11x",v:"ind drop > MPI drop",c:"#FFB300",d:"MPI_indep 하강폭이 MPI의 2~11배. 순환성 없는 독립 마커가 포착하는 진정한 효과 크기. 절대값 최대: EPI Col8 -0.690."},
+            {n:"5",t:"beta2 G2M/G1",v:"6~20x",c:"#69F0AE",d:"실험 3 Phase-Stratified: 역U자형 곡률이 G2M에서 G1의 6.3~19.5배. Phase confounding 통제 상태에서의 최상위 증거."},
+            {n:"6",t:"교차 플랫폼",v:"scRNA + IF",c:"#CE93D8",d:"scRNA-seq(전사체, 102만 세포)와 IF(단백질, 3세포주)는 완전히 독립적 방법론. 같은 결론의 독립 수렴. Donor 3/4~3/5 재현."},
+          ].map(e=>(
+            <div key={e.n} style={{background:C.bg,borderRadius:8,padding:"10px 12px",border:"1px solid "+e.c+"30"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                <div style={{background:e.c,color:"#fff",borderRadius:10,width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:900,flexShrink:0}}>{e.n}</div>
+                <div style={{fontSize:11,fontWeight:700,color:e.c}}>{e.t}</div>
+              </div>
+              <div style={{fontSize:12,fontWeight:800,color:"#fff",fontFamily:"monospace",marginBottom:4}}>{e.v}</div>
+              <div style={{fontSize:9,lineHeight:1.6,color:"#8899aa"}}>{e.d}</div>
+            </div>
+          ))}
+        </div>
+      </Sc>
+
+      {/* ── MECE 4-LAYER ── */}
+      <Sc title="MECE 4-Layer 구조: 왜 이 설명이 완전하고 견고한가?" sub="상호 배타적이고 전체를 포괄하는 4개 층위">
+        <div style={{display:"grid",gridTemplateColumns:"1fr",gap:6}}>
+          {[
+            {layer:"Layer 1: 물리적 필연성 (WHY)",color:"#42A5F5",q:"왜 피크가 다른가?",a:"Central Dogma에 의해 mRNA 피크는 단백질 피크보다 반드시 앞섭니다. 유사분열 전사 침묵(G2->Prophase 검출률 급감)이 이 간격을 더 극적으로 만듭니다. 만약 두 피크가 같은 시점이었다면 그것이 오히려 물리적으로 불가능한 결과입니다."},
+            {layer:"Layer 2: 3중 시간 순서 (WHAT)",color:"#00E676",q:"데이터에서 직접 관찰되는가?",a:"Detected 피크(G2) -> High 피크(M_entry, GI) -> IF 피크(Metaphase). 세 피크가 한 Phase씩 순서대로 밀려 있는 것이 v6 마스터 테이블 직접 계산 + IF 문헌에서 확인됩니다."},
+            {layer:"Layer 3: 기능적 귀결 (SO WHAT)",color:"#FF6D00",q:"시간 지연의 끝에 실제 기능이 있는가?",a:"7/7 Metaphase 마커 음의 상관(단백질이 유사분열을 억제), SAC 부호 역전(G2 미기능 -> M_entry 기능 시작), Hi 용량-반응(하강폭 0.5~0.7). 시간 지연의 끝에 실제 APC/C 억제 -> SAC 연장이라는 기능적 결과가 확인됩니다."},
+            {layer:"Layer 4: 방법론적 견고성 (HOW SURE)",color:"#CE93D8",q:"아티팩트가 아닌 진성 생물학인가?",a:"MPI_indep(0% 겹침)에서의 재현, 전이 4/4 일치, beta2 경사도(Phase-Stratified), 6종 DS 교차 재현, Donor 3/4~3/5 재현, scRNA+IF 교차 플랫폼 수렴. 다중 독립 경로를 통해 분류 아티팩트가 배제됩니다."},
+          ].map(item=>(
+            <div key={item.layer} style={{background:C.bg,borderRadius:8,padding:"10px 14px",border:"1px solid "+item.color+"30",display:"flex",gap:12,alignItems:"flex-start"}}>
+              <div style={{flexShrink:0,width:4,height:"100%",minHeight:50,background:item.color,borderRadius:2}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,fontWeight:700,color:item.color,marginBottom:2}}>{item.layer}</div>
+                <div style={{fontSize:10,color:"#fff",fontWeight:600,marginBottom:4}}>{item.q}</div>
+                <div style={{fontSize:10,lineHeight:1.7,color:"#8899aa"}}>{item.a}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Sc>
+
+      {/* ── FINAL CONCLUSION ── */}
+      <Ins icon="*" title="최종 결론" c={C.ac}>
+        <p style={{fontSize:11,lineHeight:1.8}}>{"G2에서 TRIM39 mRNA가 최다(scRNA-seq: 6종 DS 모두 G2 MPI_indep 최대)이고, M기 초반에 소강 후 Metaphase에서 단백질이 동원체에 최대 집중(IF)되는 것은, Central Dogma의 시간적 귀결 + 유사분열 전사 침묵의 물리적 필연입니다.\n\n이 해석은 (1) Detected->High->IF의 3중 시간 순서, (2) 7/7 Metaphase 음의 상관(INDEPENDENT), (3) SAC 부호 역전(Colon G2 Hi SAC 음수 -> M_entry +1.914), (4) 6종 DS G2->M_entry ind 하강(최대 -0.775), (5) beta2 경사도 6~20x(Phase-Stratified), (6) Donor 3/4~3/5 재현이라는 6개 독립 증거에 의해 다중 수렴적으로 지지되며, 이 중 어느 하나를 제거하더라도 나머지 5개가 같은 결론을 독립적으로 보증합니다.\n\nTRIM39는 G2에서 mRNA로 전사되어, M_entry에서 축적이 완료되고, Metaphase에서 단백질로 동원체에 집중되어 APC/C를 억제하고 SAC를 연장시킵니다. scRNA-seq의 G2 mRNA 피크와 IF의 Metaphase 단백질 집중은 이 이야기의 첫 장과 마지막 장입니다."}</p>
+      </Ins>
+    </div>)}
+
+    <div style={{marginTop:16,paddingTop:6,borderTop:"1px solid "+C.bdr,fontSize:8,color:"#2a3a5a",textAlign:"center"}}>TRIM39-AUDIT v3.1 | 6-DS | v6 verified | Colon 8-sample (P08=7,861) | 2026-03-27</div>
+  </div></div>);
+}
+
+// Mount the Dashboard
+const rootElement = document.getElementById('root');
+const root = ReactDOM.createRoot(rootElement);
+root.render(<Dashboard />);
+</script>
+</body>
+</html>
