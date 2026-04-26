@@ -33,7 +33,40 @@
   }
   * { box-sizing: border-box; }
   html, body, #root { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
-  body { font-family: var(--lang-font); -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--lang-font);
+    -webkit-font-smoothing: antialiased;
+    /* Suppress mobile system gestures that interfere with the puzzle UX:
+       - iOS long-press callout (image save / share menu)
+       - iOS magnifier on long-press
+       - blue tap highlight rectangle
+       - long-press text selection bubble
+       The game has its own long-press semantics for tile attribute popovers,
+       and accidental triggering of system menus over tile images breaks flow. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Re-enable text selection inside elements where reading/copying matters
+     (tooltips, help modal body, dialogs). Add `data-selectable="1"` to opt-in. */
+  [data-selectable="1"], [data-selectable="1"] * {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  /* Images everywhere: disable native HTML5 drag and iOS preview/save menu.
+     The puzzle moves tiles via its own pointer-drag system; native drag would
+     fight it. */
+  img {
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    pointer-events: none;  /* let parent tile own pointer events */
+  }
   .font-display { font-family: 'Fraunces', Georgia, serif; }
   .font-body { font-family: var(--lang-font); }
   .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
@@ -2027,6 +2060,35 @@ if (typeof window !== 'undefined' && !window.__badgeTooltipGlobalInstalled) {
   }, { capture: true, passive: true });
 }
 
+// Global system-gesture suppression — installed once.
+// Prevents the platform's default reactions to long-press / right-click /
+// native drag (image save menu, context menu, drag-out-of-window). These
+// fight with the puzzle's own pointer-drag and long-press semantics.
+// Elements that should opt out (e.g. selectable text in a help dialog)
+// can carry data-selectable="1" — handled inline below.
+if (typeof window !== 'undefined' && !window.__zoologicGestureSuppressionInstalled) {
+  window.__zoologicGestureSuppressionInstalled = true;
+  // Right-click / long-press context menu
+  window.addEventListener('contextmenu', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('[data-selectable="1"]')) return; // allow on opted-in regions
+    ev.preventDefault();
+  }, { capture: true });
+  // Native HTML5 drag — we use pointer events for our own drag, so block
+  // browsers from initiating native drag (which would let users drag images
+  // out of the page).
+  window.addEventListener('dragstart', (ev) => {
+    ev.preventDefault();
+  }, { capture: true });
+  // Selection — suppress accidental text selection on long-press (especially
+  // affects element labels). Opt-in regions still allow selection via CSS.
+  window.addEventListener('selectstart', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('[data-selectable="1"]')) return;
+    ev.preventDefault();
+  }, { capture: true });
+}
+
 function useBadgeTooltip() {
   const [open, setOpen] = useState(false);
   const idRef = useRef(null);
@@ -3678,7 +3740,7 @@ function Legend({ collapsed, onToggle }) {
         {collapsed ? t('help.open') : t('help.close')}
       </button>
       {!collapsed && (
-        <div style={{
+        <div data-selectable="1" style={{
           marginTop: 10, padding: 16, background: 'var(--bg-subtle)',
           border: '1px solid var(--border-soft)', borderRadius: 2,
           animation: 'fadeInUp 260ms',
