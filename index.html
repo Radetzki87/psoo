@@ -221,24 +221,24 @@ const STRINGS = {
   },
   'diff.MediumPlus.label': { ko: '중상급', en: 'Medium+', zh: '中上', ja: '中上級' },
   'diff.MediumPlus.subtitle': {
+    ko: '규약 4-5개가 교차합니다',
+    en: 'Four to five rules intertwine',
+    zh: '4-5 条规则交织',
+    ja: 'ルール4〜5個が絡む',
+  },
+  'diff.Medium.label': { ko: '중급', en: 'Medium', zh: '中级', ja: '中級' },
+  'diff.Medium.subtitle': {
     ko: '규약이 느슨해 추론의 여지가 커요',
     en: 'Looser rules, more room to reason',
     zh: '规则宽松，推理空间大',
     ja: 'ルール緩め、推理の幅広し',
   },
-  'diff.Medium.label': { ko: '중급', en: 'Medium', zh: '中级', ja: '中級' },
-  'diff.Medium.subtitle': {
-    ko: '규약 4-5개가 얽혀요',
-    en: 'Four to five rules intertwine',
-    zh: '4-5 条规则交织',
-    ja: 'ルール4〜5個が絡む',
-  },
   'diff.Hard.label': { ko: '상급', en: 'Hard', zh: '高级', ja: '上級' },
   'diff.Hard.subtitle': {
-    ko: '규약 7-8개와 성별까지',
-    en: 'Seven to eight rules plus gender',
-    zh: '7-8 条规则含性别',
-    ja: 'ルール7〜8個に性別も',
+    ko: '규약 8개가 촘촘하게 얽힙니다',
+    en: 'Eight rules tightly intertwined',
+    zh: '8 条规则紧密交织',
+    ja: 'ルール8個が密に絡み合う',
   },
 
   // ─── Header / Progress ─────────────────────────────────────────
@@ -780,7 +780,7 @@ const DIFFICULTY_CONFIGS = {
     totalBudgetMs: 20000,
     verifyTimeLimitMs: 2500,
     maxAttempts: 2000,
-    label: '중상급', glyph: '🌲',
+    label: '중급', glyph: '🌳',
     subtitle: '규약이 느슨해 추론의 여지가 큽니다',
   },
   MediumPlus: {
@@ -794,7 +794,7 @@ const DIFFICULTY_CONFIGS = {
     totalBudgetMs: 30000,
     verifyTimeLimitMs: 5000,
     maxAttempts: 2500,
-    label: '중급', glyph: '🌳',
+    label: '중상급', glyph: '🌲',
     subtitle: '규약 4-5개가 교차합니다',
   },
   Hard: {
@@ -802,14 +802,14 @@ const DIFFICULTY_CONFIGS = {
     animalPoolRestriction: 'any',
     ruleCount: [8,8],                // +2 rules compared to previous [5,6]
     ruleDimensions: ['habitat', 'diet'],
-    countCoverage: [15, 15],         // 14 lines, 100% — eliminates info-shortage bottleneck
+    countCoverage: [14, 14],         // 14 lines, 100% — eliminates info-shortage bottleneck
     fixedTileCount: [9, 9],           // ≥ ruleCount max to anchor every rule
     maxSolutions: 1,                 // Loose (≤30)
     totalBudgetMs: 40000,
     verifyTimeLimitMs: 10000,
     maxAttempts: 35500,
     label: '상급', glyph: '🏔',
-    subtitle: '규약 7-8개 + 성별 규약까지',
+    subtitle: '규약 8개가 촘촘하게 얽힙니다',
   },
 };
 
@@ -1734,6 +1734,10 @@ function loadFallback(level) {
 // =============================================================================
 
 function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  // Display order: 새싹 → 기초 → Medium → MediumPlus → 상급.
+  // Internal keys are stable for save-state compatibility; the visible
+  // labels/glyphs are swapped via i18n and config so the user sees
+  // 중급 → 중상급 progression.
   const levels = ['Sprout', 'Easy', 'Medium', 'MediumPlus', 'Hard'];
   const t = useT();
   const { lang } = useLang();
@@ -1913,6 +1917,9 @@ function BadgeTooltip({ show, text, anchorRef }) {
       const el = anchorRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
+      // If element is detached or zero-sized (just unmounted/remounted),
+      // skip — prevents pinning to (0,0) corner.
+      if (r.width === 0 && r.height === 0) return;
       const vw = window.innerWidth;
       const cx = r.left + r.width / 2;
       const preferredTop = r.top - 8;
@@ -1920,13 +1927,17 @@ function BadgeTooltip({ show, text, anchorRef }) {
       setPos({ cx, top: flipBelow ? r.bottom + 8 : r.top - 8, flip: flipBelow, vw });
     };
     update();
+    // Also re-run on next frame in case anchor was just remounted —
+    // getBoundingClientRect can return stale values immediately after re-show.
+    const raf = requestAnimationFrame(update);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [show, anchorRef]);
+  }, [show, anchorRef, text]);  // include `text` so re-show with new content recomputes
 
   if (!show || !pos) return null;
   // Clamp horizontal position so tooltip stays inside viewport with 8px margin
@@ -1980,20 +1991,26 @@ const __tooltipBus = (() => {
   const listeners = new Set();
   let activeId = null;
   let nextId = 1;
+  let version = 0;  // monotonically increases on every state change
   return {
     register(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     claim() { return nextId++; },
     open(id) {
+      version++;
       activeId = id;
-      listeners.forEach(fn => fn(activeId));
+      const v = version;
+      listeners.forEach(fn => fn(activeId, v));
     },
     close(id) {
       if (activeId === id || id == null) {
+        version++;
         activeId = null;
-        listeners.forEach(fn => fn(activeId));
+        const v = version;
+        listeners.forEach(fn => fn(activeId, v));
       }
     },
     getActive() { return activeId; },
+    getVersion() { return version; },
   };
 })();
 
@@ -2016,13 +2033,22 @@ function useBadgeTooltip() {
   const timerRef = useRef(null);
   const activePointerRef = useRef(null);
   const anchorRef = useRef(null);
-  const touchFlowRef = useRef(false);
+  // Replaces the 400ms touchFlowRef dwell. Stamps each touch flow with the
+  // bus version at the moment beginTouch was called. Subsequent showTimed
+  // calls compare against this stamp — if version has advanced (i.e. the
+  // touch flow has fully ended via hide()), showTimed proceeds normally.
+  const touchVersionRef = useRef(-1);
 
   if (idRef.current == null) idRef.current = __tooltipBus.claim();
 
-  // Subscribe to bus — close this tip whenever another badge claims the bus
+  // Subscribe to bus — close this tip whenever another badge claims the bus.
+  // We also compare versions to ignore stale callbacks: only the latest event
+  // should drive state.
+  const lastSeenVersionRef = useRef(0);
   useEffect(() => {
-    return __tooltipBus.register((activeId) => {
+    return __tooltipBus.register((activeId, version) => {
+      if (version < lastSeenVersionRef.current) return; // stale event
+      lastSeenVersionRef.current = version;
       if (activeId !== idRef.current) {
         if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
         setOpen(false);
@@ -2040,7 +2066,9 @@ function useBadgeTooltip() {
     setOpen(false);
     activePointerRef.current = null;
     __tooltipBus.close(idRef.current);
-    setTimeout(() => { touchFlowRef.current = false; }, 400);
+    // Mark touch flow as ended; any subsequent showTimed will be allowed
+    // since the version is now stale relative to the latest bus state.
+    touchVersionRef.current = -1;
   }, []);
 
   // Mouse hover path
@@ -2050,15 +2078,20 @@ function useBadgeTooltip() {
     setOpen(true);
   }, []);
 
-  // Click / keyboard path — auto-dismiss. Bail if a touch flow is active.
+  // Click / keyboard path — auto-dismiss. Bail only if a CURRENT touch flow
+  // (one whose version is still the latest) is in progress for this hook.
   const showTimed = useCallback(() => {
-    if (touchFlowRef.current) return;
+    const inActiveTouch = touchVersionRef.current > 0
+      && touchVersionRef.current === __tooltipBus.getVersion()
+      && __tooltipBus.getActive() === idRef.current;
+    if (inActiveTouch) return; // touch flow already showing this tip — don't restart
     clearTimer();
     __tooltipBus.open(idRef.current);
     setOpen(true);
     timerRef.current = setTimeout(() => {
       setOpen(false);
       __tooltipBus.close(idRef.current);
+      timerRef.current = null;
     }, 2500);
   }, []);
 
@@ -2067,10 +2100,11 @@ function useBadgeTooltip() {
   const beginTouch = useCallback((e, el) => {
     anchorRef.current = el;
     activePointerRef.current = e.pointerId;
-    touchFlowRef.current = true;
     try { el.releasePointerCapture(e.pointerId); } catch (err) {}
     clearTimer();
     __tooltipBus.open(idRef.current);
+    // Stamp this touch flow with the version we just incremented to.
+    touchVersionRef.current = __tooltipBus.getVersion();
     setOpen(true);
   }, []);
 
@@ -2349,6 +2383,8 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
       const el = anchorRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
+      // Skip detached anchors (zero-sized) — happens during fast remount/cleanup
+      if (r.width === 0 && r.height === 0) return;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const cx = r.left + r.width / 2;
@@ -2358,13 +2394,15 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
       setPos({ cx, top: flipBelow ? r.bottom + 6 : r.top - 6, flip: flipBelow, vw });
     };
     update();
+    const raf = requestAnimationFrame(update);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [anchorRef]);
+  }, [anchorRef, animal.id]);  // include animal.id so the position recomputes when the underlying tile changes
 
   if (!pos) return null;
   const EDGE = 8;
@@ -2522,23 +2560,38 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
   const tint = HABITAT_TINT[animal.habitat];
   const adjacencyBorder = isAdjacentToPartner === false ? '1.5px solid var(--danger)' : undefined;
 
-  // Hover + long-press state for attribute overlay
+  // Hover + long-press state for attribute overlay.
+  // Each interaction (pointerdown / mouseenter) bumps the session counter;
+  // pending timers stamp the session they were created in and bail out if
+  // a newer session has started. This prevents stale timers from re-opening
+  // the overlay after a different interaction has cleaned up.
   const [hoverActive, setHoverActive] = useState(false);   // only true after delay
   const [longPressed, setLongPressed] = useState(false);
   const hoverTimerRef = useRef(null);
   const pressTimerRef = useRef(null);
   const pressStartRef = useRef(null);
   const overlayMaxTimerRef = useRef(null);
+  const sessionRef = useRef(0);
   const LONG_PRESS_MS = 350;
   const HOVER_DELAY_MS = 500;
   const OVERLAY_MAX_MS = 4000; // hard ceiling — overlay can never persist longer than this
 
+  // Begin a new interaction; invalidates pending timers from previous sessions.
+  const bumpSession = useCallback(() => {
+    sessionRef.current++;
+    return sessionRef.current;
+  }, []);
+
   const startHover = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    const mySession = bumpSession();
     hoverTimerRef.current = setTimeout(() => {
+      hoverTimerRef.current = null;
+      // Bail if a newer session has started since this timer was scheduled
+      if (sessionRef.current !== mySession) return;
       setHoverActive(true);
     }, HOVER_DELAY_MS);
-  }, []);
+  }, [bumpSession]);
 
   const cancelHover = useCallback(() => {
     if (hoverTimerRef.current) {
@@ -2550,7 +2603,11 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
 
   const startPress = useCallback(() => {
     pressStartRef.current = Date.now();
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    const mySession = sessionRef.current; // session was just bumped by pointerdown
     pressTimerRef.current = setTimeout(() => {
+      pressTimerRef.current = null;
+      if (sessionRef.current !== mySession) return; // stale
       setLongPressed(true);
     }, LONG_PRESS_MS);
   }, []);
@@ -2598,10 +2655,12 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
     // Hard ceiling — auto-dismiss after OVERLAY_MAX_MS no matter what
     if (overlayMaxTimerRef.current) clearTimeout(overlayMaxTimerRef.current);
     overlayMaxTimerRef.current = setTimeout(() => {
+      sessionRef.current++;  // invalidate any timer that survived
       setHoverActive(false);
       setLongPressed(false);
     }, OVERLAY_MAX_MS);
     const cleanup = () => {
+      sessionRef.current++;  // invalidate any timer that survived
       setHoverActive(false);
       setLongPressed(false);
       if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
@@ -2631,11 +2690,17 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
     <div
       ref={tileRef}
       onPointerDown={(e) => {
+        // Bump session FIRST so any pending timers from previous interactions
+        // (including hover from earlier mouseenter) are invalidated.
+        bumpSession();
+        // Also clear any orphan state from previous session immediately.
+        if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+        setHoverActive(false);
+        setLongPressed(false);
         draggedRef.current = false;
         pressStartXY.current = { x: e.clientX, y: e.clientY };
         if (onDragStart) onDragStart(e); // parent begins pointer drag
         startPress();
-        cancelHover();
       }}
       onPointerMove={(e) => {
         if (draggedRef.current) return;
@@ -3200,17 +3265,54 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   for (const r of (puzzle.lineRules || [])) {
     ruleOk[r.id] = evaluateLineRuleRuntime(r, placements, puzzle.tokens, marks);
   }
+  // Compute count-hint state — both immediate (current vs target) and structural
+  // (can future placements / gender toggles ever satisfy this?). A count badge
+  // is highlighted red if it's already over OR if it's now physically
+  // impossible to satisfy given the current line state.
   const countOk = {}, countOver = {};
+  // Group hints by line for cross-checking gender vs total
+  const hintsByLine = {};
+  for (const h of (puzzle.countHints || [])) {
+    const key = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    (hintsByLine[key] = hintsByLine[key] || []).push(h);
+  }
   for (const h of (puzzle.countHints || [])) {
     const lineEntries = Object.entries(placements).filter(([_, cell]) =>
       h.row !== null ? cell.row === h.row : cell.col === h.col
     );
-    let current;
-    if (h.type === 'total') current = lineEntries.length;
-    else if (h.type === 'H1') current = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
-    else if (h.type === 'H2') current = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
-    countOk[h.id] = current === h.value;
-    countOver[h.id] = current > h.value;
+    const T_now = lineEntries.length;
+    const M_now = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
+    const F_now = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
+    const Q_now = T_now - M_now - F_now; // unmarked
+
+    // Find sibling total hint on same line (if any)
+    const lineKey = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    const totalHint = (hintsByLine[lineKey] || []).find(x => x.type === 'total');
+    const T_target = totalHint ? totalHint.value : null;
+    // Capacity = how many tokens this line will eventually contain
+    const capacity = T_target !== null ? T_target : T_now;
+    const remaining = Math.max(0, capacity - T_now); // tokens still to be placed in this line
+
+    let current, target = h.value;
+    let isImpossible = false;
+    if (h.type === 'total') {
+      current = T_now;
+    } else if (h.type === 'H1') {
+      current = M_now;
+      // Reachable max = current ♂ + (Q's that could be flipped to ♂) + (future tokens that could be ♂)
+      const M_max = M_now + Q_now + remaining;
+      // Min reachable = M_now (cannot un-mark) — over check below handles M_now > target
+      if (target > M_max) isImpossible = true;
+    } else if (h.type === 'H2') {
+      current = F_now;
+      const F_max = F_now + Q_now + remaining;
+      if (target > F_max) isImpossible = true;
+    }
+    countOk[h.id] = current === target;
+    // Red highlight when: already over, OR impossible to ever reach target.
+    // Also: if line is full (capacity reached) and target is still unreachable
+    // because complementary slots are taken (e.g. ♂ + ♀ marked exceed remaining).
+    countOver[h.id] = current > target || isImpossible;
   }
 
   // Compute final ruleStatus: 'empty' | 'partial' | 'bad' | 'satisfied'
