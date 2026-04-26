@@ -3354,7 +3354,11 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const isTiny = vw < 400;
   // Aggressive padding reduction on mobile so the board grabs every available pixel.
   const pagePad = isMobile ? (isTiny ? 4 : 8) : 40;
-  const boardPad = isMobile ? (isTiny ? 6 : 12) : 20;
+  // boardPad — extra thick for Sprout (small board, padding visible);
+  // compact for other levels so cells get max area.
+  const boardPad = puzzle.level === 'Sprout'
+    ? (isMobile ? (isTiny ? 8 : 12) : 20)
+    : (isMobile ? (isTiny ? 4 : 8) : 20);
   const gap = isMobile ? 3 : 6;
 
   const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
@@ -3418,7 +3422,13 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
 
   // Step 2: derive cellSize from available width.
   const availableW = vw - pagePad * 2 - boardPad * 2 - rowHintWidth - gap;
-  const maxCell = isMobile ? 72 : 86;
+  // Sprout (n=4) is small enough that hitting the default maxCell pushes the
+  // board against the viewport edges. Cap it lower so left/right margins
+  // stay visually relaxed. Other levels keep the larger cap since they pack
+  // edge-to-edge anyway.
+  const maxCell = puzzle.level === 'Sprout'
+    ? (isMobile ? 60 : 76)
+    : (isMobile ? 72 : 86);
   const cellSize = Math.max(32, Math.floor(Math.min((availableW - (n - 1) * gap) / n, maxCell)));
 
   // Step 3: now derive badge slot dimensions from cellSize.
@@ -3583,8 +3593,15 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const rowsArr = Array.from({ length: n }, (_, i) => i);
   const colsArr = Array.from({ length: n }, (_, i) => i);
 
+  // Sprout (n=4) renders smaller than viewport on phones, leaving the leftmost
+  // badge visually kissing the white edge. Apply extra outer padding only to
+  // Sprout — other levels already pack the board edge-to-edge so additional
+  // padding would just shrink cellSize.
+  const isSprout = puzzle.level === 'Sprout';
+  const outerPadX = isSprout ? 'clamp(12px, 3vw, 40px)' : 'clamp(2px, 1vw, 40px)';
+
   return (
-    <div style={{ padding: '4px clamp(12px, 3vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+    <div style={{ padding: `4px ${outerPadX} 20px`, display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
       <div style={{
         position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
         border: '1px solid var(--border-soft)', borderRadius: 3,
@@ -3628,7 +3645,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
             : Math.min(rowHintWidth - 8, rowSlotH * 2 + 2);
           return (
           <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
-            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: isMobile ? 8 : 6, paddingRight: 4, overflow: 'visible' }}>
+            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: isSprout ? 8 : (isMobile ? 2 : 6), paddingRight: 4, overflow: 'visible' }}>
               {rRules.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: hintGap, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                   {rRules.map(rr => (
