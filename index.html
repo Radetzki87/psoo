@@ -219,7 +219,7 @@ const STRINGS = {
     zh: '栖息地与食性交织',
     ja: '生息地と食性が交差',
   },
-  'diff.MediumPlus.label': { ko: '상중급', en: 'Medium+', zh: '中上', ja: '中上級' },
+  'diff.MediumPlus.label': { ko: '중상급', en: 'Medium+', zh: '中上', ja: '中上級' },
   'diff.MediumPlus.subtitle': {
     ko: '규약이 느슨해 추론의 여지가 커요',
     en: 'Looser rules, more room to reason',
@@ -776,23 +776,23 @@ const DIFFICULTY_CONFIGS = {
     ruleDimensions: ['habitat', 'diet'],
     countCoverage: [12, 12],         // 12 lines, 100% — eliminates info-shortage bottleneck
     fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
-    maxSolutions: 20,                 // Loose (≤20)
+    maxSolutions: 1,                 // Loose (≤20)
     totalBudgetMs: 20000,
     verifyTimeLimitMs: 2500,
     maxAttempts: 2000,
-    label: '상중급', glyph: '🌲',
+    label: '중상급', glyph: '🌲',
     subtitle: '규약이 느슨해 추론의 여지가 큽니다',
   },
   MediumPlus: {
-    n: 6, k: 8, forbiddenCount: [2, 4],
+    n: 6, k: 9, forbiddenCount: [2, 4],
     animalPoolRestriction: 'any',
-    ruleCount: [4, 5],                // one more rule on average
+    ruleCount: [5,5],                // one more rule on average
     ruleDimensions: ['habitat', 'diet'],
     countCoverage: [12, 12],         // 12 lines, 100%
-    fixedTileCount: [4, 5],           // ≥ ruleCount max to anchor all rules
-    maxSolutions: 25,                 // Loose (≤25)
-    totalBudgetMs: 20000,
-    verifyTimeLimitMs: 3000,
+    fixedTileCount: [5, 5],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 1,                 // Loose (≤25)
+    totalBudgetMs: 30000,
+    verifyTimeLimitMs: 5000,
     maxAttempts: 2500,
     label: '중급', glyph: '🌳',
     subtitle: '규약 4-5개가 교차합니다',
@@ -800,14 +800,14 @@ const DIFFICULTY_CONFIGS = {
   Hard: {
     n: 7, k: 11, forbiddenCount: [3, 5],
     animalPoolRestriction: 'any',
-    ruleCount: [7,7],                // +2 rules compared to previous [5,6]
-    ruleDimensions: ['habitat', 'diet', 'gender'],
-    countCoverage: [14, 14],         // 14 lines, 100% — eliminates info-shortage bottleneck
-    fixedTileCount: [8, 8],           // ≥ ruleCount max to anchor every rule
-    maxSolutions: 30,                 // Loose (≤30)
-    totalBudgetMs: 20000,
-    verifyTimeLimitMs: 5000,
-    maxAttempts: 5500,
+    ruleCount: [8,8],                // +2 rules compared to previous [5,6]
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [15, 15],         // 14 lines, 100% — eliminates info-shortage bottleneck
+    fixedTileCount: [9, 9],           // ≥ ruleCount max to anchor every rule
+    maxSolutions: 1,                 // Loose (≤30)
+    totalBudgetMs: 40000,
+    verifyTimeLimitMs: 10000,
+    maxAttempts: 35500,
     label: '상급', glyph: '🏔',
     subtitle: '규약 7-8개 + 성별 규약까지',
   },
@@ -3200,54 +3200,17 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   for (const r of (puzzle.lineRules || [])) {
     ruleOk[r.id] = evaluateLineRuleRuntime(r, placements, puzzle.tokens, marks);
   }
-  // Compute count-hint state — both immediate (current vs target) and structural
-  // (can future placements / gender toggles ever satisfy this?). A count badge
-  // is highlighted red if it's already over OR if it's now physically
-  // impossible to satisfy given the current line state.
   const countOk = {}, countOver = {};
-  // Group hints by line for cross-checking gender vs total
-  const hintsByLine = {};
-  for (const h of (puzzle.countHints || [])) {
-    const key = h.row !== null ? `r${h.row}` : `c${h.col}`;
-    (hintsByLine[key] = hintsByLine[key] || []).push(h);
-  }
   for (const h of (puzzle.countHints || [])) {
     const lineEntries = Object.entries(placements).filter(([_, cell]) =>
       h.row !== null ? cell.row === h.row : cell.col === h.col
     );
-    const T_now = lineEntries.length;
-    const M_now = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
-    const F_now = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
-    const Q_now = T_now - M_now - F_now; // unmarked
-
-    // Find sibling total hint on same line (if any)
-    const lineKey = h.row !== null ? `r${h.row}` : `c${h.col}`;
-    const totalHint = (hintsByLine[lineKey] || []).find(x => x.type === 'total');
-    const T_target = totalHint ? totalHint.value : null;
-    // Capacity = how many tokens this line will eventually contain
-    const capacity = T_target !== null ? T_target : T_now;
-    const remaining = Math.max(0, capacity - T_now); // tokens still to be placed in this line
-
-    let current, target = h.value;
-    let isImpossible = false;
-    if (h.type === 'total') {
-      current = T_now;
-    } else if (h.type === 'H1') {
-      current = M_now;
-      // Reachable max = current ♂ + (Q's that could be flipped to ♂) + (future tokens that could be ♂)
-      const M_max = M_now + Q_now + remaining;
-      // Min reachable = M_now (cannot un-mark) — over check below handles M_now > target
-      if (target > M_max) isImpossible = true;
-    } else if (h.type === 'H2') {
-      current = F_now;
-      const F_max = F_now + Q_now + remaining;
-      if (target > F_max) isImpossible = true;
-    }
-    countOk[h.id] = current === target;
-    // Red highlight when: already over, OR impossible to ever reach target.
-    // Also: if line is full (capacity reached) and target is still unreachable
-    // because complementary slots are taken (e.g. ♂ + ♀ marked exceed remaining).
-    countOver[h.id] = current > target || isImpossible;
+    let current;
+    if (h.type === 'total') current = lineEntries.length;
+    else if (h.type === 'H1') current = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
+    else if (h.type === 'H2') current = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
+    countOk[h.id] = current === h.value;
+    countOver[h.id] = current > h.value;
   }
 
   // Compute final ruleStatus: 'empty' | 'partial' | 'bad' | 'satisfied'
