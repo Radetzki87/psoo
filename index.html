@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Zoologic v2 — 동물 논리 퍼즐</title>
+<title>Zoologic — Animal Logic Puzzle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <style>
   :root {
     --bg-paper: #FAF7F0;
@@ -28,12 +29,13 @@
     --ok-strict: #B45309;
     --ok-loose: #92400E;
     --ok-flexible: #78716C;
+    --lang-font: 'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body, #root { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
-  body { font-family: 'Outfit', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { font-family: var(--lang-font); -webkit-font-smoothing: antialiased; }
   .font-display { font-family: 'Fraunces', Georgia, serif; }
-  .font-body { font-family: 'Outfit', sans-serif; }
+  .font-body { font-family: var(--lang-font); }
   .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   button { font-family: inherit; }
   button:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
@@ -103,6 +105,582 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 
+<!-- Inlined from i18n.jsx (originally a separate file) -->
+<script type="text/babel">
+// =============================================================================
+// i18n — Zoologic multi-language support
+// Korean primary, plus English, Simplified Chinese, Japanese.
+// Exports: LANGS, STRINGS, ANIMAL_NAMES, LangProvider, useT, useLang,
+//          LangSwitcher, getFontStack.
+// =============================================================================
+'use strict';
+
+const { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ─────────────────────────────────────────────────────────────────
+// Language metadata
+// ─────────────────────────────────────────────────────────────────
+const LANGS = [
+  { code: 'ko', label: '한국어', short: 'KO', htmlLang: 'ko' },
+  { code: 'en', label: 'English', short: 'EN', htmlLang: 'en' },
+  { code: 'zh', label: '简体中文', short: '中', htmlLang: 'zh-CN' },
+  { code: 'ja', label: '日本語', short: '日', htmlLang: 'ja' },
+];
+
+// Language-specific UI font stacks.
+// Each language gets a primary web font optimised for its script +
+// graceful system fallbacks. Display font (Fraunces) is retained for
+// serif headings in all languages — it handles Latin; CJK glyphs fall
+// through to the body stack automatically.
+const FONT_STACK = {
+  ko: `'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif`,
+  en: `'Inter', 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif`,
+  zh: `'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui, sans-serif`,
+  ja: `'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', system-ui, sans-serif`,
+};
+
+function getFontStack(lang) { return FONT_STACK[lang] || FONT_STACK.ko; }
+
+// ─────────────────────────────────────────────────────────────────
+// Animal names — standard common-name style per Q
+// (penguin / fox / 企鹅 / ペンギン — most familiar forms)
+// ─────────────────────────────────────────────────────────────────
+const ANIMAL_NAMES = {
+  1:  { ko: '사자',     en: 'Lion',           zh: '狮子',   ja: 'ライオン' },
+  2:  { ko: '얼룩말',   en: 'Zebra',          zh: '斑马',   ja: 'シマウマ' },
+  3:  { ko: '코끼리',   en: 'Elephant',       zh: '大象',   ja: 'ゾウ' },
+  4:  { ko: '북극곰',   en: 'Polar Bear',     zh: '北极熊', ja: 'ホッキョクグマ' },
+  5:  { ko: '펭귄',     en: 'Penguin',        zh: '企鹅',   ja: 'ペンギン' },
+  6:  { ko: '바다표범', en: 'Seal',           zh: '海豹',   ja: 'アザラシ' },
+  7:  { ko: '돌고래',   en: 'Dolphin',        zh: '海豚',   ja: 'イルカ' },
+  8:  { ko: '바다거북', en: 'Sea Turtle',     zh: '海龟',   ja: 'ウミガメ' },
+  9:  { ko: '상어',     en: 'Shark',          zh: '鲨鱼',   ja: 'サメ' },
+  10: { ko: '호랑이',   en: 'Tiger',          zh: '老虎',   ja: 'トラ' },
+  11: { ko: '판다',     en: 'Panda',          zh: '熊猫',   ja: 'パンダ' },
+  12: { ko: '사슴',     en: 'Deer',           zh: '鹿',     ja: 'シカ' },
+};
+
+function getAnimalName(id, lang) {
+  return (ANIMAL_NAMES[id] && ANIMAL_NAMES[id][lang]) || ANIMAL_NAMES[id]?.ko || '';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Translations
+// ─────────────────────────────────────────────────────────────────
+// Function-values receive an args object. Example: t('progress.placed', {n, total})
+// KO tone: friendly/soft (Q4 answer — "이 줄은 모두 암컷이에요")
+// EN tone: friendly conversational (Q5)
+// ZH/JP: localized puzzle-game idioms, short & punchy (Q6)
+// ─────────────────────────────────────────────────────────────────
+const STRINGS = {
+  // ─── App chrome ───────────────────────────────────────────────
+  'app.title': {
+    ko: 'Zoologic — 동물 논리 퍼즐',
+    en: 'Zoologic — Animal Logic Puzzle',
+    zh: 'Zoologic — 动物逻辑谜题',
+    ja: 'Zoologic — どうぶつロジックパズル',
+  },
+  'app.brand': {
+    ko: 'Zoologic', en: 'Zoologic', zh: 'Zoologic', ja: 'Zoologic',
+  },
+  'app.tagline': {
+    ko: '동물 논리 퍼즐',
+    en: 'Animal logic puzzle',
+    zh: '动物逻辑谜题',
+    ja: 'どうぶつロジックパズル',
+  },
+
+  // ─── Attribute values (habitat / diet / gender) ────────────────
+  'habitat.savanna':  { ko: '사바나',   en: 'Savanna',  zh: '草原',   ja: 'サバンナ' },
+  'habitat.arctic':   { ko: '극지',     en: 'Arctic',   zh: '极地',   ja: '極地' },
+  'habitat.ocean':    { ko: '해양',     en: 'Ocean',    zh: '海洋',   ja: '海洋' },
+  'habitat.forest':   { ko: '숲',       en: 'Forest',   zh: '森林',   ja: '森' },
+  'diet.carnivore':   { ko: '육식',     en: 'Carnivore',zh: '食肉',   ja: '肉食' },
+  'diet.herbivore':   { ko: '초식',     en: 'Herbivore',zh: '食草',   ja: '草食' },
+  'gender.male':      { ko: '수컷',     en: 'Male',     zh: '雄性',   ja: 'オス' },
+  'gender.female':    { ko: '암컷',     en: 'Female',   zh: '雌性',   ja: 'メス' },
+  'gender.unset':     { ko: '성별 미정', en: 'Gender unset', zh: '未定性别', ja: '性別未定' },
+  'dim.habitat':      { ko: '서식지',   en: 'Habitat',  zh: '栖息地', ja: '生息地' },
+  'dim.diet':         { ko: '식성',     en: 'Diet',     zh: '食性',   ja: '食性' },
+  'dim.gender':       { ko: '성별',     en: 'Gender',   zh: '性别',   ja: '性別' },
+
+  // ─── Difficulty ────────────────────────────────────────────────
+  'diff.Sprout.label': { ko: '새싹', en: 'Sprout', zh: '萌芽', ja: '新芽' },
+  'diff.Sprout.subtitle': {
+    ko: '인접과 서식지에 익숙해져요',
+    en: 'Get comfy with adjacency and habitats',
+    zh: '熟悉相邻规则与栖息地',
+    ja: '隣接と生息地に慣れよう',
+  },
+  'diff.Easy.label': { ko: '기초', en: 'Easy', zh: '入门', ja: '初級' },
+  'diff.Easy.subtitle': {
+    ko: '서식지와 식성이 교차해요',
+    en: 'Habitats and diets intertwine',
+    zh: '栖息地与食性交织',
+    ja: '生息地と食性が交差',
+  },
+  'diff.MediumPlus.label': { ko: '상중급', en: 'Medium+', zh: '中上', ja: '中上級' },
+  'diff.MediumPlus.subtitle': {
+    ko: '규약이 느슨해 추론의 여지가 커요',
+    en: 'Looser rules, more room to reason',
+    zh: '规则宽松，推理空间大',
+    ja: 'ルール緩め、推理の幅広し',
+  },
+  'diff.Medium.label': { ko: '중급', en: 'Medium', zh: '中级', ja: '中級' },
+  'diff.Medium.subtitle': {
+    ko: '규약 4-5개가 얽혀요',
+    en: 'Four to five rules intertwine',
+    zh: '4-5 条规则交织',
+    ja: 'ルール4〜5個が絡む',
+  },
+  'diff.Hard.label': { ko: '상급', en: 'Hard', zh: '高级', ja: '上級' },
+  'diff.Hard.subtitle': {
+    ko: '규약 7-8개와 성별까지',
+    en: 'Seven to eight rules plus gender',
+    zh: '7-8 条规则含性别',
+    ja: 'ルール7〜8個に性別も',
+  },
+
+  // ─── Header / Progress ─────────────────────────────────────────
+  'header.difficulty': {
+    ko: '난이도 선택',
+    en: 'Difficulty',
+    zh: '难度选择',
+    ja: '難易度',
+  },
+  'header.help': {
+    ko: '도움말',
+    en: 'Help',
+    zh: '帮助',
+    ja: 'ヘルプ',
+  },
+  'header.lang': {
+    ko: '언어',
+    en: 'Language',
+    zh: '语言',
+    ja: '言語',
+  },
+  'progress.placed': { ko: '배치', en: 'Placed', zh: '已放', ja: '配置' },
+  'progress.gender': { ko: '성별', en: 'Gender', zh: '性别', ja: '性別' },
+  'progress.adjacency': { ko: '인접', en: 'Adjacent', zh: '相邻', ja: '隣接' },
+
+  // ─── Uniqueness badge ──────────────────────────────────────────
+  'uniq.strict.label': {
+    ko: '유일해',
+    en: 'Unique',
+    zh: '唯一解',
+    ja: '唯一解',
+  },
+  'uniq.strict.desc': {
+    ko: '답이 정확히 하나예요',
+    en: 'Exactly one valid answer',
+    zh: '仅有一个正解',
+    ja: '正解はひとつだけ',
+  },
+  'uniq.loose.label': {
+    ko: ({ n }) => `해답 ${n}개 중 하나`,
+    en: ({ n }) => `One of ${n} answers`,
+    zh: ({ n }) => `${n} 解中之一`,
+    ja: ({ n }) => `${n}解のうち一つ`,
+  },
+  'uniq.loose.desc': {
+    ko: ({ n }) => `${n}개의 유효한 답 중 하나를 찾으면 돼요`,
+    en: ({ n }) => `Find any one of ${n} valid answers`,
+    zh: ({ n }) => `在 ${n} 个有效解中找出一个即可`,
+    ja: ({ n }) => `${n}通りのうち一つを見つければOK`,
+  },
+  'uniq.flex.label': {
+    ko: '규약 만족',
+    en: 'Rules satisfied',
+    zh: '满足规则',
+    ja: 'ルール達成',
+  },
+  'uniq.flex.desc': {
+    ko: '모든 규약을 지키는 배치를 찾아보세요',
+    en: 'Find any placement that satisfies every rule',
+    zh: '找出满足全部规则的布局',
+    ja: '全ルールを満たす配置を探そう',
+  },
+
+  // ─── Line rule tooltip ─────────────────────────────────────────
+  'linerule.tip': {
+    ko: ({ label }) => `이 줄은 전부 ${label}이에요`,
+    en: ({ label }) => `Every tile in this line is ${label}`,
+    zh: ({ label }) => `本行/列全为${label}`,
+    ja: ({ label }) => `このラインは全部${label}`,
+  },
+  'linerule.aria': {
+    ko: ({ tip, ok }) => `라인 제약: ${tip}${ok ? ' (충족)' : ''}`,
+    en: ({ tip, ok }) => `Line constraint: ${tip}${ok ? ' (satisfied)' : ''}`,
+    zh: ({ tip, ok }) => `线路约束:${tip}${ok ? '(已满足)' : ''}`,
+    ja: ({ tip, ok }) => `ライン制約:${tip}${ok ? '(達成)' : ''}`,
+  },
+
+  // ─── Count hint badge ──────────────────────────────────────────
+  'count.kind.total':  { ko: '전체', en: 'Total', zh: '共', ja: '全' },
+  'count.kind.male':   { ko: '수컷', en: 'Male',  zh: '雄', ja: 'オス' },
+  'count.kind.female': { ko: '암컷', en: 'Female',zh: '雌', ja: 'メス' },
+  // Counter unit shown next to the number on the "total" badge — a localized
+  // animal counter (마리 / 只 / 匹). English uses no suffix since "5" alone
+  // reads naturally; CJK languages have dedicated counter words.
+  'count.unit':        { ko: '마리', en: '',       zh: '只', ja: '匹' },
+  'count.tip': {
+    ko: ({ kind, n, over, ok }) => `이 줄에 ${kind} ${n}마리${over ? ' · 초과' : ok ? ' · 충족' : ''}`,
+    en: ({ kind, n, over, ok }) => `${kind}: ${n} in this line${over ? ' · over' : ok ? ' · met' : ''}`,
+    zh: ({ kind, n, over, ok }) => `此线${kind}${n}只${over ? '·超出' : ok ? '·达成' : ''}`,
+    ja: ({ kind, n, over, ok }) => `このラインに${kind}${n}匹${over ? '·超過' : ok ? '·達成' : ''}`,
+  },
+  'count.aria': {
+    ko: ({ kind, n, ok, over }) => `${kind} ${n}마리${ok ? ' (충족)' : over ? ' (초과)' : ''}`,
+    en: ({ kind, n, ok, over }) => `${kind} ${n}${ok ? ' (met)' : over ? ' (over)' : ''}`,
+    zh: ({ kind, n, ok, over }) => `${kind}${n}${ok ? '(达成)' : over ? '(超出)' : ''}`,
+    ja: ({ kind, n, ok, over }) => `${kind}${n}${ok ? '(達成)' : over ? '(超過)' : ''}`,
+  },
+
+  // ─── Tile aria ─────────────────────────────────────────────────
+  'tile.aria': {
+    ko: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? ` ${gender}` : ' 성별 미정'}${fixed ? ' (고정)' : ''}${bad ? ' — 짝과 인접하지 않음' : ''}`,
+    en: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `, ${gender}` : ', gender unset'}${fixed ? ' (fixed)' : ''}${bad ? ' — not adjacent to partner' : ''}`,
+    zh: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `·${gender}` : '·性别未定'}${fixed ? '(固定)' : ''}${bad ? ' — 与配偶不相邻' : ''}`,
+    ja: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `·${gender}` : '·性別未定'}${fixed ? '(固定)' : ''}${bad ? ' — ペアと非隣接' : ''}`,
+  },
+  'tile.fixed': {
+    ko: '고정 타일 (변경 불가)',
+    en: 'Fixed tile (cannot move)',
+    zh: '固定棋子(不可移动)',
+    ja: '固定タイル(移動不可)',
+  },
+
+  // ─── Hand ──────────────────────────────────────────────────────
+  'hand.title': {
+    ko: '손패',
+    en: 'Hand',
+    zh: '手牌',
+    ja: '手札',
+  },
+  'hand.waiting': {
+    ko: ({ n }) => `${n}마리 대기`,
+    en: ({ n }) => `${n} waiting`,
+    zh: ({ n }) => `${n} 只待放`,
+    ja: ({ n }) => `${n}匹待機`,
+  },
+  'hand.allPlaced': {
+    ko: '모든 토큰이 배치됐어요',
+    en: 'All tokens placed',
+    zh: '全部已放置',
+    ja: '全て配置済み',
+  },
+  'hand.hint': {
+    ko: '타일 클릭으로 성별 순환 · 짝은 상하좌우대각선 이웃이어야 해요',
+    en: 'Tap to cycle gender · pairs must be 8-way neighbors',
+    zh: '点击切换性别 · 配对要八方向相邻',
+    ja: 'タップで性別切替 · ペアは8方向のどこかで隣接',
+  },
+
+  // ─── Bottom toolbar ────────────────────────────────────────────
+  'btn.new': {
+    ko: '새 퍼즐',
+    en: 'New puzzle',
+    zh: '新谜题',
+    ja: '新しい問題',
+  },
+  'btn.reset': {
+    ko: '초기화',
+    en: 'Reset',
+    zh: '重置',
+    ja: 'リセット',
+  },
+  'btn.hint': {
+    ko: '정답 보기',
+    en: 'Show answer',
+    zh: '查看答案',
+    ja: '答えを見る',
+  },
+
+  // ─── Help ──────────────────────────────────────────────────────
+  'help.open':  { ko: '규약 읽는 법 ↓', en: 'How to read rules ↓', zh: '规则说明 ↓', ja: 'ルールの読み方 ↓' },
+  'help.close': { ko: '규약 읽는 법 ↑', en: 'How to read rules ↑', zh: '规则说明 ↑', ja: 'ルールの読み方 ↑' },
+  'help.rule.global.label':   { ko: '전역 규약.', en: 'Global rule.', zh: '全局规则。', ja: '全体ルール。' },
+  'help.rule.global.body': {
+    ko: '같은 종 두 마리는 반드시 상·하·좌·우·대각선 중 하나로 이웃이어야 해요.',
+    en: 'A matching pair must be 8-way neighbors — up, down, left, right, or diagonal.',
+    zh: '同种的两只必须在八方向(上下左右及对角)中相邻。',
+    ja: '同種2匹は上下左右+対角の8方向のいずれかで必ず隣接。',
+  },
+  'help.rule.count.label': { ko: '메인 규약 #.', en: 'Count hint #.', zh: '数量提示 #。', ja: '数量ヒント #。' },
+  'help.rule.count.body': {
+    ko: '가장자리의 #N은 해당 행/열의 총 토큰 수가 N이라는 뜻이에요. 힌트가 없는 라인도 있어요.',
+    en: 'An edge #N means that row/column has exactly N tokens. Not every line has a hint.',
+    zh: '边上的 #N 表示该行/列共 N 个棋子,并非每行每列都带提示。',
+    ja: '端の #N はその行/列の合計がN個という意味。ヒントが無いラインもある。',
+  },
+  'help.rule.line.label': { ko: '라인 규약.', en: 'Line rule.', zh: '线路规则。', ja: 'ラインルール。' },
+  'help.rule.line.body': {
+    ko: '일부 행/열은 하나의 서식지/식성/성별로만 채워져야 해요. 난이도별로 2~4개가 나타납니다.',
+    en: 'Some rows/columns must be all one habitat, diet, or gender. 2–4 per puzzle depending on difficulty.',
+    zh: '部分行/列需全为同一栖息地/食性/性别,每题 2-4 条,依难度而定。',
+    ja: '一部の行/列は同じ生息地/食性/性別で揃える必要。難易度で2〜4個。',
+  },
+  'help.rule.fixed.label': { ko: '고정 타일.', en: 'Fixed tiles.', zh: '固定棋子。', ja: '固定タイル。' },
+  'help.rule.fixed.body': {
+    ko: '옅은 배경의 타일은 움직일 수 없고 성별도 이미 결정되어 있어요.',
+    en: 'Tinted tiles cannot be moved and their gender is already set.',
+    zh: '带底纹的棋子不可移动,性别也已确定。',
+    ja: '色付きのタイルは移動不可で、性別も確定済み。',
+  },
+  'help.rule.uniq.label': { ko: '유일성 등급.', en: 'Uniqueness grade.', zh: '唯一性等级。', ja: '唯一性の等級。' },
+  'help.rule.uniq.body': {
+    ko: ({ strict, loose }) => `${strict}는 답이 정확히 하나, ${loose}는 여러 유효해 중 하나를 찾으면 돼요.`,
+    en: ({ strict, loose }) => `${strict} = exactly one answer; ${loose} = find any one of several.`,
+    zh: ({ strict, loose }) => `${strict}仅有唯一解,${loose}在多个有效解中找出一个即可。`,
+    ja: ({ strict, loose }) => `${strict}は正解1通り、${loose}は複数解のうち1つでOK。`,
+  },
+  'help.rule.flow.label': { ko: '단계.', en: 'Flow.', zh: '操作。', ja: '流れ。' },
+  'help.rule.flow.body': {
+    ko: '(1) 손패에서 드래그하여 격자에 배치 · (2) 타일 클릭으로 ? → ♂ → ♀ → ? 순환. 짝은 자동으로 반대 성별이 돼요.',
+    en: '(1) Drag from hand onto the grid · (2) Tap a tile to cycle ? → ♂ → ♀ → ?. The partner flips automatically.',
+    zh: '(1)从手牌拖到格子 ·(2)点击棋子循环 ? → ♂ → ♀ → ?,配偶自动反转。',
+    ja: '(1)手札からドラッグで配置 ·(2)タップで ? → ♂ → ♀ → ? 循環。ペアは自動で反対。',
+  },
+
+  // ─── Loading ───────────────────────────────────────────────────
+  'loading.generating': {
+    ko: '새 퍼즐 생성 중',
+    en: 'Generating new puzzle',
+    zh: '正在生成新谜题',
+    ja: '新しい問題を生成中',
+  },
+  'loading.attempts': {
+    ko: ({ n }) => `시도 ${n}`,
+    en: ({ n }) => `Attempt ${n}`,
+    zh: ({ n }) => `第 ${n} 次尝试`,
+    ja: ({ n }) => `試行 ${n}`,
+  },
+  'loading.strict': {
+    ko: '유일해 탐색 중',
+    en: 'Searching for a unique solution',
+    zh: '搜索唯一解中',
+    ja: '唯一解を探索中',
+  },
+  'loading.loose': {
+    ko: ({ n }) => `해답 ${n}개 이하 허용 중`,
+    en: ({ n }) => `Allowing up to ${n} solutions`,
+    zh: ({ n }) => `允许不超过 ${n} 个解`,
+    ja: ({ n }) => `${n}解以下を許容中`,
+  },
+
+  // ─── Win dialog ────────────────────────────────────────────────
+  'win.headline1': {
+    ko: '모든 짝이',
+    en: 'Every pair',
+    zh: '每一对',
+    ja: 'すべての番い',
+  },
+  'win.headline2': {
+    ko: '이웃으로.',
+    en: 'a neighbor.',
+    zh: '都相邻了。',
+    ja: '隣り合う。',
+  },
+  'win.subtitle': {
+    ko: ({ glyph, label }) => `${glyph} ${label} 난이도 해결`,
+    en: ({ glyph, label }) => `${glyph} ${label} solved`,
+    zh: ({ glyph, label }) => `${glyph} ${label} 通关`,
+    ja: ({ glyph, label }) => `${glyph} ${label} クリア`,
+  },
+  'win.desc.loose': {
+    ko: ({ n }) => `유효한 ${n}개 해답 중 하나를 찾았어요`,
+    en: ({ n }) => `Found one of ${n} valid answers`,
+    zh: ({ n }) => `在 ${n} 个有效解中找到了一个`,
+    ja: ({ n }) => `${n}通りの正解のうちの一つを発見`,
+  },
+  'win.desc.flex': {
+    ko: '규약을 만족하는 배치를 완성했어요',
+    en: 'You satisfied every rule',
+    zh: '已完成满足全部规则的布局',
+    ja: '全ルールを満たす配置を完成',
+  },
+  'win.next': {
+    ko: '다음 퍼즐 →',
+    en: 'Next puzzle →',
+    zh: '下一题 →',
+    ja: '次の問題 →',
+  },
+  'win.more': {
+    ko: '조금 더 보기',
+    en: 'Stay a moment',
+    zh: '再看一会',
+    ja: 'もう少し見る',
+  },
+
+  // ─── Legend / misc ─────────────────────────────────────────────
+  'legend.rules': { ko: '규약', en: 'Rules', zh: '规则', ja: 'ルール' },
+  'legend.how': {
+    ko: '인접, 카운트, 라인 규약',
+    en: 'Adjacency, counts, line rules',
+    zh: '相邻 · 数量 · 线路规则',
+    ja: '隣接・数量・ラインルール',
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Context + hooks
+// ─────────────────────────────────────────────────────────────────
+const LangContext = createContext({ lang: 'ko', setLang: () => {}, t: (k) => k });
+
+function LangProvider({ children, initialLang = 'ko', onChange }) {
+  const [lang, setLangState] = useState(initialLang);
+
+  const setLang = useCallback((next) => {
+    if (!LANGS.find(l => l.code === next)) return;
+    setLangState(next);
+    try { localStorage.setItem('zoologic.lang', next); } catch (e) {}
+    if (onChange) onChange(next);
+  }, [onChange]);
+
+  // Sync <html lang>, font stack + --lang-font CSS variable on change.
+  useEffect(() => {
+    const meta = LANGS.find(l => l.code === lang) || LANGS[0];
+    document.documentElement.setAttribute('lang', meta.htmlLang);
+    document.documentElement.style.setProperty('--lang-font', FONT_STACK[lang]);
+    document.body.style.fontFamily = FONT_STACK[lang];
+  }, [lang]);
+
+  const t = useCallback((key, args) => {
+    const entry = STRINGS[key];
+    if (!entry) return key;
+    const val = entry[lang] || entry.ko || key;
+    if (typeof val === 'function') return val(args || {});
+    return val;
+  }, [lang]);
+
+  const ctxValue = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
+  return <LangContext.Provider value={ctxValue}>{children}</LangContext.Provider>;
+}
+
+function useLang() { return useContext(LangContext); }
+function useT() { return useContext(LangContext).t; }
+
+// Translate a habitat/diet/gender raw value (the Korean keys used in ANIMALS)
+// into the current language. Returns the raw value unchanged if not found.
+function translateValue(raw, t) {
+  const map = {
+    '사바나': 'habitat.savanna', '극지': 'habitat.arctic', '해양': 'habitat.ocean', '숲': 'habitat.forest',
+    '육식':  'diet.carnivore',   '초식': 'diet.herbivore',
+    'male':  'gender.male',      'female': 'gender.female',
+  };
+  return map[raw] ? t(map[raw]) : raw;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Language switcher component — header dropdown
+// ─────────────────────────────────────────────────────────────────
+function LangSwitcher({ compact = false }) {
+  const { lang, setLang, t } = useLang();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const current = LANGS.find(l => l.code === lang) || LANGS[0];
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t('header.lang')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: compact ? '6px 8px' : '7px 10px',
+          border: '1px solid var(--border-medium)',
+          borderRadius: 4,
+          background: open ? 'var(--bg-subtle)' : 'var(--bg-card)',
+          color: 'var(--ink-primary)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+          minHeight: 32,
+          transition: 'background 120ms',
+        }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18" />
+        </svg>
+        <span style={{ fontFamily: FONT_STACK[lang] }}>{current.short}</span>
+        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ opacity: 0.6 }}>
+          <path d="M2 4l4 4 4-4" />
+        </svg>
+      </button>
+      {open && (
+        <ul role="listbox" aria-label={t('header.lang')} style={{
+          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+          margin: 0, padding: 4, listStyle: 'none',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-medium)',
+          borderRadius: 4,
+          boxShadow: '0 8px 24px -6px rgba(0,0,0,0.18)',
+          minWidth: 140,
+          zIndex: 500,
+        }}>
+          {LANGS.map(l => {
+            const active = l.code === lang;
+            return (
+              <li key={l.code}>
+                <button
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => { setLang(l.code); setOpen(false); }}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    padding: '8px 10px',
+                    border: 'none',
+                    background: active ? 'var(--bg-subtle)' : 'transparent',
+                    color: 'var(--ink-primary)',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    textAlign: 'left',
+                    borderRadius: 3,
+                    fontFamily: FONT_STACK[l.code],
+                  }}>
+                  <span style={{ fontWeight: active ? 600 : 400 }}>{l.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>{l.short}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// Expose everything on window so sibling <script type="text/babel"> blocks
+// can access without ES module imports.
+Object.assign(window, {
+  LANGS, STRINGS, ANIMAL_NAMES, FONT_STACK,
+  LangProvider, LangContext, useLang, useT, LangSwitcher,
+  getFontStack, getAnimalName, translateValue,
+});
+</script>
+
 <script type="text/babel">
 'use strict';
 
@@ -143,7 +721,7 @@ const HABITAT_TINT = {
 
 const ATTR_ICON = {
   '육식': '🥩', '초식': '🌿',
-  '사바나': '🌾', '극지': '❄️', '해양': '🌊', '숲': '🌲',
+  '사바나': '☀️', '극지': '❄️', '해양': '🌊', '숲': '🌲',
   'male': '♂', 'female': '♀',
 };
 
@@ -996,6 +1574,48 @@ function evaluateLineRuleRuntime(rule, placements, tokens, marks) {
   });
 }
 
+// Returns 'empty' | 'partial' | 'bad' (some token violates rule) | 'satisfied-rule-only'
+// 'satisfied-rule-only' means: line is non-empty AND every placed token in this
+// line matches the rule. This is NOT enough to highlight green — green requires
+// ALL line count hints in the same line to also be ok (handled at caller).
+function evaluateLineRuleStatus(rule, placements, tokens, marks) {
+  const inLine = (cell) => rule.isRow ? cell.row === rule.idx : cell.col === rule.idx;
+  const placedTokenEntries = Object.entries(placements).filter(([_, cell]) => inLine(cell));
+  if (placedTokenEntries.length === 0) return 'empty';
+
+  const checkToken = (tid) => {
+    const t = tokens.find(t => t.id === tid);
+    if (!t) return false;
+    if (rule.dim === 'gender') {
+      return marks[tid] === rule.val;
+    }
+    const animal = animalById(t.animalId);
+    return animal[rule.dim] === rule.val;
+  };
+
+  // Gender rule: a token's gender is "?", treat as not-yet-conflicting (partial),
+  // but if any placed token has gender set and it doesn't match → bad.
+  if (rule.dim === 'gender') {
+    let hasViolation = false;
+    let allMarked = true;
+    for (const [tid, _] of placedTokenEntries) {
+      const m = marks[tid];
+      if (!m) { allMarked = false; continue; }
+      if (m !== rule.val) { hasViolation = true; break; }
+    }
+    if (hasViolation) return 'bad';
+    if (!allMarked) return 'partial';
+    return 'satisfied-rule-only';
+  }
+
+  // habitat / diet rule: animal species is fixed at placement, so every placed
+  // token's attribute is immediately known. Any mismatch = bad.
+  for (const [tid, _] of placedTokenEntries) {
+    if (!checkToken(tid)) return 'bad';
+  }
+  return 'satisfied-rule-only';
+}
+
 function evaluateCountHintRuntime(hint, placements, tokens, marks) {
   const lineTokens = Object.entries(placements).filter(([_, cell]) =>
     hint.row !== null ? cell.row === hint.row : cell.col === hint.col
@@ -1114,7 +1734,9 @@ function loadFallback(level) {
 // =============================================================================
 
 function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
-  const levels = ['Sprout', 'Easy', 'MediumPlus', 'Medium', 'Hard'];
+  const levels = ['Sprout', 'Easy', 'Medium', 'MediumPlus', 'Hard'];
+  const t = useT();
+  const { lang } = useLang();
 
   return (
     <div style={{
@@ -1134,13 +1756,14 @@ function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, t
       <div style={{ flex: 1, minWidth: 4 }} />
 
       {/* Difficulty — horizontal segmented row, wraps cleanly on narrow screens */}
-      <div role="radiogroup" aria-label="난이도 선택" style={{
+      <div role="radiogroup" aria-label={t('header.difficulty')} style={{
         display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 4,
         opacity: disabled ? 0.5 : 1,
       }}>
         {levels.map((lv) => {
           const c = DIFFICULTY_CONFIGS[lv];
           const active = level === lv;
+          const lvLabel = t(`diff.${lv}.label`);
           return (
             <button
               key={lv}
@@ -1149,7 +1772,7 @@ function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, t
               disabled={disabled}
               onClick={() => onChangeLevel(lv)}
               className="font-body"
-              title={`${c.label} · ${c.n}×${c.n}`}
+              title={`${lvLabel} · ${c.n}×${c.n}`}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '7px 10px',
@@ -1166,7 +1789,7 @@ function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, t
               }}
             >
               <span style={{ fontSize: 13 }} aria-hidden>{c.glyph}</span>
-              <span>{c.label}</span>
+              <span>{lvLabel}</span>
               <span className="font-mono" style={{
                 fontSize: 10,
                 color: active ? 'rgba(254,252,248,0.65)' : 'var(--ink-tertiary)',
@@ -1177,8 +1800,11 @@ function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, t
         })}
       </div>
 
+      {/* Language switcher */}
+      <LangSwitcher compact />
+
       {/* Help */}
-      <button onClick={onHelp} aria-label="도움말" style={{
+      <button onClick={onHelp} aria-label={t('header.help')} style={{
         width: 32, height: 32, borderRadius: 999, border: '1px solid var(--border-medium)',
         background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--ink-secondary)', fontSize: 15, flexShrink: 0,
@@ -1190,6 +1816,7 @@ function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, t
 // Progress strip — sits just above the grid, integrates subtitle + counters
 function PuzzleMeta({ puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
   if (!puzzle) return null;
+  const t = useT();
   const allPlaced = placedCount === totalTokens;
   const allGendered = genderedCount === totalTokens;
   return (
@@ -1207,11 +1834,11 @@ function PuzzleMeta({ puzzle, placedCount, totalTokens, genderedCount, adjacency
         border: '1px solid var(--border-soft)', borderRadius: 999,
         padding: '3px 6px', background: 'var(--bg-card)',
       }}>
-        <ProgressChip icon="▦" label="배치" current={placedCount} total={totalTokens} done={allPlaced} />
+        <ProgressChip icon="▦" label={t('progress.placed')} current={placedCount} total={totalTokens} done={allPlaced} />
         <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
-        <ProgressChip icon="⚥" label="성별" current={genderedCount} total={totalTokens} done={allGendered} />
+        <ProgressChip icon="⚥" label={t('progress.gender')} current={genderedCount} total={totalTokens} done={allGendered} />
         <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
-        <ProgressChip icon="↔" label="인접" current={adjacencyOk ? '✓' : '—'} total={null} done={adjacencyOk} bad={!adjacencyOk && allPlaced} />
+        <ProgressChip icon="↔" label={t('progress.adjacency')} current={adjacencyOk ? '✓' : '—'} total={null} done={adjacencyOk} bad={!adjacencyOk && allPlaced} />
       </div>
     </div>
   );
@@ -1236,25 +1863,26 @@ function StatusBar(_props) { return null; /* replaced by PuzzleMeta (rendered be
 
 function UniquenessBadge({ uniqueness, solutionCount }) {
   if (!uniqueness) return null;
+  const t = useT();
   const configs = {
     strict: {
       icon: '✦',
-      label: '유일해',
-      description: '정확히 하나의 답이 존재합니다',
+      label: t('uniq.strict.label'),
+      description: t('uniq.strict.desc'),
       color: 'var(--ok-strict)',
       bg: 'var(--success-soft)',
     },
     loose: {
       icon: '✧',
-      label: `해답 ${solutionCount}개 중 하나`,
-      description: `${solutionCount}개의 유효한 답 중 하나를 찾으면 됩니다`,
+      label: t('uniq.loose.label', { n: solutionCount }),
+      description: t('uniq.loose.desc', { n: solutionCount }),
       color: 'var(--ok-loose)',
       bg: 'var(--bg-subtle)',
     },
     flexible: {
       icon: '〜',
-      label: '규약 만족',
-      description: '모든 규약을 지키는 배치를 찾으세요',
+      label: t('uniq.flex.label'),
+      description: t('uniq.flex.desc'),
       color: 'var(--ok-flexible)',
       bg: 'var(--bg-paper)',
     },
@@ -1477,70 +2105,160 @@ function useBadgeTooltip() {
   return { open, show, hide, showTimed, beginTouch };
 }
 
-function LineRuleBadge({ rule, ok, compact, iconOnly }) {
+function LineRuleBadge({ rule, ok, status, compact, iconOnly, slotW, slotH }) {
+  const t = useT();
   let icon, label;
   if (rule.dim === 'gender') {
     icon = rule.val === 'male' ? '♂' : '♀';
-    label = rule.val === 'male' ? '수컷' : '암컷';
+    label = t(rule.val === 'male' ? 'gender.male' : 'gender.female');
   } else {
     icon = ATTR_ICON[rule.val] || '•';
-    label = VALUE_LABEL[rule.val] || rule.val;
+    label = translateValue(rule.val, t);
   }
   const tip = useBadgeTooltip();
   const anchorRef = useRef(null);
-  const tipText = rule.dim === 'gender'
-    ? `이 라인은 전부 ${label}`
-    : `이 라인은 전부 ${label}`;
-  // Legibility-first: solid surfaces in both states, confident type sizes.
-  const size = iconOnly ? 30 : (compact ? 34 : 38);
-  const styleMap = ok
-    ? { bg: 'rgba(217, 119, 6, 0.14)', border: '1px solid rgba(217, 119, 6, 0.65)', color: 'var(--accent-gold)', iconColor: 'var(--accent-gold)', weight: 600 }
-    : { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-secondary)', iconColor: 'var(--ink-primary)', weight: 500 };
+  const tipText = t('linerule.tip', { label });
+  // Label visibility:
+  //   - Tiny phone (iconOnly): NEVER show label (emoji-only).
+  //   - Otherwise: show label for habitat AND diet (gender stays as ♂/♀ glyph).
+  // Adaptive sizing below will auto-fall-back to icon-only if text doesn't fit.
+  const showLabel = !iconOnly && (rule.dim === 'habitat' || rule.dim === 'diet');
+  // Slot footprint
+  const fallback = iconOnly ? 26 : (compact ? 28 : 32);
+  const W = slotW || fallback;
+  const H = slotH || fallback;
+  // Resolve effective state: prefer `status` (4-state) over legacy `ok` boolean
+  const effState = status || (ok ? 'satisfied' : 'empty');
+  // Style by effective state — green for satisfied, red for bad, neutral otherwise
+  const styleMap = (() => {
+    if (effState === 'satisfied') {
+      return { bg: 'rgba(22, 163, 74, 0.14)', border: '1px solid rgba(22, 163, 74, 0.65)', color: '#15803D', iconColor: '#15803D', weight: 600, shadow: '0 0 0 2px rgba(22, 163, 74, 0.08)' };
+    }
+    if (effState === 'bad') {
+      return { bg: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(220, 38, 38, 0.65)', color: 'var(--danger)', iconColor: 'var(--danger)', weight: 600, shadow: '0 0 0 2px rgba(220, 38, 38, 0.08)' };
+    }
+    // empty / partial → idle neutral
+    return { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-secondary)', iconColor: 'var(--ink-primary)', weight: 500, shadow: 'none' };
+  })();
+  // Adaptive text sizing: shrink label font when slot width is tight.
+  const textBudget = Math.max(0, W - 14 - 4 - 8);
+  const labelFontSize = showLabel
+    ? Math.max(9, Math.min(12, Math.floor(textBudget / Math.max(2, label.length) * 1.6)))
+    : 0;
+  const labelFits = !showLabel || (labelFontSize * label.length * 0.62 <= textBudget);
+  const showLabelFinal = showLabel && labelFits;
   return (
     <div
       ref={anchorRef}
       data-badge-tip="1"
       role="button" tabIndex={0}
-      aria-label={`라인 제약: ${tipText}${ok ? ' (충족)' : ''}`}
+      aria-label={t('linerule.aria', { tip: tipText, ok: effState === 'satisfied' })}
       onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
       onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
       onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
       onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
       style={{
-        width: size, height: size,
+        width: W,
+        height: H,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: showLabelFinal ? 3 : 0,
+        padding: showLabelFinal ? '0 4px' : 0,
         background: styleMap.bg, border: styleMap.border, borderRadius: 4,
         color: styleMap.color,
         transition: 'all 220ms cubic-bezier(0.4,0,0.2,1)',
         position: 'relative', flexShrink: 0,
-        boxShadow: ok ? '0 0 0 2px rgba(217, 119, 6, 0.08)' : 'none',
+        boxShadow: styleMap.shadow,
         cursor: 'help',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
       }}>
       <span style={{
-        fontSize: iconOnly ? 17 : (compact ? 19 : 21),
+        fontSize: showLabelFinal
+          ? Math.max(12, Math.round(H * 0.5))
+          : Math.max(15, Math.round(H * 0.62)),
         fontFamily: rule.dim === 'gender' ? "'Fraunces', serif" : 'inherit',
         fontWeight: styleMap.weight,
         color: styleMap.iconColor,
         lineHeight: 1,
         display: 'block',
+        flexShrink: 0,
       }} aria-hidden>{icon}</span>
+      {showLabelFinal && (
+        <span className="font-display" style={{
+          fontSize: labelFontSize,
+          fontWeight: styleMap.weight,
+          color: styleMap.color,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>{label}</span>
+      )}
       <BadgeTooltip show={tip.open} text={tipText} anchorRef={anchorRef} />
     </div>
   );
 }
 
-function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly }) {
-  const kind = hint.type === 'total' ? '' : (hint.type === 'H1' ? '♂' : '♀');
-  const size = iconOnly ? 30 : (compact ? 34 : 38);
-  const kindLabel = hint.type === 'total' ? '전체' : hint.type === 'H1' ? '수컷' : '암컷';
+// Generic "one specimen" glyph used as the universal animal-count unit.
+// Replaces the localized "마리 / 只 / 匹 / ct" word AND the species-biased
+// pawprint. Drawn as an abstract head-on-body silhouette — neutral across
+// mammal / bird / reptile / fish / insect — to read as "one organism" without
+// implying any particular taxonomic class. `currentColor` so it inherits the
+// badge's state color (idle ink, gold for met, red for over).
+function CreatureIcon({ size = 12, style }) {
+  // viewBox tightened horizontally (4 → 20 instead of 0 → 24) so the glyph
+  // sits flush within its box, letting it align on the same optical rhythm
+  // as the ♂/♀ characters next to the count number.
+  return (
+    <svg
+      viewBox="4 0 16 24"
+      width={(size * 16) / 24}
+      height={size}
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', flexShrink: 0, ...style }}
+    >
+      {/* head — small circle, sits above-left for a hint of profile */}
+      <circle cx="12" cy="6.5" r="3.2" fill="currentColor" />
+      {/* body — rounded trapezoid / dome, anchors as a single being.
+          Wider at the bottom, narrows where it meets the head. */}
+      <path
+        d="M5.2 20.5
+           C 5.2 16.8, 7.8 11.5, 12 11.5
+           C 16.2 11.5, 18.8 16.8, 18.8 20.5
+           C 18.8 21.0, 18.4 21.3, 17.9 21.3
+           L 6.1 21.3
+           C 5.6 21.3, 5.2 21.0, 5.2 20.5 Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paired, pairedSize }) {
+  const t = useT();
+  const isTotal = hint.type === 'total';
+  const kind = isTotal ? null : (hint.type === 'H1' ? '♂' : '♀');
+  // Size strategy — RIGID across solo and paired states:
+  //   Whether one count badge is shown alone or two are paired side-by-side,
+  //   each individual badge uses the SAME compact dimensions and font sizes.
+  //   This keeps both rows (rule row + count row) aligned cell-for-cell.
+  //   `paired` arg is kept for backwards compat but no longer changes geometry.
+  const size = pairedSize
+    ? pairedSize
+    : (iconOnly ? 26 : (compact ? 28 : 32));
+  const widthPx = size;
+  const kindLabel = t(hint.type === 'total' ? 'count.kind.total' : hint.type === 'H1' ? 'count.kind.male' : 'count.kind.female');
   const tip = useBadgeTooltip();
   const anchorRef = useRef(null);
-  const tipText = `이 라인에 ${kindLabel} ${hint.value}마리${over ? ' · 초과' : ok ? ' · 충족' : ''}`;
+  const tipText = t('count.tip', { kind: kindLabel, n: hint.value, over, ok });
   const state = over ? 'over' : (ok ? 'ok' : 'idle');
   const styleMap = {
     over: { bg: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(220, 38, 38, 0.65)', color: 'var(--danger)', weight: 700, shadow: '0 0 0 2px rgba(220, 38, 38, 0.08)' },
-    ok:   { bg: 'rgba(217, 119, 6, 0.14)', border: '1px solid rgba(217, 119, 6, 0.65)', color: 'var(--accent-gold)', weight: 700, shadow: '0 0 0 2px rgba(217, 119, 6, 0.08)' },
+    ok:   { bg: 'rgba(22, 163, 74, 0.14)', border: '1px solid rgba(22, 163, 74, 0.65)', color: '#15803D', weight: 700, shadow: '0 0 0 2px rgba(22, 163, 74, 0.08)' },
     idle: { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-primary)', weight: 600, shadow: 'none' },
   }[state];
   return (
@@ -1548,33 +2266,38 @@ function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly }) {
       ref={anchorRef}
       data-badge-tip="1"
       role="button" tabIndex={0}
-      aria-label={`${kindLabel} ${hint.value}마리${ok ? ' (충족)' : over ? ' (초과)' : ''}`}
+      aria-label={t('count.aria', { kind: kindLabel, n: hint.value, ok, over })}
       onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
       onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
       onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
       onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
       style={{
-        minWidth: size, height: size,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
+        minWidth: size, width: widthPx, height: size,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
         background: styleMap.bg, border: styleMap.border, borderRadius: 4,
         color: styleMap.color,
-        padding: '0 6px',
+        padding: '0 2px',
         transition: 'all 220ms', position: 'relative', flexShrink: 0,
         boxShadow: styleMap.shadow,
         lineHeight: 1,
         cursor: 'help',
       }}>
         <span className="font-mono" style={{
-          fontSize: iconOnly ? 15 : (compact ? 16 : 18),
+          fontSize: iconOnly ? 13 : (compact ? 14 : 15),
           fontWeight: styleMap.weight, lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
           display: 'block',
         }}>{hint.value}</span>
-        {kind && (
+        {isTotal ? (
+          <CreatureIcon
+            size={iconOnly ? 14 : (compact ? 15 : 17)}
+            style={{ opacity: 0.82 }}
+          />
+        ) : kind && (
           <span style={{
             fontFamily: "'Fraunces', serif",
-            fontSize: iconOnly ? 12 : (compact ? 13 : 14),
+            fontSize: iconOnly ? 11 : (compact ? 12 : 13),
             fontWeight: styleMap.weight,
             lineHeight: 1,
             opacity: 0.9,
@@ -1616,6 +2339,9 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
   // Portal-rendered floating popover — positioned above the tile with
   // automatic flip to below when near the top edge. Escapes cell overflow
   // clipping so the animal name never gets cut off on narrow mobile.
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
   const [pos, setPos] = useState(null);
   useEffect(() => {
     if (!anchorRef || !anchorRef.current) { setPos(null); return; }
@@ -1666,7 +2392,7 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
         marginBottom: 6, letterSpacing: '-0.01em',
         textAlign: 'center', lineHeight: 1.2,
         maxWidth: '100%',
-      }}>{animal.name}</div>
+      }}>{animalName}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch', width: '100%' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
@@ -1677,7 +2403,7 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
           justifyContent: 'center',
         }}>
           <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.habitat]}</span>
-          <span>{animal.habitat}</span>
+          <span>{translateValue(animal.habitat, t)}</span>
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
@@ -1688,7 +2414,7 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
           justifyContent: 'center',
         }}>
           <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.diet]}</span>
-          <span>{animal.diet}</span>
+          <span>{translateValue(animal.diet, t)}</span>
         </div>
       </div>
       <span aria-hidden style={{
@@ -1709,6 +2435,11 @@ function AttributeOverlayFloating({ animal, anchorRef }) {
 
 function AttributeOverlayInset({ animal, cellSize }) {
   // Original in-cell overlay — shrinks type to fit small cells.
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
+  const habitatLabel = translateValue(animal.habitat, t);
+  const dietLabel = translateValue(animal.diet, t);
   const tiny = cellSize < 52;
   const nameSize = tiny ? Math.max(9, cellSize * 0.18) : Math.max(11, cellSize * 0.17);
   const chipText = tiny ? Math.max(8, cellSize * 0.14) : Math.max(9, cellSize * 0.13);
@@ -1730,17 +2461,17 @@ function AttributeOverlayInset({ animal, cellSize }) {
         textAlign: 'center', lineHeight: 1,
         maxWidth: '100%',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{animal.name}</div>
+      }}>{animalName}</div>
       {tiny ? (
         <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginTop: 3 }}>
-          <span title={animal.habitat} style={{
+          <span title={habitatLabel} style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             padding: '2px 4px', borderRadius: 2,
             background: HABITAT_TINT[animal.habitat],
             border: '1px solid var(--border-soft)',
             fontSize: chipIcon, lineHeight: 1,
           }}>{ATTR_ICON[animal.habitat]}</span>
-          <span title={animal.diet} style={{
+          <span title={dietLabel} style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             padding: '2px 4px', borderRadius: 2,
             background: 'var(--bg-subtle)',
@@ -1762,7 +2493,7 @@ function AttributeOverlayInset({ animal, cellSize }) {
             maxWidth: '100%', whiteSpace: 'nowrap',
           }}>
             <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.habitat]}</span>
-            <span>{animal.habitat}</span>
+            <span>{habitatLabel}</span>
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 3,
@@ -1773,7 +2504,7 @@ function AttributeOverlayInset({ animal, cellSize }) {
             maxWidth: '100%', whiteSpace: 'nowrap',
           }}>
             <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.diet]}</span>
-            <span>{animal.diet}</span>
+            <span>{dietLabel}</span>
           </div>
         </div>
       )}
@@ -1782,6 +2513,9 @@ function AttributeOverlayInset({ animal, cellSize }) {
 }
 
 function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError, isSelected, isDraggingThis }) {
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
   const sym = gender === 'male' ? '♂' : gender === 'female' ? '♀' : '?';
   const symColor = gender === 'male' ? '#1E3A8A' : gender === 'female' ? '#9D174D' : 'var(--ink-tertiary)';
   const undecided = !gender;
@@ -1794,8 +2528,10 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
   const hoverTimerRef = useRef(null);
   const pressTimerRef = useRef(null);
   const pressStartRef = useRef(null);
+  const overlayMaxTimerRef = useRef(null);
   const LONG_PRESS_MS = 350;
   const HOVER_DELAY_MS = 500;
+  const OVERLAY_MAX_MS = 4000; // hard ceiling — overlay can never persist longer than this
 
   const startHover = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
@@ -1847,11 +2583,49 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
     return () => {
       if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (overlayMaxTimerRef.current) clearTimeout(overlayMaxTimerRef.current);
     };
   }, []);
 
   const showOverlay = hoverActive || longPressed;
   const tileRef = useRef(null);
+
+  // SAFETY NET — global pointerup/cancel always clears the popup, even when
+  // the element's own handlers were missed (iOS mouse-emulation, drag commit,
+  // pointer capture transfer, etc).
+  useEffect(() => {
+    if (!showOverlay) return;
+    // Hard ceiling — auto-dismiss after OVERLAY_MAX_MS no matter what
+    if (overlayMaxTimerRef.current) clearTimeout(overlayMaxTimerRef.current);
+    overlayMaxTimerRef.current = setTimeout(() => {
+      setHoverActive(false);
+      setLongPressed(false);
+    }, OVERLAY_MAX_MS);
+    const cleanup = () => {
+      setHoverActive(false);
+      setLongPressed(false);
+      if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+      if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+    };
+    const onWinUp = () => cleanup();
+    const onWinCancel = () => cleanup();
+    // If user taps anywhere else, dismiss
+    const onWinDown = (ev) => {
+      const el = tileRef.current;
+      if (!el) { cleanup(); return; }
+      if (ev.target && el.contains(ev.target)) return; // tap on this tile — keep
+      cleanup();
+    };
+    window.addEventListener('pointerup', onWinUp, true);
+    window.addEventListener('pointercancel', onWinCancel, true);
+    window.addEventListener('pointerdown', onWinDown, true);
+    return () => {
+      window.removeEventListener('pointerup', onWinUp, true);
+      window.removeEventListener('pointercancel', onWinCancel, true);
+      window.removeEventListener('pointerdown', onWinDown, true);
+      if (overlayMaxTimerRef.current) { clearTimeout(overlayMaxTimerRef.current); overlayMaxTimerRef.current = null; }
+    };
+  }, [showOverlay]);
 
   return (
     <div
@@ -1885,7 +2659,12 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
       }}
       role="button"
       tabIndex={0}
-      aria-label={`${animal.name}${gender ? ` ${gender === 'male' ? '수컷' : '암컷'}` : ' 성별 미정'}${isFixed ? ' (고정)' : ''}${isAdjacentToPartner === false ? ' — 짝과 인접하지 않음' : ''}`}
+      aria-label={t('tile.aria', {
+        name: animalName,
+        gender: gender ? t(gender === 'male' ? 'gender.male' : 'gender.female') : '',
+        fixed: isFixed,
+        bad: isAdjacentToPartner === false,
+      })}
       style={{
         width: cellSize, height: cellSize, borderRadius: 4,
         background: isFixed ? 'var(--bg-fixed)' : 'var(--bg-card)',
@@ -1906,7 +2685,7 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
       <div style={{ position: 'relative', width: '82%', height: '82%', opacity: undecided ? 0.5 : 1, filter: undecided ? 'grayscale(0.7)' : 'none', transition: 'opacity 220ms, filter 220ms', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
           src={animalImgSrc(animal.id, gender)}
-          alt={animal.name}
+          alt={animalName}
           draggable={false}
           onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
           style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
@@ -1928,8 +2707,8 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
       )}
       {isFixed && !showOverlay && (
         <>
-          {/* Diagonal hatch texture to signal "immutable" without color */}
-          <svg aria-hidden width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.07 }}>
+          {/* Subtle hatch — even fainter so the fixed tile reads as "natural", not striped */}
+          <svg aria-hidden width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.035 }}>
             <defs>
               <pattern id={`fixedHatch-${token.id}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                 <line x1="0" y1="0" x2="0" y2="6" stroke="#78716C" strokeWidth="1.2" />
@@ -1937,14 +2716,13 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
             </defs>
             <rect width="100%" height="100%" fill={`url(#fixedHatch-${token.id})`} />
           </svg>
-          {/* Corner lock glyph — neutral, not gold */}
-          <div title="고정 타일 (변경 불가)" aria-hidden style={{
-            position: 'absolute', top: 3, left: 3,
-            width: 13, height: 13, borderRadius: 2,
-            background: 'rgba(255,255,255,0.9)', border: '1px solid var(--border-medium)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, color: 'var(--ink-tertiary)', lineHeight: 1,
-          }}>⌾</div>
+          {/* Top-left red dot — subtle "locked" indicator */}
+          <div title={t('tile.fixed')} aria-hidden style={{
+            position: 'absolute', top: 4, left: 4,
+            width: 6, height: 6, borderRadius: 999,
+            background: '#DC2626',
+            boxShadow: '0 0 0 1.5px rgba(255,255,255,0.85)',
+          }} />
         </>
       )}
       {showOverlay && <AttributeOverlay animal={animal} cellSize={cellSize} anchorRef={tileRef} />}
@@ -1968,6 +2746,7 @@ function ForbiddenCell({ size }) {
 }
 
 function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
+  const { lang } = useLang();
   // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
   const dim = Math.ceil(Math.sqrt(capacity));
   // Mini-cell size: fit within parent cell with padding
@@ -2012,7 +2791,7 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
           }}>
             <img
               src={animalImgSrc(animal.id, gender)}
-              alt={animal.name}
+              alt={getAnimalName(animal.id, lang) || animal.name}
               draggable={false}
               onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
               style={{ width: '86%', height: '86%', objectFit: 'contain', pointerEvents: 'none' }}
@@ -2334,9 +3113,9 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const vw = useViewportWidth();
   const isMobile = vw < 640;
   const isTiny = vw < 400;
-  // outer page padding applied at container level (via CSS var below). Compute remaining width.
-  const pagePad = isMobile ? 12 : 40;
-  const boardPad = isMobile ? 10 : 20;
+  // Aggressive padding reduction on mobile so the board grabs every available pixel.
+  const pagePad = isMobile ? (isTiny ? 4 : 8) : 40;
+  const boardPad = isMobile ? (isTiny ? 4 : 8) : 20;
   const gap = isMobile ? 3 : 6;
 
   const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
@@ -2356,46 +3135,139 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     else (colCountHints[h.col] = colCountHints[h.col] || []).push(h);
   }
 
-  // Compute max badges per row / col so the hint gutter is sized to fit without wrapping
-  let maxRowBadges = 1, maxColBadges = 1;
+  // Compute max badge slot rows/columns. Each line rule + the count-hint group
+  // (paired side-by-side) each occupy ONE slot row (in column header) or
+  // ONE slot row stacked vertically (in row header).
+  let maxRowSlots = 0, maxColSlots = 0;
   for (let i = 0; i < n; i++) {
-    const rb = (rowRules[i] || []).length + (rowCountHints[i] || []).length;
-    const cb = (colRules[i] || []).length + (colCountHints[i] || []).length;
-    if (rb > maxRowBadges) maxRowBadges = rb;
-    if (cb > maxColBadges) maxColBadges = cb;
+    const rRules = (rowRules[i] || []).length;
+    const rCounts = (rowCountHints[i] || []).length > 0 ? 1 : 0;
+    const cRules = (colRules[i] || []).length;
+    const cCounts = (colCountHints[i] || []).length > 0 ? 1 : 0;
+    if (rRules + rCounts > maxRowSlots) maxRowSlots = rRules + rCounts;
+    if (cRules + cCounts > maxColSlots) maxColSlots = cRules + cCounts;
   }
+  if (maxRowSlots === 0) maxRowSlots = 1;
+  if (maxColSlots === 0) maxColSlots = 1;
 
-  // Responsive badge sizing — compact on mobile, icon-only on tiny
+  // Responsive badge sizing
   const compact = isMobile;
   const iconOnly = isTiny;
-  // Badge heights match the redesigned LineRule/CountHint: iconOnly=30, compact=34, default=38
-  const badgeH = iconOnly ? 30 : (compact ? 34 : 38);
-  // Badge widths mirror the minWidth values in the badge components
-  const rowBadgeW = iconOnly ? 32 : (compact ? 38 : 44);
-  const hintGap = isMobile ? 3 : 4;
-  const rowHintWidth = rowBadgeW * maxRowBadges + hintGap * Math.max(0, maxRowBadges - 1) + 8;
-  const colHintHeight = badgeH * maxColBadges + hintGap * Math.max(0, maxColBadges - 1) + 8;
+  const hintGap = isMobile ? 2 : 4;
 
+  // ────────────────────────────────────────────────────────────────────
+  // Cell-first sizing: on mobile, the grid cells claim the most space.
+  // The badge slot width/height are then DERIVED from the cell size so
+  // every column header slot is as wide as the cell beneath it, and every
+  // row header is exactly one cell-tall (stacked vertically inside).
+  // ────────────────────────────────────────────────────────────────────
+  // Step 1: pick a target row-header gutter width.
+  //   - On mobile: compact gutter — just enough for one count-pair badge,
+  //     since multiple badges can stack vertically inside.
+  //   - On desktop: vertical stacking too (one slot wide), so gutter is compact.
+  //     Multiple rules + count hints stack vertically inside the cell-tall row.
+  let rowHintWidth;
+  if (isMobile) {
+    // Smallest reasonable gutter: width of one paired-count group (two small badges).
+    rowHintWidth = isTiny ? 56 : 64;
+  } else {
+    // Desktop: same vertical-stack philosophy. One paired-count slot wide
+    // (~80px) is enough for two count badges side-by-side or for a single
+    // habitat label badge. Multiple rules stack vertically inside.
+    rowHintWidth = 84;
+  }
+
+  // Step 2: derive cellSize from available width.
   const availableW = vw - pagePad * 2 - boardPad * 2 - rowHintWidth - gap;
-  const maxCell = isMobile ? 64 : 86;
-  const cellSize = Math.max(28, Math.floor(Math.min((availableW - (n - 1) * gap) / n, maxCell)));
+  const maxCell = isMobile ? 72 : 86;
+  const cellSize = Math.max(32, Math.floor(Math.min((availableW - (n - 1) * gap) / n, maxCell)));
+
+  // Step 3: now derive badge slot dimensions from cellSize.
+  // Column header slot width = cellSize (matches cell beneath, edge-to-edge).
+  // Row header slot height = cellSize (matches cell beside).
+  // Slot height for column header rule: a fraction of cellSize, capped.
+  const slotH = Math.max(22, Math.min(36, Math.round(cellSize * 0.46)));
+  // Column header total height = N slot rows + gaps between them
+  const colHintHeight = slotH * maxColSlots + hintGap * Math.max(0, maxColSlots - 1) + 8;
+  // Slot width for column header: full cell width
+  const slotW = cellSize;
+  // Paired count badge size (used inside a single slot — two side by side)
+  const pairedCountH = slotH;
+  const pairedCountW = Math.max(20, Math.floor((cellSize - 2) / 2)); // half of cell, minus 2px gap
 
   // Evaluate rules & counts runtime
   const ruleOk = {};
   for (const r of (puzzle.lineRules || [])) {
     ruleOk[r.id] = evaluateLineRuleRuntime(r, placements, puzzle.tokens, marks);
   }
+  // Compute count-hint state — both immediate (current vs target) and structural
+  // (can future placements / gender toggles ever satisfy this?). A count badge
+  // is highlighted red if it's already over OR if it's now physically
+  // impossible to satisfy given the current line state.
   const countOk = {}, countOver = {};
+  // Group hints by line for cross-checking gender vs total
+  const hintsByLine = {};
+  for (const h of (puzzle.countHints || [])) {
+    const key = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    (hintsByLine[key] = hintsByLine[key] || []).push(h);
+  }
   for (const h of (puzzle.countHints || [])) {
     const lineEntries = Object.entries(placements).filter(([_, cell]) =>
       h.row !== null ? cell.row === h.row : cell.col === h.col
     );
-    let current;
-    if (h.type === 'total') current = lineEntries.length;
-    else if (h.type === 'H1') current = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
-    else if (h.type === 'H2') current = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
-    countOk[h.id] = current === h.value;
-    countOver[h.id] = current > h.value;
+    const T_now = lineEntries.length;
+    const M_now = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
+    const F_now = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
+    const Q_now = T_now - M_now - F_now; // unmarked
+
+    // Find sibling total hint on same line (if any)
+    const lineKey = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    const totalHint = (hintsByLine[lineKey] || []).find(x => x.type === 'total');
+    const T_target = totalHint ? totalHint.value : null;
+    // Capacity = how many tokens this line will eventually contain
+    const capacity = T_target !== null ? T_target : T_now;
+    const remaining = Math.max(0, capacity - T_now); // tokens still to be placed in this line
+
+    let current, target = h.value;
+    let isImpossible = false;
+    if (h.type === 'total') {
+      current = T_now;
+    } else if (h.type === 'H1') {
+      current = M_now;
+      // Reachable max = current ♂ + (Q's that could be flipped to ♂) + (future tokens that could be ♂)
+      const M_max = M_now + Q_now + remaining;
+      // Min reachable = M_now (cannot un-mark) — over check below handles M_now > target
+      if (target > M_max) isImpossible = true;
+    } else if (h.type === 'H2') {
+      current = F_now;
+      const F_max = F_now + Q_now + remaining;
+      if (target > F_max) isImpossible = true;
+    }
+    countOk[h.id] = current === target;
+    // Red highlight when: already over, OR impossible to ever reach target.
+    // Also: if line is full (capacity reached) and target is still unreachable
+    // because complementary slots are taken (e.g. ♂ + ♀ marked exceed remaining).
+    countOver[h.id] = current > target || isImpossible;
+  }
+
+  // Compute final ruleStatus: 'empty' | 'partial' | 'bad' | 'satisfied'
+  // 'satisfied' (green) requires BOTH (a) every placed token in line matches the rule
+  // AND (b) every count hint on that same line is also ok.
+  const ruleStatus = {};
+  for (const r of (puzzle.lineRules || [])) {
+    const baseStatus = evaluateLineRuleStatus(r, placements, puzzle.tokens, marks);
+    if (baseStatus !== 'satisfied-rule-only') {
+      ruleStatus[r.id] = baseStatus; // empty / partial / bad
+      continue;
+    }
+    // Rule itself is satisfied — now check count hints on same line
+    const lineCountHints = (puzzle.countHints || []).filter(h =>
+      r.isRow ? h.row === r.idx : h.col === r.idx
+    );
+    const allCountOk = lineCountHints.length === 0
+      ? true   // no count hints on this line — rule alone counts as satisfied
+      : lineCountHints.every(h => countOk[h.id]);
+    ruleStatus[r.id] = allCountOk ? 'satisfied' : 'partial';
   }
 
   const pairAdj = {};
@@ -2473,7 +3345,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
   const colsArr = Array.from({ length: n }, (_, i) => i);
 
   return (
-    <div style={{ padding: '4px clamp(6px, 2vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+    <div style={{ padding: '4px clamp(2px, 1vw, 40px) 20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
       <div style={{
         position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
         border: '1px solid var(--border-soft)', borderRadius: 3,
@@ -2481,30 +3353,62 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
       }}>
         {/* Column headers */}
         <div style={{ display: 'flex', gap, marginBottom: gap, paddingLeft: rowHintWidth + gap, minHeight: colHintHeight }}>
-          {colsArr.map(c => (
-            <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap' }}>
-              {(colRules[c] || []).map(r => (
-                <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} compact={compact} iconOnly={iconOnly} />
-              ))}
-              {(colCountHints[c] || []).map(h => (
-                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} />
-              ))}
-            </div>
-          ))}
+          {colsArr.map(c => {
+            const ch = colCountHints[c] || [];
+            return (
+              <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap' }}>
+                {(colRules[c] || []).map(r => (
+                  <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} status={ruleStatus[r.id]} compact={compact} iconOnly={iconOnly} slotW={slotW} slotH={slotH} />
+                ))}
+                {ch.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: 2, justifyContent: 'center', alignItems: 'center', maxWidth: '100%' }}>
+                    {ch.map(h => (
+                      <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={pairedCountW} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        {rowsArr.map(r => (
+        {rowsArr.map(r => {
+          const rh = rowCountHints[r] || [];
+          const rRules = rowRules[r] || [];
+          // Row header inner stacks vertically: each rule on its own line,
+          // count hints on their own line. This lets the row gutter stay
+          // narrow (one slot wide) while still showing every badge.
+          // Total stacked items = rule count + (1 if count hints exist)
+          const stackedItems = rRules.length + (rh.length > 0 ? 1 : 0);
+          // Each stacked item gets ~equal share of cellSize, capped at slotH
+          const rowSlotH = Math.max(20, Math.min(slotH, Math.floor((cellSize - hintGap * Math.max(0, stackedItems - 1)) / Math.max(1, stackedItems))));
+          // Width matching: a paired count-hint group is (2 × rowSlotH + 2) wide.
+          // Make line-rule badges the SAME width so both badge types
+          // align flush at their left edge under right-justify.
+          const rowRuleBadgeW = rh.length >= 2
+            ? rowSlotH * 2 + 2
+            : Math.min(rowHintWidth - 8, rowSlotH * 2 + 2);
+          return (
           <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
-            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, paddingRight: 4, flexWrap: 'nowrap', overflow: 'visible' }}>
-              {(rowRules[r] || []).map(rr => (
-                <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} compact={compact} iconOnly={iconOnly} />
-              ))}
-              {(rowCountHints[r] || []).map(h => (
-                <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} />
-              ))}
+            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingRight: 4, overflow: 'visible' }}>
+              {rRules.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: hintGap, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+                  {rRules.map(rr => (
+                    <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} status={ruleStatus[rr.id]} compact={compact} iconOnly={iconOnly} slotW={rowRuleBadgeW} slotH={rowSlotH} />
+                  ))}
+                </div>
+              )}
+              {rh.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 2, alignItems: 'center', justifyContent: 'flex-end' }}>
+                  {rh.map(h => (
+                    <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={rowSlotH} />
+                  ))}
+                </div>
+              )}
             </div>
             {colsArr.map(c => (<div key={c}>{cellContent(r, c, r * n + c)}</div>))}
           </div>
-        ))}
+          );
+        })}
         {/* Adjacency SVG overlay */}
         <svg style={{
           position: 'absolute',
@@ -2531,6 +3435,8 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
 
 function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, dragState, onHandTapReturn }) {
   const drag = useDrag();
+  const tStr = useT();
+  const { lang } = useLang();
   if (!puzzle) return null;
   const unplaced = puzzle.tokens.filter(t => !placements[t.id]);
   const groups = {};
@@ -2554,15 +3460,15 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
         <div className="font-body" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-tertiary)', fontWeight: 500 }}>
-          Hand · 손패
+          {tStr('hand.title')}
         </div>
         <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>
-          {unplaced.length > 0 ? `${unplaced.length}마리 대기` : '모든 토큰이 배치됨'}
+          {unplaced.length > 0 ? tStr('hand.waiting', { n: unplaced.length }) : tStr('hand.allPlaced')}
         </div>
       </div>
       {unplaced.length === 0 ? (
         <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: 13, fontStyle: 'italic' }} className="font-display">
-          타일 클릭으로 성별 순환 · 짝은 상하좌우대각선 이웃이어야 합니다
+          {tStr('hand.hint')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
@@ -2621,7 +3527,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                           userSelect: 'none',
                         }}>
                         <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: 0.22, borderRadius: 4 }} />
-                        <img src={animalImgSrc(animal.id, gender)} alt={animal.name} draggable={false}
+                        <img src={animalImgSrc(animal.id, gender)} alt={getAnimalName(animal.id, lang) || animal.name} draggable={false}
                           onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
                           style={{ width: '80%', height: '80%', objectFit: 'contain', position: 'relative' }} />
                         <div style={{ display: 'none', fontSize: 26, position: 'relative' }}>
@@ -2638,9 +3544,9 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                   })}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{animal.name}</div>
+                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{getAnimalName(animal.id, lang) || animal.name}</div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                    <span title={animal.habitat} className="font-body" style={{
+                    <span title={translateValue(animal.habitat, tStr)} className="font-body" style={{
                       display: 'inline-flex', alignItems: 'center', gap: 3,
                       padding: '2px 6px', borderRadius: 2,
                       background: HABITAT_TINT[animal.habitat],
@@ -2648,9 +3554,9 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                       fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
                     }}>
                       <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.habitat]}</span>
-                      <span>{animal.habitat}</span>
+                      <span>{translateValue(animal.habitat, tStr)}</span>
                     </span>
-                    <span title={animal.diet} className="font-body" style={{
+                    <span title={translateValue(animal.diet, tStr)} className="font-body" style={{
                       display: 'inline-flex', alignItems: 'center', gap: 3,
                       padding: '2px 6px', borderRadius: 2,
                       background: 'var(--bg-subtle)',
@@ -2658,7 +3564,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                       fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
                     }}>
                       <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.diet]}</span>
-                      <span>{animal.diet}</span>
+                      <span>{translateValue(animal.diet, tStr)}</span>
                     </span>
                   </div>
                 </div>
@@ -2672,6 +3578,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
 }
 
 function Controls({ onNew, onReset, onHint, disabled }) {
+  const t = useT();
   const btn = (label, icon, onClick, primary) => (
     <button onClick={onClick} disabled={disabled} className="font-body" style={{
       padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)', background: primary ? 'var(--ink-primary)' : 'var(--bg-card)',
@@ -2686,21 +3593,24 @@ function Controls({ onNew, onReset, onHint, disabled }) {
   );
   return (
     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', padding: '8px clamp(12px, 4vw, 40px) 20px', flexWrap: 'wrap' }}>
-      {btn('새 퍼즐', '🎲', onNew, true)}
-      {btn('초기화', '↺', onReset)}
-      {btn('정답 보기', '◉', onHint)}
+      {btn(t('btn.new'), '🎲', onNew, true)}
+      {btn(t('btn.reset'), '↺', onReset)}
+      {btn(t('btn.hint'), '◉', onHint)}
     </div>
   );
 }
 
 function Legend({ collapsed, onToggle }) {
+  const t = useT();
+  const strictLabel = (<span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>);
+  const looseLabel = (<span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.loose.label', { n: 'N' })}</span>);
   return (
     <div style={{ padding: '0 clamp(12px, 4vw, 40px) 32px', maxWidth: 760, margin: '0 auto' }}>
       <button onClick={onToggle} className="font-body" style={{
         background: 'transparent', border: 'none', color: 'var(--ink-tertiary)',
         cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 0',
       }}>
-        {collapsed ? '규약 읽는 법 ↓' : '규약 읽는 법 ↑'}
+        {collapsed ? t('help.open') : t('help.close')}
       </button>
       {!collapsed && (
         <div style={{
@@ -2709,22 +3619,22 @@ function Legend({ collapsed, onToggle }) {
           animation: 'fadeInUp 260ms',
         }} className="font-body">
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>전역 규약.</strong> 같은 종 두 마리는 반드시 <strong>상·하·좌·우·대각선</strong> 중 하나로 이웃해야 합니다.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.global.label')}</strong> {t('help.rule.global.body')}
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>메인 규약 <span className="font-mono">#</span>.</strong> 가장자리의 <span className="font-mono">#N</span>은 해당 행/열의 총 토큰 수가 N임을 뜻합니다. 힌트가 없는 라인도 있습니다 — 추론의 여지입니다.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.count.label')}</strong> {t('help.rule.count.body')}
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>라인 규약.</strong> 일부 행/열은 <strong>하나의 서식지/식성/성별</strong>로만 채워져야 합니다. 난이도별로 2~4개가 등장합니다.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.line.label')}</strong> {t('help.rule.line.body')}
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>고정 타일.</strong> 금장으로 표시된 타일은 움직일 수 없습니다. 성별도 이미 결정되어 있습니다.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.fixed.label')}</strong> {t('help.rule.fixed.body')}
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나, <span style={{ color: 'var(--ok-loose)' }}>✧ 해답 중 하나</span>는 여러 유효해 중 하나를 찾으면 됩니다.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.uniq.label')}</strong> {t('help.rule.uniq.body', { strict: <span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>, loose: <span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.flex.label')}</span> })}
           </div>
           <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65 }}>
-            <strong style={{ color: 'var(--ink-primary)' }}>단계.</strong> (1) 손패에서 드래그하여 격자에 배치 · (2) 타일 클릭으로 <strong>? → ♂ → ♀ → ?</strong> 순환. 짝은 자동 반대 성별.
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.flow.label')}</strong> {t('help.rule.flow.body')}
           </div>
         </div>
       )}
@@ -2734,13 +3644,14 @@ function Legend({ collapsed, onToggle }) {
 
 function LoadingOverlay({ show, level, progress }) {
   if (!show) return null;
+  const t = useT();
   const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
   const pct = progress ? Math.min(100, Math.round((progress.elapsed / progress.budget) * 100)) : 0;
   const sec = progress ? (progress.elapsed / 1000).toFixed(1) : '0.0';
   const budgetSec = progress ? (progress.budget / 1000).toFixed(0) : '—';
   const relaxHint = progress && progress.currentMaxSolutions > 1
-    ? `해답 ${progress.currentMaxSolutions}개 이하 허용 중`
-    : '유일해 탐색 중';
+    ? t('loading.loose', { n: progress.currentMaxSolutions })
+    : t('loading.strict');
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(250,247,240,0.9)', backdropFilter: 'blur(3px)',
@@ -2748,10 +3659,10 @@ function LoadingOverlay({ show, level, progress }) {
     }}>
       <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }} className="font-display">
         <div style={{ fontSize: 12, color: 'var(--ink-tertiary)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }} className="font-body">
-          새 퍼즐 생성 중
+          {t('loading.generating')}
         </div>
         <div style={{ fontSize: 36, fontStyle: 'italic', color: 'var(--ink-primary)', fontWeight: 400, marginBottom: 24 }}>
-          {cfg?.glyph} {cfg?.label}
+          {cfg?.glyph} {t(`diff.${level}.label`)}
         </div>
 
         {/* Progress bar */}
@@ -2773,7 +3684,7 @@ function LoadingOverlay({ show, level, progress }) {
             {sec}s / {budgetSec}s
           </span>
           <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
-            {progress ? `시도 ${progress.attempts}` : ''}
+            {progress ? t('loading.attempts', { n: progress.attempts }) : ''}
           </span>
         </div>
 
@@ -2789,6 +3700,7 @@ function LoadingOverlay({ show, level, progress }) {
 
 function RulesModal({ show, onClose }) {
   if (!show) return null;
+  const t = useT();
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.4)',
@@ -2803,37 +3715,35 @@ function RulesModal({ show, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
           <div>
             <div className="font-display" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.02em' }}>
-              규약<span style={{ color: 'var(--accent-gold)' }}>.</span>
+              {t('legend.rules')}<span style={{ color: 'var(--accent-gold)' }}>.</span>
             </div>
             <div className="font-body" style={{ fontSize: 12, color: 'var(--ink-tertiary)', marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              How to play · 인접, 카운트, 라인 규약
+              {t('legend.how')}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink-tertiary)' }}>×</button>
         </div>
         <ol className="font-body" style={{ paddingLeft: 18, color: 'var(--ink-secondary)', fontSize: 13.5, lineHeight: 1.75 }}>
           <li style={{ marginBottom: 10 }}>
-            <strong>전역 인접 규약.</strong> 같은 종 두 마리는 반드시 서로의 <strong>8방향 이웃</strong>에 있어야 합니다.
+            <strong>{t('help.rule.global.label')}</strong> {t('help.rule.global.body')}
           </li>
           <li style={{ marginBottom: 10 }}>
-            <strong>카운트 힌트 #.</strong> 가장자리의 <span className="font-mono">#N</span>은 해당 행/열의 총 토큰 수가 N임을 뜻합니다. 모든 라인에 힌트가 있지는 않습니다.
+            <strong>{t('help.rule.count.label')}</strong> {t('help.rule.count.body')}
           </li>
           <li style={{ marginBottom: 10 }}>
-            <strong>라인 규약.</strong> 일부 행/열은 그 라인의 모든 동물이 <strong>같은 서식지</strong>, <strong>같은 식성</strong>, 또는 <strong>같은 성별</strong>이어야 합니다.
+            <strong>{t('help.rule.line.label')}</strong> {t('help.rule.line.body')}
           </li>
           <li style={{ marginBottom: 10 }}>
-            <strong>고정 타일.</strong> 금빛 점이 있는 타일은 위치·성별이 이미 결정되어 있어 움직일 수 없습니다.
+            <strong>{t('help.rule.fixed.label')}</strong> {t('help.rule.fixed.body')}
           </li>
           <li style={{ marginBottom: 10 }}>
-            <strong>성별 결정.</strong> 각 쌍은 암수 한 쌍. 타일을 클릭하면 <strong>? → ♂ → ♀ → ?</strong> 로 순환하며, 짝은 자동으로 반대 성별이 됩니다.
-          </li>
-          <li style={{ marginBottom: 10 }}>
-            <strong>유일성 등급.</strong> <span style={{ color: 'var(--ok-strict)' }}>✦ 유일해</span>는 답이 정확히 하나.
-            <span style={{ color: 'var(--ok-loose)' }}> ✧ 해답 중 하나</span>는 여러 유효해가 있으며 그 중 하나를 찾으면 성공입니다.
-            난이도가 높을수록 다중해가 허용됩니다.
+            <strong>{t('help.rule.uniq.label')}</strong> {t('help.rule.uniq.body', {
+              strict: <span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>,
+              loose: <span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.flex.label')}</span>,
+            })}
           </li>
           <li>
-            <strong>승리 조건.</strong> 모든 타일이 배치되고 성별이 결정되며, 인접·라인·카운트·고정 타일 규약이 모두 만족되면 완성입니다.
+            <strong>{t('help.rule.flow.label')}</strong> {t('help.rule.flow.body')}
           </li>
         </ol>
       </div>
@@ -2843,6 +3753,7 @@ function RulesModal({ show, onClose }) {
 
 function WinDialog({ show, level, uniqueness, solutionCount, onNext, onClose }) {
   if (!show) return null;
+  const t = useT();
   const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
   return (
     <div onClick={onClose} style={{
@@ -2858,30 +3769,30 @@ function WinDialog({ show, level, uniqueness, solutionCount, onNext, onClose }) 
           ✦ Solved ✦
         </div>
         <div className="font-display" style={{ fontSize: 40, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--ink-primary)', lineHeight: 1.1 }}>
-          모든 짝이<br /><span style={{ fontStyle: 'italic', color: 'var(--accent-gold)' }}>이웃으로.</span>
+          {t('win.headline1')}<br /><span style={{ fontStyle: 'italic', color: 'var(--accent-gold)' }}>{t('win.headline2')}</span>
         </div>
         <div className="font-body" style={{ marginTop: 18, color: 'var(--ink-secondary)', fontSize: 14, lineHeight: 1.6 }}>
-          {cfg?.glyph} <strong>{cfg?.label}</strong> 난이도 해결
+          {t('win.subtitle', { glyph: cfg?.glyph, label: t(`diff.${level}.label`) })}
         </div>
         {uniqueness === 'loose' && (
           <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
-            유효한 {solutionCount}개 해답 중 하나를 찾았습니다
+            {t('win.desc.loose', { n: solutionCount })}
           </div>
         )}
         {uniqueness === 'flexible' && (
           <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
-            규약을 만족하는 배치를 완성했습니다
+            {t('win.desc.flex')}
           </div>
         )}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 28 }}>
           <button onClick={onNext} className="font-body" style={{
             padding: '12px 22px', background: 'var(--ink-primary)', color: 'var(--bg-paper)',
             border: 'none', borderRadius: 2, cursor: 'pointer', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em',
-          }}>다음 퍼즐 →</button>
+          }}>{t('win.next')}</button>
           <button onClick={onClose} className="font-body" style={{
             padding: '12px 22px', background: 'transparent', color: 'var(--ink-secondary)',
             border: '1px solid var(--border-medium)', borderRadius: 2, cursor: 'pointer', fontSize: 13,
-          }}>조금 더 보기</button>
+          }}>{t('win.more')}</button>
         </div>
       </div>
     </div>
@@ -3243,11 +4154,23 @@ function ZoologicApp() {
   const handleDragPlace = useCallback(({ tokenId, row, col }) => {
     const tok = state.puzzle && state.puzzle.tokens.find(t => t.id === tokenId);
     if (!tok) return;
-    const group = state.puzzle.tokens.filter(t => t.animalId === tok.animalId && !state.placements[t.id]);
     let gender = state.marks[tokenId];
-    if (!gender && group.length === 2) {
-      const i = group.findIndex(t => t.id === tokenId);
-      gender = i === 0 ? 'male' : 'female';
+    if (!gender) {
+      // Priority 1: if partner already has a confirmed gender (board or hand),
+      // the gender of this token is fully determined as the opposite.
+      const partnerId = getPartnerToken(tokenId, state.puzzle.pairs);
+      const partnerMark = partnerId && state.marks[partnerId];
+      if (partnerMark) {
+        gender = partnerMark === 'male' ? 'female' : 'male';
+      } else {
+        // Priority 2: both tokens of pair are unmarked — assign by index in the
+        // unplaced group of this animal so each pair shows ♂/♀ pre-pickup.
+        const group = state.puzzle.tokens.filter(t => t.animalId === tok.animalId && !state.placements[t.id]);
+        if (group.length === 2) {
+          const i = group.findIndex(t => t.id === tokenId);
+          gender = i === 0 ? 'male' : 'female';
+        }
+      }
     }
     dispatch({ type: 'DRAG_START', tokenId, assignGender: gender });
     dispatch({ type: 'PLACE_TOKEN', tokenId, row, col });
@@ -3348,8 +4271,30 @@ function ZoologicApp() {
 // BOOT
 // =============================================================================
 
+// Read persisted language — falls back to KO (main language per design spec).
+// EDITMODE block exposes the key for Tweak panel + host-side persistence.
+const __TWEAKS_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "lang": "ko"
+}/*EDITMODE-END*/;
+
+function getInitialLang() {
+  try {
+    const stored = localStorage.getItem('zoologic.lang');
+    if (stored && ['ko','en','zh','ja'].includes(stored)) return stored;
+  } catch (e) {}
+  return __TWEAKS_DEFAULTS.lang || 'ko';
+}
+
+function Root() {
+  return (
+    <LangProvider initialLang={getInitialLang()}>
+      <ZoologicApp />
+    </LangProvider>
+  );
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<ZoologicApp />);
+root.render(<Root />);
 </script>
 </body>
 </html>
