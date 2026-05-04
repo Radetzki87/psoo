@@ -368,6 +368,14 @@ const STRINGS = {
     zh: '6×6 深度推理 (k=11)',
     ja: '6×6 深い推論 (k=11)',
   },
+  // V12.37: Daily Duel difficulty label (Hard6 config 기반이지만 별도 표시)
+  'diff.Daily.label': { ko: '오늘의 퍼즐', en: 'Daily Puzzle', zh: '每日谜题', ja: '今日のパズル' },
+  'diff.Daily.subtitle': {
+    ko: '매일 KST 자정에 갱신되는 도전 (6×6)',
+    en: 'New puzzle every day at midnight KST (6×6)',
+    zh: '每天 KST 0点更新挑战 (6×6)',
+    ja: '毎日 KST 0時に更新される挑戦 (6×6)',
+  },
   'diff.Medium7.label': { ko: '중급', en: 'Medium', zh: '中级', ja: '中級' },
   'diff.Medium7.subtitle': {
     ko: '7×7 부드러운 도입 (k=12)',
@@ -1471,6 +1479,38 @@ const STRINGS = {
     zh: '先看数量最小(或最大)的行/列 — 它们对放置的限制最强。',
     ja: 'まず数量が最も小さい(または大きい)列から見ると、配置の選択肢が少なく推理を始めやすい。',
   },
+
+  // ─── V12.37 Daily Duel — 매일 모두 같은 puzzle ───
+  'daily.label':       { ko: '오늘의 퍼즐',     en: 'Daily Puzzle',  zh: '每日谜题',      ja: '今日のパズル' },
+  'daily.short':       { ko: '오늘',             en: 'Daily',         zh: '每日',          ja: '今日' },
+  'daily.tooltip':     {
+    ko: '매일 KST 자정에 갱신 — 모든 사용자가 같은 퍼즐을 풀어요',
+    en: 'Resets every day at midnight KST — everyone solves the same puzzle',
+    zh: '每天 KST 0点更新 — 所有用户解同一道谜题',
+    ja: '毎日 KST 0時に更新 — 全員が同じパズルに挑戦',
+  },
+  'daily.banner.title':{
+    ko: '🌅 오늘의 퍼즐',
+    en: '🌅 Today\'s Puzzle',
+    zh: '🌅 今日谜题',
+    ja: '🌅 今日のパズル',
+  },
+  'daily.banner.desc': {
+    ko: '오늘 같은 퍼즐을 푼 친구와 시간을 비교해보세요',
+    en: 'Compare your time with friends who solved the same puzzle today',
+    zh: '与今天解同一谜题的朋友比较时间',
+    ja: '同じパズルを解いた友達とタイムを比べよう',
+  },
+  // 공유 카드 텍스트
+  'share.card.title':  { ko: '🦓 Zoograms 결과', en: '🦓 Zoograms Result', zh: '🦓 Zoograms 结果', ja: '🦓 Zoograms 結果' },
+  'share.card.daily':  { ko: '오늘의 퍼즐',     en: 'Daily Puzzle',  zh: '每日谜题',      ja: '今日のパズル' },
+  'share.card.solved': { ko: '풀이 완료',       en: 'Solved',        zh: '已解决',        ja: 'クリア' },
+  'share.card.cta':    {
+    ko: '👇 너도 도전해봐',
+    en: '👇 Try it yourself',
+    zh: '👇 你也来挑战',
+    ja: '👇 君も挑戦しよう',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -2390,6 +2430,10 @@ DIFFICULTY_CONFIGS = new Proxy({}, {
   get(target, prop) {
     const source = USE_DIFFICULTY_V6 ? DIFFICULTY_CONFIGS_V6 : DIFFICULTY_CONFIGS_LEGACY;
     if (prop in source) return source[prop];
+    // V12.37: Daily Duel — Hard6 config 사용 (deterministic seed로 fixed difficulty)
+    if (prop === 'Daily') {
+      return DIFFICULTY_CONFIGS_V6.Hard6 || source.Hard || source.MediumPlus;
+    }
     // Backward compat: legacy key 요청을 V6 tier로 매핑
     if (USE_DIFFICULTY_V6) {
       // V12.13: Legacy 5-tier → V6 8-tier mapping
@@ -2670,6 +2714,83 @@ function buildCustomConfig(customConfig) {
 // =============================================================================
 // SECTION 2 — ENGINE UTILS
 // =============================================================================
+
+// V12.37 — Seedable PRNG infrastructure for Daily Duel mode
+// ───────────────────────────────────────────────────────────────────────────
+// 모든 generation 코드는 Math.random()을 사용하므로, deterministic puzzle 생성은
+// Math.random()을 임시로 seeded PRNG로 교체하는 방식으로 구현. with-pattern으로
+// 안전한 enter/exit 보장 (예외 발생해도 항상 원복).
+//
+// PRNG: Mulberry32 — 빠르고 충분히 random한 32-bit seed → [0,1) generator.
+//   Knuth/SO 검증된 분포 품질, 1줄 구현.
+function _mulberry32(seed) {
+  return function() {
+    seed |= 0;
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// 32-bit hash from string (FNV-1a) — 같은 날짜는 같은 seed
+function _hashString(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+// Date → seed (year-month-day 기반)
+// 한국 표준시(KST, UTC+9) 기준으로 날짜 계산 — 글로벌 사용자에게 "오늘"의
+// 일관성 위해 한 timezone 고정 (Wordle은 사용자 local time이지만 우리는
+// 친구 그룹의 동시 도전이 핵심이므로 글로벌 단일 timezone 채택).
+function getDailyDuelDateKey(now) {
+  const d = now || new Date();
+  // KST = UTC+9
+  const kstMs = d.getTime() + (9 * 60 * 60 * 1000);
+  const kst = new Date(kstMs);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(kst.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getDailyDuelSeedNumber(dateKey) {
+  // "Zoograms-Daily-{date}" 문자열을 hash → 32-bit seed
+  return _hashString('Zoograms-Daily-' + dateKey);
+}
+
+// PRNG 활성화 상태
+let _activePrng = null;        // null이면 native Math.random 사용
+let _originalRandom = null;    // 복구용 native 참조
+
+function activateDailyPrng(seedNum) {
+  if (_originalRandom) return;  // 이미 활성 → no-op
+  _originalRandom = Math.random;
+  _activePrng = _mulberry32(seedNum);
+  Math.random = _activePrng;
+}
+
+function deactivateDailyPrng() {
+  if (_originalRandom) {
+    Math.random = _originalRandom;
+    _originalRandom = null;
+    _activePrng = null;
+  }
+}
+
+// 안전 wrapper — 예외/early-return에도 PRNG 항상 복구
+async function withDailyPrng(seedNum, asyncFn) {
+  activateDailyPrng(seedNum);
+  try {
+    return await asyncFn();
+  } finally {
+    deactivateDailyPrng();
+  }
+}
 
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function shuffle(arr) {
@@ -3554,6 +3675,13 @@ function parseSharedFromUrl() {
   if (typeof window === 'undefined' || !window.location) return null;
   try {
     const params = new URLSearchParams(window.location.search);
+    // V12.37: ?daily=YYYY-MM-DD — Daily Duel 링크 (deterministic seed)
+    const dailyDate = params.get('daily');
+    if (dailyDate && /^\d{4}-\d{2}-\d{2}$/.test(dailyDate)) {
+      const duelB64 = params.get('duel');
+      const duel = duelB64 ? decodeDuelData(duelB64) : null;
+      return { daily: dailyDate, duel };
+    }
     const seed = params.get('seed');
     if (!seed) return null;
     const duelB64 = params.get('duel');
@@ -3572,6 +3700,7 @@ function clearShareUrlParams() {
     const url = new URL(window.location.href);
     url.searchParams.delete('seed');
     url.searchParams.delete('duel');
+    url.searchParams.delete('daily');     // V12.37
     window.history.replaceState({}, '', url.toString());
   } catch (e) {
     // ignore
@@ -11309,6 +11438,44 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
 
   // Helper to render a single difficulty button with consistent styling
   const renderDiffBtn = (lv, opts = {}) => {
+    // V12.37: Daily Duel button — gold accent로 시각적 차별화
+    if (lv === '__daily__') {
+      const isActive = level === 'Daily';
+      return (
+        <button
+          key="Daily"
+          disabled={disabled}
+          onClick={() => onChangeLevel && onChangeLevel('Daily')}
+          className="font-body"
+          title={t('daily.tooltip')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+            padding: '7px 6px',
+            border: '1px solid',
+            borderColor: isActive ? '#b45309' : 'rgba(180,83,9,0.40)',
+            borderRadius: 4,
+            background: isActive
+              ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
+              : 'rgba(180,83,9,0.06)',
+            color: isActive ? '#fef3c7' : 'var(--accent-gold)',
+            cursor: disabled ? 'wait' : 'pointer',
+            fontSize: 12, fontWeight: 600,
+            lineHeight: 1, whiteSpace: 'nowrap',
+            minWidth: 0, overflow: 'hidden',
+            letterSpacing: '0.02em',
+            transition: 'all 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: isActive
+              ? 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.18)'
+              : 'none',
+            textShadow: isActive ? '0 1px 0 rgba(0,0,0,0.15)' : 'none',
+            ...(opts.style || {}),
+          }}
+        >
+          <span style={{ fontSize: 13, flexShrink: 0 }} aria-hidden>🌅</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('daily.short')}</span>
+        </button>
+      );
+    }
     if (lv === '__custom__') {
       const lvLabel = t('diff.Custom.label') || t('custom.title') || '커스텀';
       return (
@@ -11405,7 +11572,11 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
         {renderDiffBtn('Easy5',   { style: { gridColumn: 2, gridRow: 1 } })}
         {renderDiffBtn('Medium6', { style: { gridColumn: 3, gridRow: 1 } })}
         {renderDiffBtn('Hard6',   { style: { gridColumn: 4, gridRow: 1 } })}
-        {/* Row 2: EngineSelector(col 1) + (col 2 empty) + 중급7×7(col 3) + 상급7×7(col 4) */}
+        {/* Row 2: EngineSelector(col 1) + 중급7×7(col 3) + 상급7×7(col 4)
+            V12.38: 사용자 요청 — Daily Duel 버튼 숨김 (col 2 다시 비움)
+            <Daily 버튼 — 코드는 보존, UI만 숨김>
+            {renderDiffBtn('__daily__', { style: { gridColumn: 2, gridRow: 2 } })}
+        */}
         {onChangeEngine && (
           <div style={{
             gridColumn: 1,
@@ -11477,12 +11648,14 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
 
       {/* V12.30: 사용자 요청 — 메인 타이틀과 난이도 버튼 그룹 사이에
           하단 광고와 동일한 인라인 가로 배너 광고 + 가로 구분선 */}
+      {/* V12.30: 메인 타이틀 ↔ 난이도 그룹 사이 광고 + 가로 구분선
+          V12.40: 사용자 요청 — 상/하 패딩과 gap을 더 타이트하게 */}
       <div style={{
-        margin: '4px 0 0',
-        padding: '12px 0 4px',
+        margin: '2px 0 0',
+        padding: '6px 0 2px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 6,
       }}>
         {/* 가로 구분선 — 광고 위 */}
         <div style={{ height: 1, background: 'var(--border-soft)' }} />
@@ -11943,24 +12116,23 @@ function DifficultyTimerChip({ level, timerStartTime, timerAccumulatedMs,
       padding: '3px 6px 3px 10px', borderRadius: 999,
       border: '1px solid var(--border-soft)',
       background: 'var(--bg-card)',
-      lineHeight: 1,                      // V12.25: 컨테이너 line-height 통일
+      lineHeight: 1,
     }}>
-      {/* Difficulty label */}
-      <span className="font-display" style={{
+      {/* V12.40: 사용자 요청 — 다른 요소(ProgressChip)와 동일하게 font-mono 사용
+          difficulty label + timer 모두 font-mono로 통일하여 시각적 일관성 + 등폭 효과 */}
+      <span className="font-mono" style={{
         fontSize: 12, fontWeight: 500,
-        color: 'var(--ink-primary)', letterSpacing: '-0.01em',
-        lineHeight: 1, display: 'inline-block',
+        fontVariantNumeric: 'tabular-nums',
+        color: 'var(--ink-primary)', letterSpacing: '0.02em',
+        lineHeight: 1, display: 'inline-flex', alignItems: 'center',
       }}>{levelLabel}</span>
-      {/* Live timer — V12.25: 사용자 요청 — 다른 텍스트와 같은 폰트 사용
-          + tabular-nums로 등폭 숫자 효과 유지 (digit width 일정 → 0.0 → 99.9 흔들리지 않음)
-          + lineHeight 1 + display inline-block + alignItems center로 수직 정렬 보정 */}
-      <span className="font-display" style={{
+      <span className="font-mono" style={{
         fontSize: 12, fontWeight: 500,
         fontVariantNumeric: 'tabular-nums',
         color: isFrozen ? 'var(--accent-gold)' : 'var(--ink-secondary)',
         minWidth: 38, textAlign: 'right',
-        lineHeight: 1, display: 'inline-block',
-        letterSpacing: '-0.01em',
+        lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end',
+        letterSpacing: '0.02em',
       }}>{formatTimerMs(elapsedMs)}</span>
       {/* Pause button — disabled after win (timer frozen) */}
       {!isFrozen && (
@@ -12546,7 +12718,7 @@ function CreatureIcon({ size = 12, style }) {
   );
 }
 
-function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paired, pairedSize }) {
+function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paired, pairedSize, mobile7x7 }) {
   const t = useT();
   const isTotal = hint.type === 'total';
   const kind = isTotal ? null : (hint.type === 'H1' ? '♂' : '♀');
@@ -12592,7 +12764,7 @@ function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paire
         cursor: 'help',
       }}>
         <span className="font-mono" style={{
-          fontSize: iconOnly ? 13 : (compact ? 14 : 15),
+          fontSize: (iconOnly ? 13 : (compact ? 14 : 15)) - (mobile7x7 ? 0.5 : 0),
           fontWeight: styleMap.weight, lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
           display: 'block',
@@ -12605,7 +12777,7 @@ function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paire
         ) : kind && (
           <span style={{
             fontFamily: "'Fraunces', serif",
-            fontSize: iconOnly ? 11 : (compact ? 12 : 13),
+            fontSize: (iconOnly ? 11 : (compact ? 12 : 13)) - (mobile7x7 ? 0.5 : 0),
             fontWeight: styleMap.weight,
             lineHeight: 1,
             opacity: 0.9,
@@ -13088,9 +13260,11 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
   const { lang } = useLang();
   // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
   const dim = Math.ceil(Math.sqrt(capacity));
-  // Mini-cell size: fit within parent cell with padding
-  const padding = Math.max(6, cellSize * 0.10);
-  const gap = 2;
+  // V12.40: 사용자 요청 — 2×2 후보 그리드를 더 크게 (padding/gap 축소)
+  // 이전: padding = max(6, cellSize * 0.10), gap = 2
+  // 현재: padding = max(4, cellSize * 0.07), gap = 1 → mini cell이 더 넓어짐
+  const padding = Math.max(4, cellSize * 0.07);
+  const gap = 1;
   const innerSize = cellSize - padding * 2;
   const miniCellSize = (innerSize - gap * (dim - 1)) / dim;
   // Build cells array of length `capacity`, filled with {animalId, gender} or null
@@ -13142,7 +13316,9 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
             }}>{animal.emoji}</div>
             <div className="font-display" style={{
               position: 'absolute', bottom: 0, right: 1,
-              fontSize: Math.max(8, miniCellSize * 0.24),
+              // V12.41: 사용자 요청 — ♂/♀ 기호 15% 키움
+              //   이전: max(8, miniCellSize * 0.24) → max(9.2, miniCellSize * 0.276)
+              fontSize: Math.max(9.2, miniCellSize * 0.276),
               color: genderColor, fontWeight: 600, lineHeight: 1,
               textShadow: '0 0 2px rgba(255,255,255,0.9)',
             }}>{genderSym}</div>
@@ -13155,16 +13331,11 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
 
 function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
   // Unified overlay: renders over either empty Q-cell or Q-cell with placed tile.
-  // Opacity values (higher = more opaque/visible):
-  //   - empty Q-cell: candidates 0.8 (prominent, full note-card feel), "?" 0.3 (visible but secondary)
-  //   - tile-occupied Q-cell: candidates 0.3 (faint, so real tile remains primary),
-  //                           "?" 0.2 (subtle watermark), actual tile image stays at full opacity.
-  // Layer order (low → high):
-  //   1. (parent background or placed tile, outside this component)
-  //   2. candidate mini-grid (zIndex 4)
-  //   3. big "?" symbol (zIndex 5, topmost)
-  const candidatesOpacity = hasPlacedTile ? 0.3 : 0.8;
-  const questionOpacity = hasPlacedTile ? 0.2 : 0.3;
+  // V12.41: 사용자 요청 — opacity 추가 상승 (V12.40 대비 +0.06~0.08)
+  //   empty Q-cell:        candidates 0.92 → 1.00 (full), "?" 0.40 → 0.48
+  //   tile-occupied Q-cell: candidates 0.45 → 0.55,        "?" 0.30 → 0.38
+  const candidatesOpacity = hasPlacedTile ? 0.55 : 1.00;
+  const questionOpacity = hasPlacedTile ? 0.38 : 0.48;
   return (
     <>
       <QCandidateGrid candidates={candidates || []} capacity={capacity || 4} cellSize={cellSize} opacity={candidatesOpacity} />
@@ -13765,7 +13936,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
                 {ch.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'row', gap: 2, justifyContent: 'center', alignItems: 'center', maxWidth: '100%' }}>
                     {ch.map(h => (
-                      <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={pairedCountW} />
+                      <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={pairedCountW} mobile7x7={isMobile && n === 7} />
                     ))}
                   </div>
                 )}
@@ -13802,7 +13973,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
               {rh.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'row', gap: 2, alignItems: 'center', justifyContent: 'flex-end' }}>
                   {rh.map(h => (
-                    <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={rowSlotH} />
+                    <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={rowSlotH} mobile7x7={isMobile && n === 7} />
                   ))}
                 </div>
               )}
@@ -14512,6 +14683,81 @@ function RulesModal({ show, onClose }) {
 // V12.16: AnimalPicker — 16 animals × 2 genders = 32 selectable avatars.
 // Gender toggle (♂/♀) sits above the 8×2 animal grid. Active gender tints
 // each cell subtly (cool/warm) and shows a small ♂/♀ badge on the active animal.
+// V12.38: AnimalPickerCell — picker grid의 단일 cell (이미지+gender 뱃지)
+//   selector animalIdx/gender 변경 시 image error state reset
+function AnimalPickerCell({ animal, idx, active, isMale, tintAccent, tintBg, disabled, onSelect }) {
+  const imgUrl = getAnimalImageUrl(animal.id, isMale ? 'male' : 'female');
+  const [imgError, setImgError] = React.useState(false);
+  React.useEffect(() => { setImgError(false); }, [animal.id, isMale]);
+  return (
+    <button
+      onClick={() => !disabled && onSelect(idx)}
+      disabled={disabled}
+      type="button"
+      aria-pressed={active}
+      title={`${animal.name} ${isMale ? '♂' : '♀'}`}
+      style={{
+        position: 'relative',
+        aspectRatio: '1 / 1',
+        minHeight: 36,
+        border: '1.5px solid',
+        borderColor: active ? tintAccent : 'var(--border-soft)',
+        borderRadius: 6,
+        background: active
+          ? (isMale ? 'rgba(56, 132, 200, 0.14)' : 'rgba(216, 110, 156, 0.14)')
+          : tintBg,
+        cursor: disabled ? 'wait' : 'pointer',
+        fontSize: 18,
+        lineHeight: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        overflow: 'hidden',
+        transition: 'background 140ms, border-color 140ms, transform 80ms',
+        transform: active ? 'scale(1.05)' : 'scale(1)',
+        boxShadow: active
+          ? `0 2px 8px ${isMale ? 'rgba(56, 132, 200, 0.30)' : 'rgba(216, 110, 156, 0.30)'}`
+          : 'none',
+      }}
+    >
+      {imgError ? (
+        <span aria-hidden>{animal.emoji}</span>
+      ) : (
+        <img
+          src={imgUrl}
+          alt=""
+          style={{
+            width: '88%',
+            height: '88%',
+            objectFit: 'contain',
+          }}
+          onError={() => setImgError(true)}
+          draggable={false}
+        />
+      )}
+      {active && (
+        <span style={{
+          position: 'absolute',
+          bottom: -2,
+          right: -2,
+          width: 14, height: 14,
+          borderRadius: '50%',
+          background: tintAccent,
+          color: '#fff',
+          fontSize: 9,
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1.5px solid var(--bg-paper)',
+          lineHeight: 1,
+        }} aria-hidden>{isMale ? '♂' : '♀'}</span>
+      )}
+    </button>
+  );
+}
+
 function AnimalPicker({ selectedIdx, gender, onSelect, onGenderChange, disabled }) {
   const isMale = gender !== 'female';   // default male
   const tintBg = isMale ? 'rgba(56, 132, 200, 0.06)' : 'rgba(216, 110, 156, 0.06)';
@@ -14567,7 +14813,8 @@ function AnimalPicker({ selectedIdx, gender, onSelect, onGenderChange, disabled 
         })}
       </div>
 
-      {/* 16-animal grid (gender applied to all cells) */}
+      {/* 16-animal grid (gender applied to all cells)
+          V12.38: emoji 대신 실제 이미지 사용 (사용자 요청), 로드 실패 시 emoji fallback */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
@@ -14576,57 +14823,17 @@ function AnimalPicker({ selectedIdx, gender, onSelect, onGenderChange, disabled 
         {ANIMALS.map((animal, idx) => {
           const active = idx === selectedIdx;
           return (
-            <button
+            <AnimalPickerCell
               key={animal.id}
-              onClick={() => !disabled && onSelect(idx)}
+              animal={animal}
+              idx={idx}
+              active={active}
+              isMale={isMale}
+              tintAccent={tintAccent}
+              tintBg={tintBg}
               disabled={disabled}
-              type="button"
-              aria-pressed={active}
-              title={`${animal.name} ${isMale ? '♂' : '♀'}`}
-              style={{
-                position: 'relative',
-                aspectRatio: '1 / 1',
-                minHeight: 36,
-                border: '1.5px solid',
-                borderColor: active ? tintAccent : 'var(--border-soft)',
-                borderRadius: 6,
-                background: active
-                  ? (isMale ? 'rgba(56, 132, 200, 0.14)' : 'rgba(216, 110, 156, 0.14)')
-                  : tintBg,
-                cursor: disabled ? 'wait' : 'pointer',
-                fontSize: 18,
-                lineHeight: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                transition: 'background 140ms, border-color 140ms, transform 80ms',
-                transform: active ? 'scale(1.05)' : 'scale(1)',
-                boxShadow: active
-                  ? `0 2px 8px ${isMale ? 'rgba(56, 132, 200, 0.30)' : 'rgba(216, 110, 156, 0.30)'}`
-                  : 'none',
-              }}
-            >
-              <span aria-hidden>{animal.emoji}</span>
-              {active && (
-                <span style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 14, height: 14,
-                  borderRadius: '50%',
-                  background: tintAccent,
-                  color: '#fff',
-                  fontSize: 9,
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1.5px solid var(--bg-paper)',
-                  lineHeight: 1,
-                }} aria-hidden>{isMale ? '♂' : '♀'}</span>
-              )}
-            </button>
+              onSelect={onSelect}
+            />
           );
         })}
       </div>
@@ -14635,13 +14842,18 @@ function AnimalPicker({ selectedIdx, gender, onSelect, onGenderChange, disabled 
 }
 
 // V12.16: AvatarBadge — shared component to render a single avatar (animal + gender).
-// Used in leaderboard table and elsewhere. Tries getAnimalImageUrl first, falls
-// back to emoji + gender symbol if image isn't available or fails to load.
+// V12.38: 실제 이미지 우선 표시, 로드 실패 시 emoji fallback (사용자 요청).
+//   imgsrc/{(animalId-1)*2 + (♂?1:2)}.webp 경로의 32개 이미지 사용.
+//   imgError state로 onError 시 emoji로 자연 fallback.
 function AvatarBadge({ animalIdx, gender, size = 22 }) {
   const safeIdx = Math.max(0, Math.min(15, animalIdx | 0));
   const animal = ANIMALS[safeIdx] || ANIMALS[0];
   const isMale = gender === 'male' || gender === 0;
   const tintAccent = isMale ? '#3884c8' : '#d86e9c';
+  const imgUrl = getAnimalImageUrl(animal.id, isMale ? 'male' : 'female');
+  const [imgError, setImgError] = React.useState(false);
+  // animalIdx/gender 바뀌면 image fallback 상태 reset
+  React.useEffect(() => { setImgError(false); }, [animalIdx, gender]);
   return (
     <span style={{
       position: 'relative',
@@ -14652,7 +14864,25 @@ function AvatarBadge({ animalIdx, gender, size = 22 }) {
       height: size,
       flexShrink: 0,
     }} aria-label={`${animal.name} ${isMale ? '♂' : '♀'}`}>
-      <span style={{ fontSize: size * 0.85, lineHeight: 1 }} aria-hidden>{animal.emoji}</span>
+      {imgError ? (
+        <span style={{ fontSize: size * 0.85, lineHeight: 1 }} aria-hidden>{animal.emoji}</span>
+      ) : (
+        <img
+          src={imgUrl}
+          alt=""
+          width={size}
+          height={size}
+          style={{
+            width: size,
+            height: size,
+            objectFit: 'cover',
+            borderRadius: '50%',
+            background: 'var(--bg-subtle)',
+          }}
+          onError={() => setImgError(true)}
+          draggable={false}
+        />
+      )}
       <span style={{
         position: 'absolute',
         bottom: -2,
@@ -14918,21 +15148,81 @@ function PuzzleShareModal({
     setMergeInput('');
   };
 
-  // Compose share text
+  // Compose share text — V12.37 SOTA emoji-art card
+  // Wordle 모델 — 시각적으로 즉각 식별되는 카드 형태로 사회적 공유 효과 극대화
   const buildText = () => {
     const time = solveSeconds > 0
       ? `${Math.floor(solveSeconds / 60)}:${(solveSeconds % 60).toString().padStart(2, '0')}`
       : '—';
     const glyph = cfg?.glyph || '';
     const label = t(`diff.${level}.label`) || level;
-    if (mode === 'duel') {
-      return t('share.duel.shareText', { glyph, label, time, hints: myEntry.h });
-    } else {
-      return t('share.simple.shareText', {
-        glyph, label,
-        time: includeMetricsInSimple ? time : '—',
-        hints: includeMetricsInSimple && solveSeconds > 0 ? myEntry.h : null,
+    const isDaily = !!(puzzle && puzzle.isDaily);
+    const dailyDate = puzzle && puzzle.dailyDate ? puzzle.dailyDate : '';
+
+    // ── 시각적 puzzle preview (mini grid) ──
+    // n×n 격자를 emoji 칸으로 표현.
+    //   고정 타일 = 해당 동물의 emoji (성별 구별 없음)
+    //   금지 칸 = ⬛
+    //   빈 칸 = ⬜
+    // V12.39: 사용자 요청 — 고정 타일을 실제 동물 emoji로 표시 (이전 🟫 통일)
+    const buildMiniGrid = () => {
+      if (!puzzle || !puzzle.n) return '';
+      const n = puzzle.n;
+      // animalId → emoji lookup map
+      const fixedEmojiByCell = new Map();
+      (puzzle.fixedCells || []).forEach(c => {
+        const a = animalById(c.animalId);
+        if (a) fixedEmojiByCell.set(`${c.row},${c.col}`, a.emoji);
       });
+      const forbiddenSet = new Set(
+        (puzzle.forbiddenCells || []).map(c => `${c[0]},${c[1]}`)
+      );
+      const lines = [];
+      for (let r = 0; r < n; r++) {
+        let row = '';
+        for (let c = 0; c < n; c++) {
+          const k = `${r},${c}`;
+          const fixedEmoji = fixedEmojiByCell.get(k);
+          if (fixedEmoji) row += fixedEmoji;
+          else if (forbiddenSet.has(k)) row += '⬛';
+          else row += '⬜';
+        }
+        lines.push(row);
+      }
+      return lines.join('\n');
+    };
+
+    // ── Title 라인 ──
+    const title = isDaily
+      ? `🌅 ${t('share.card.daily')} ${dailyDate}`
+      : `${t('share.card.title')} · ${glyph} ${label}`;
+
+    // ── Stats 라인 ──
+    const hintEmoji = (myEntry.h === 0) ? '✨' : (myEntry.h === 1 ? '💡' : '💡×' + myEntry.h);
+    const stats = `⏱ ${time}  ${myEntry.h === 0 ? '✨ no hints' : hintEmoji}`;
+
+    // ── 카드 조립 ──
+    if (mode === 'duel') {
+      // Duel mode: 그리드 + 도전 메시지
+      return [
+        title,
+        '',
+        buildMiniGrid(),
+        '',
+        stats,
+        '',
+        t('share.card.cta'),
+      ].filter(Boolean).join('\n');
+    } else {
+      // Simple mode: 메트릭 옵션 적용
+      const lines = [title, ''];
+      if (includeMetricsInSimple) {
+        lines.push(buildMiniGrid(), '', stats, '');
+      } else {
+        lines.push(buildMiniGrid(), '');
+      }
+      lines.push(t('share.card.cta'));
+      return lines.join('\n');
     }
   };
 
@@ -15511,28 +15801,87 @@ function WinDialog({ show, level, uniqueness, solutionCount, solveTimeMs, playLo
 
   // V12.14: share handler — uses Web Share API if available, falls back to clipboard
   const handleShare = async () => {
+    // V12.37: emoji-art share card — 시각적 임팩트로 사회적 공유 효과 극대화
     const time = typeof solveTimeMs === 'number' && solveTimeMs > 0
       ? formatTimerMs(solveTimeMs)
       : '—';
-    const text = wasRevealed
-      ? t('win.share.text.revealed', { glyph: cfg?.glyph, label: t(`diff.${level}.label`) })
-      : t('win.share.text.solved', {
-          glyph: cfg?.glyph,
-          label: t(`diff.${level}.label`),
-          time,
-          hints: hintsUsed > 0 ? hintsUsed : null,
-        });
+    const glyph = cfg?.glyph || '';
+    const label = t(`diff.${level}.label`) || level;
+    const isDaily = !!(puzzle && puzzle.isDaily);
+    const dailyDate = puzzle && puzzle.dailyDate ? puzzle.dailyDate : '';
+
+    // Mini grid emoji art — 같은 puzzle임을 시각적으로 식별
+    // V12.39: 사용자 요청 — 고정 타일을 실제 동물 emoji로 표시 (성별 구별 없음)
+    const buildMiniGrid = () => {
+      if (!puzzle || !puzzle.n) return '';
+      const n = puzzle.n;
+      const fixedEmojiByCell = new Map();
+      (puzzle.fixedCells || []).forEach(c => {
+        const a = animalById(c.animalId);
+        if (a) fixedEmojiByCell.set(`${c.row},${c.col}`, a.emoji);
+      });
+      const forbiddenSet = new Set((puzzle.forbiddenCells || []).map(c => `${c[0]},${c[1]}`));
+      const lines = [];
+      for (let r = 0; r < n; r++) {
+        let row = '';
+        for (let c = 0; c < n; c++) {
+          const k = `${r},${c}`;
+          const fixedEmoji = fixedEmojiByCell.get(k);
+          if (fixedEmoji) row += fixedEmoji;
+          else if (forbiddenSet.has(k)) row += '⬛';
+          else row += '⬜';
+        }
+        lines.push(row);
+      }
+      return lines.join('\n');
+    };
+
+    // Title + grid + stats + URL
+    const title = isDaily
+      ? `🌅 ${t('share.card.daily')} ${dailyDate}`
+      : `${t('share.card.title')} · ${glyph} ${label}`;
+    const stats = wasRevealed
+      ? `👁 ${t('share.card.solved')} (revealed)`
+      : `⏱ ${time}  ${hintsUsed === 0 ? '✨ no hints' : '💡×' + hintsUsed}`;
+
+    // Build URL — Daily는 ?daily=YYYY-MM-DD, 일반은 ?seed=ZL2...
+    let url = '';
     try {
+      if (isDaily) {
+        url = window.location.origin + window.location.pathname + '?daily=' + dailyDate;
+      } else {
+        const seed = puzzle.seed || encodePuzzleSeed(puzzle);
+        if (seed) url = buildShareUrl(seed, null);
+      }
+    } catch (e) { /* fallback */ }
+
+    const cardText = [
+      title,
+      '',
+      buildMiniGrid(),
+      '',
+      stats,
+      '',
+      t('share.card.cta'),
+    ].filter(s => s !== undefined && s !== null).join('\n');
+
+    const fullPayload = url ? `${cardText}\n${url}` : cardText;
+
+    try {
+      // Web Share API — mobile native share sheet (카톡/iMessage 등 직접 띄움)
       if (navigator.share) {
-        await navigator.share({ text });
-      } else if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
+        await navigator.share({ text: fullPayload });
+        return;
+      }
+      // Desktop fallback — clipboard
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(fullPayload);
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 2000);
       } else {
-        // Fallback for very old browsers
+        // Very old browser fallback
         const ta = document.createElement('textarea');
-        ta.value = text;
+        ta.value = fullPayload;
         ta.style.position = 'fixed'; ta.style.opacity = '0';
         document.body.appendChild(ta);
         ta.select(); document.execCommand('copy');
@@ -15541,7 +15890,7 @@ function WinDialog({ show, level, uniqueness, solutionCount, solveTimeMs, playLo
         setTimeout(() => setShareCopied(false), 2000);
       }
     } catch (e) {
-      // User canceled or share failed — silent
+      // AbortError(사용자 취소) 등은 silent
     }
   };
 
@@ -18868,7 +19217,13 @@ function ZoogramsApp() {
     // dispatch 직후 즉시 첫 progress emit → React commit 후 LoadingOverlay가
     // 'classic-attempt' phase("재시도 중")로 표시 → 5초 freeze 방지.
     // generate 함수 자체가 동기적으로 깊이 들어가기 전에 UI에 "진행 중" 신호 전달.
-    const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
+
+    // V12.37: Daily Duel mode — level이 'Daily'면 KST 오늘 날짜 기반 deterministic seed로
+    //   고정 난이도 (Hard6) 퍼즐 생성. 같은 날 모든 사용자가 같은 puzzle.
+    //   생성 후 puzzle에 dailyDate 태그 추가 → WinDialog에서 Daily임을 인지.
+    const isDaily = level === 'Daily';
+    const effectiveLevel = isDaily ? 'Hard6' : level;  // Daily는 Hard6 난이도 고정
+    const cfg = DIFFICULTY_CONFIGS[effectiveLevel] || DIFFICULTY_CONFIGS.Sprout;
     dispatch({
       type: 'GENERATION_PROGRESS',
       progress: {
@@ -18881,6 +19236,15 @@ function ZoogramsApp() {
       },
     });
     await new Promise(r => setTimeout(r, 60));
+
+    // Daily mode면 PRNG 활성화 — 모든 generation 내부의 Math.random()이
+    // deterministic 함수로 교체됨. finally에서 반드시 복구.
+    if (isDaily) {
+      const dateKey = getDailyDuelDateKey();
+      const seedNum = getDailyDuelSeedNumber(dateKey);
+      activateDailyPrng(seedNum);
+    }
+
     try {
       // ═══ V6 SOTA — Per-tier acceptance targets ═══════════════════════
       // 각 tier (Sprout4/Easy5/Medium6/MediumPlus6/Hard6/MediumPlus7/Hard7)는
@@ -18954,25 +19318,43 @@ function ZoogramsApp() {
           dispatch({ type: 'GENERATION_PROGRESS', progress });
         }
       };
-      const p = await generatePuzzleAsyncV2(level, {
+      const p = await generatePuzzleAsyncV2(effectiveLevel, {
         engine: state.engine,
         fallbackOnFailure: 'classic',
         validateWithSolver: state.engine === 'classic' || state.engine === 'classic-explore',
-        customConfig: level === 'Custom' ? state.customConfig : undefined,
+        customConfig: effectiveLevel === 'Custom' ? state.customConfig : undefined,
         v9Target,
         v9MaxAttempts,
       }, _throttledDispatch);
-      if (p) dispatch({ type: 'PUZZLE_READY', puzzle: p, level });
-      else dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+      if (p) {
+        // V12.37: Daily mode — puzzle에 daily 태그 추가
+        if (isDaily) {
+          p.isDaily = true;
+          p.dailyDate = getDailyDuelDateKey();
+        }
+        dispatch({ type: 'PUZZLE_READY', puzzle: p, level });
+      }
+      else dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(effectiveLevel), level });
     } catch (e) {
       console.error('generate failed', e);
-      dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+      dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(effectiveLevel), level });
+    } finally {
+      // V12.37: Daily PRNG 항상 복구 — 다음 generation은 native Math.random 사용
+      if (isDaily) deactivateDailyPrng();
     }
   }, [state.engine, state.customConfig, state.useV9Retry]);
 
   useEffect(() => {
     // V12.15: Check URL for shared seed/duel before generating default puzzle
+    // V12.37: ?daily=YYYY-MM-DD 도 처리 — Daily Duel 링크
     const shared = parseSharedFromUrl();
+    if (shared && shared.daily) {
+      // Daily 링크 — Daily 모드로 generation 시작
+      // (현재 KST 날짜와 동일하면 정확히 같은 puzzle, 다르면 그래도 그날의 seed로 생성)
+      clearShareUrlParams();
+      generate('Daily');
+      return;
+    }
     if (shared && shared.seed) {
       const decoded = decodePuzzleSeed(shared.seed);
       if (decoded) {
@@ -19349,7 +19731,10 @@ function ZoogramsApp() {
               <ResponsiveAdSlot slot="footer-desktop" />
               <ResponsiveAdSlot slot="footer-mobile" />
             </div>
+            {/* V12.40: 사용자 요청 — Legend (규칙 읽기) 컴포넌트 숨김
+                버튼 + 펼쳐졌을 때 나오는 모든 요소 안 보임
             <Legend collapsed={state.legendCollapsed} onToggle={() => dispatch({ type: 'TOGGLE_LEGEND' })} />
+            */}
             {/* V12.28: 사용자 요청 — 하단 "규약 읽는법" 텍스트 숨김
             <div style={{ textAlign: 'center', padding: '16px 40px 6px', fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.12em', textTransform: 'uppercase' }} className="font-body">
               adjacency · line rules · count hints · graceful N2
