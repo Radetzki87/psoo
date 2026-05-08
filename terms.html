@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="index,follow" />
+<meta name="description" content="Zoograms Terms of Service — usage terms for the game. / 7 langs." />
+<title>Terms of Service — Zoograms</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<style>
+  :root {
+    --bg-paper: #FAF7F0;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F5F2EA;
+    --bg-fixed: #EEE9DC;
+    --ink-primary: #1C1917;
+    --ink-secondary: #44403C;
+    --ink-tertiary: #78716C;
+    --border-soft: #E7E5E4;
+    --border-medium: #D6D3D1;
+    --accent-gold: #B45309;
+    --accent-gold-soft: #D97706;
+    --rule-line: #D6D3D1;
+    --display-font: 'Fraunces', 'Times New Roman', serif;
+    --latin-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --ko-font: 'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+    --zh-font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui, sans-serif;
+    --ja-font: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
+  body {
+    font-family: var(--ko-font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* Per-language body font — auto-applied based on <html lang=...> */
+  html[lang="ko"] body { font-family: var(--ko-font); }
+  html[lang="zh"] body, html[lang="zh-CN"] body { font-family: var(--zh-font); }
+  html[lang="ja"] body { font-family: var(--ja-font); }
+  html[lang="en"] body,
+  html[lang="es"] body,
+  html[lang="pt-BR"] body, html[lang="pt"] body,
+  html[lang="fr"] body,
+  html[lang="de"] body,
+  html[lang="ru"] body {
+    font-family: var(--latin-font);
+  }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+    position: relative;
+  }
+
+  .page::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image:
+      radial-gradient(circle at 25% 15%, rgba(180,83,9,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(28,25,23,0.025) 0%, transparent 40%);
+    z-index: -1;
+  }
+
+  /* Navigation */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-soft);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    text-decoration: none;
+    color: var(--ink-primary);
+  }
+  .brand-name {
+    font-family: var(--display-font);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Lang toggle — 7 buttons, scrollable on narrow screens */
+  .lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    overflow: auto;
+    background: var(--bg-card);
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .lang-toggle::-webkit-scrollbar { display: none; }
+  .lang-toggle button {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink-secondary);
+    transition: background 120ms, color 120ms;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .lang-toggle button:hover { background: var(--bg-subtle); }
+  .lang-toggle button[aria-pressed="true"] {
+    background: var(--bg-fixed);
+    color: var(--ink-primary);
+    font-weight: 600;
+  }
+  .lang-toggle button + button { border-left: 1px solid var(--border-medium); }
+
+  /* Article visibility — only one shows at a time */
+  .ko-only, .en-only, .es-only, .pt-only, .fr-only, .de-only, .ru-only,
+  .zh-only, .ja-only { display: none; }
+  html[data-lang="ko"] .ko-only,
+  html[data-lang="en"] .en-only,
+  html[data-lang="es"] .es-only,
+  html[data-lang="pt"] .pt-only,
+  html[data-lang="fr"] .fr-only,
+  html[data-lang="de"] .de-only,
+  html[data-lang="ru"] .ru-only,
+  html[data-lang="zh"] .zh-only,
+  html[data-lang="ja"] .ja-only {
+    display: block;
+  }
+
+  /* Document tokens */
+  .doc-subtitle {
+    font-family: var(--latin-font);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    margin: 0 0 12px 0;
+  }
+  h1 {
+    font-family: var(--display-font);
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--ink-tertiary);
+    margin: 0 0 32px 0;
+  }
+  .doc-meta strong { color: var(--ink-secondary); font-weight: 600; }
+
+  .promise {
+    background: linear-gradient(135deg, rgba(180,83,9,0.04) 0%, rgba(180,83,9,0.07) 100%);
+    border-left: 3px solid var(--accent-gold);
+    border-radius: 0 6px 6px 0;
+    padding: 18px 22px;
+    margin: 32px 0 36px 0;
+  }
+  .promise-label {
+    font-family: var(--latin-font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin: 0 0 6px 0;
+  }
+  .promise p:last-child { margin: 0; font-weight: 500; color: var(--ink-primary); }
+
+  h2 {
+    font-family: var(--display-font);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 44px 0 16px 0;
+    color: var(--ink-primary);
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    display: inline-block;
+    width: 36px;
+    color: var(--accent-gold);
+    font-weight: 500;
+  }
+  p { margin: 0 0 14px 0; color: var(--ink-secondary); }
+  ul { margin: 0 0 16px 0; padding-left: 22px; color: var(--ink-secondary); }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink-primary); font-weight: 600; }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.88em;
+    background: var(--bg-subtle);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink-primary);
+  }
+
+  a {
+    color: var(--accent-gold);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover { color: var(--accent-gold-soft); }
+
+  .table-wrap {
+    margin: 16px 0 22px 0;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    overflow: auto;
+    background: var(--bg-card);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--bg-subtle);
+    color: var(--ink-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--ink-secondary);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  hr.rule {
+    border: none;
+    border-top: 1px solid var(--rule-line);
+    margin: 36px 0 22px 0;
+  }
+
+  .footer-nav {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--ink-tertiary);
+  }
+  .footer-nav a {
+    color: var(--ink-secondary);
+    text-decoration: none;
+  }
+  .footer-nav a:hover { color: var(--accent-gold); }
+
+  ::selection { background: rgba(180, 83, 9, 0.18); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 30px; }
+    h2 { font-size: 19px; }
+    .page { padding: 40px 18px 64px; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Navigation -->
+    <div class="nav">
+      <a href="/" class="brand" aria-label="Zoograms — Home">
+        <span class="brand-name">Zoograms</span>
+      </a>
+      <div class="lang-toggle" role="tablist" aria-label="Language">
+        <button id="btn-ko" type="button" aria-pressed="true"  onclick="setLang('ko')">한국어</button>
+        <button id="btn-en" type="button" aria-pressed="false" onclick="setLang('en')">English</button>
+        <button id="btn-es" type="button" aria-pressed="false" onclick="setLang('es')">Español</button>
+        <button id="btn-pt" type="button" aria-pressed="false" onclick="setLang('pt')">Português</button>
+        <button id="btn-fr" type="button" aria-pressed="false" onclick="setLang('fr')">Français</button>
+        <button id="btn-de" type="button" aria-pressed="false" onclick="setLang('de')">Deutsch</button>
+        <button id="btn-ru" type="button" aria-pressed="false" onclick="setLang('ru')">Русский</button>
+        <button id="btn-zh" type="button" aria-pressed="false" onclick="setLang('zh')">简体中文</button>
+        <button id="btn-ja" type="button" aria-pressed="false" onclick="setLang('ja')">日本語</button>
+      </div>
+    </div>
+
+    <article class="ko-only">
+      <p class="doc-subtitle">Zoograms · Terms</p>
+      <h1>이용약관</h1>
+      <p class="doc-meta">시행일자: <strong>2026년 5월 8일</strong> · 버전 <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">한 줄 약속</p>
+        <p>Zoograms는 사용료 없이, 회원가입 없이, 광고 시청을 통해 운영되는 무료 퍼즐 게임입니다.</p>
+      </div>
+
+      <p>이 약관은 Zoograms("이 게임")의 이용 조건을 기술합니다. 이 게임을 이용하면 본 약관에 동의하는 것으로 간주됩니다. 동의하지 않으시면 게임 사용을 중단하시기 바랍니다.</p>
+
+      <h2><span class="num">1.</span>적용 범위</h2>
+      <p>본 약관은 zoograms.com 도메인에서 제공되는 Zoograms 게임 및 부속 페이지(개인정보 처리방침 페이지 등)에 적용됩니다.</p>
+
+      <h2><span class="num">2.</span>서비스의 성격</h2>
+      <p>Zoograms는 정적 웹 페이지 형태로 제공되는 1인 운영 인디 퍼즐 게임입니다. 게임은 사용자의 브라우저에서 클라이언트 사이드로 작동하며, 서버 사이드 데이터 처리가 없습니다(Google AdSense 등 외부 서비스의 별도 처리 제외 — 자세한 내용은 개인정보 처리방침 §4 참조).</p>
+
+      <h2><span class="num">3.</span>허용되는 사용</h2>
+      <p>다음 행위는 권장되거나 허용됩니다:</p>
+      <ul>
+        <li>개인적·비상업적 목적의 게임 플레이</li>
+        <li>친구·가족과의 퍼즐 결과 또는 시드 공유</li>
+        <li>게임에 대한 리뷰, 블로그 글, 동영상 작성 (공정 이용 범위 내)</li>
+      </ul>
+      <p>다음 행위는 금지됩니다:</p>
+      <ul>
+        <li>자동화된 봇·스크립트로 게임 인터페이스를 대량 호출하는 행위</li>
+        <li>게임의 코드를 그대로 복제하여 별도 서비스로 제공하는 행위</li>
+        <li>게임 내에 임의의 광고나 추적 코드를 삽입하여 재배포하는 행위</li>
+        <li>리더보드 닉네임에 타인을 사칭하거나 모욕하는 내용을 입력하는 행위</li>
+      </ul>
+
+      <h2><span class="num">4.</span>지식재산권</h2>
+      <p>Zoograms의 코드, 디자인, 퍼즐 생성 알고리즘, V11 메트릭 시스템 등은 운영자의 지식재산입니다. 게임 안의 동물 이모지, 폰트(Pretendard, Fraunces, Inter 등)는 각 권리자의 라이선스에 따라 사용됩니다.</p>
+      <p>사용자가 만들어낸 풀이 기록과 닉네임은 사용자에게 귀속됩니다.</p>
+
+      <h2><span class="num">5.</span>보증의 부인 (As-is)</h2>
+      <p>본 게임은 <strong>"있는 그대로(as-is)"</strong> 제공됩니다. 운영자는 다음 사항을 보증하지 않습니다:</p>
+      <ul>
+        <li>게임이 항상 가용하다는 점</li>
+        <li>모든 브라우저·기기에서 동일하게 작동한다는 점</li>
+        <li>퍼즐의 모든 시드가 의도한 난이도에 정확히 부합한다는 점</li>
+      </ul>
+
+      <h2><span class="num">6.</span>책임의 제한</h2>
+      <p>법이 허용하는 최대 한도 내에서, 본 게임의 사용 또는 사용 불가에서 발생하는 직접·간접·우발적 손해에 대해 운영자는 책임지지 않습니다. 단, 운영자의 고의 또는 중과실에 의한 경우는 예외입니다.</p>
+
+      <h2><span class="num">7.</span>약관의 변경</h2>
+      <p>본 약관은 운영자의 재량에 따라 변경될 수 있으며, 변경 시 본 페이지의 시행일자가 갱신됩니다. 변경된 약관은 게시 시점부터 효력을 가집니다.</p>
+
+      <h2><span class="num">8.</span>문의</h2>
+      <p>본 약관에 관한 문의는 다음으로 보내주세요:</p>
+      <ul><li>이메일: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        본 약관은 대한민국 법률에 따라 해석되며, 한국 법률과의 충돌 시 한국법이 우선합니다.
+      </p>
+    </article>
+
+    <article class="en-only">
+      <p class="doc-subtitle">Zoograms · Terms</p>
+      <h1>Terms of Service</h1>
+      <p class="doc-meta">Effective: <strong>May 8, 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Our Promise</p>
+        <p>Zoograms is a free puzzle game with no subscription fee, no signup, monetized via ads.</p>
+      </div>
+
+      <p>These terms describe the conditions for using Zoograms ("the game"). By using this game, you are deemed to agree to these terms. If you do not agree, please stop using the game.</p>
+
+      <h2><span class="num">1.</span>Scope</h2>
+      <p>These terms apply to the Zoograms game served at zoograms.com and its associated pages (privacy policy etc.).</p>
+
+      <h2><span class="num">2.</span>Nature of the service</h2>
+      <p>Zoograms is a one-person indie puzzle game served as a static web page. The game runs client-side in your browser; there is no server-side data processing (other than third-party services such as Google AdSense — see Privacy Policy §4 for details).</p>
+
+      <h2><span class="num">3.</span>Acceptable use</h2>
+      <p>The following are encouraged or allowed:</p>
+      <ul>
+        <li>Personal, non-commercial gameplay</li>
+        <li>Sharing puzzle results or seeds with friends and family</li>
+        <li>Writing reviews, blog posts, or videos about the game (within fair use)</li>
+      </ul>
+      <p>The following are prohibited:</p>
+      <ul>
+        <li>Bulk automated scripts or bots interacting with the game interface</li>
+        <li>Cloning the game's code wholesale and operating it as a separate service</li>
+        <li>Redistribution with arbitrary advertising or tracking code injected into the game</li>
+        <li>Entering leaderboard nicknames that impersonate or insult others</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Intellectual property</h2>
+      <p>Zoograms' code, design, puzzle-generation algorithm, V11 metric system, and so on are intellectual property of the operator. Animal emojis and fonts (Pretendard, Fraunces, Inter, etc.) are used under their respective licenses.</p>
+      <p>Solving records and nicknames you create belong to you.</p>
+
+      <h2><span class="num">5.</span>Disclaimer of warranties (As-is)</h2>
+      <p>This game is provided <strong>"as-is"</strong>. The operator does not warrant:</p>
+      <ul>
+        <li>that the game is always available;</li>
+        <li>that it operates identically across all browsers and devices;</li>
+        <li>that every puzzle seed precisely matches its intended difficulty.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, the operator is not liable for any direct, indirect, or incidental damages arising from the use or inability to use this game. Exceptions apply for the operator's intentional misconduct or gross negligence.</p>
+
+      <h2><span class="num">7.</span>Changes to these terms</h2>
+      <p>These terms may be modified at the operator's discretion; the effective date on this page will be updated when changes are made. Modified terms take effect from the date of posting.</p>
+
+      <h2><span class="num">8.</span>Contact</h2>
+      <p>For questions about these terms, please write to:</p>
+      <ul><li>Email: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        These terms are interpreted under the laws of the Republic of Korea; Korean law prevails in case of conflict.
+      </p>
+    </article>
+
+    <article class="es-only">
+      <p class="doc-subtitle">Zoograms · Términos</p>
+      <h1>Términos del servicio</h1>
+      <p class="doc-meta">Vigente desde: <strong>8 de mayo de 2026</strong> · Versión <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Nuestro compromiso</p>
+        <p>Zoograms es un juego de puzzles gratuito, sin suscripción, sin registro, financiado mediante publicidad.</p>
+      </div>
+
+      <p>Estos términos describen las condiciones para usar Zoograms ("el juego"). Al usar el juego, se considera que aceptas estos términos. Si no estás de acuerdo, deja de usarlo.</p>
+
+      <h2><span class="num">1.</span>Ámbito</h2>
+      <p>Estos términos se aplican al juego Zoograms publicado en zoograms.com y sus páginas asociadas (política de privacidad, etc.).</p>
+
+      <h2><span class="num">2.</span>Naturaleza del servicio</h2>
+      <p>Zoograms es un juego indie de puzzles desarrollado por una sola persona, servido como página web estática. El juego se ejecuta del lado del cliente en tu navegador; no hay procesamiento de datos del lado del servidor (más allá de servicios externos como Google AdSense — véase la política de privacidad §4 para más detalle).</p>
+
+      <h2><span class="num">3.</span>Uso aceptable</h2>
+      <p>Lo siguiente se fomenta o se permite:</p>
+      <ul>
+        <li>Uso personal y no comercial del juego</li>
+        <li>Compartir resultados o semillas con amigos y familiares</li>
+        <li>Escribir reseñas, posts en blog o vídeos sobre el juego (dentro del uso justo)</li>
+      </ul>
+      <p>Queda prohibido:</p>
+      <ul>
+        <li>Usar bots o scripts automatizados para interactuar masivamente con la interfaz</li>
+        <li>Clonar el código del juego al por mayor y operarlo como servicio aparte</li>
+        <li>Redistribuir con publicidad o código de seguimiento arbitrarios inyectados</li>
+        <li>Introducir apodos en la tabla que suplanten o insulten a otras personas</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Propiedad intelectual</h2>
+      <p>El código, el diseño, el algoritmo de generación de puzzles y el sistema de métricas V11 de Zoograms son propiedad intelectual del operador. Los emojis de animales y las tipografías (Pretendard, Fraunces, Inter, etc.) se usan bajo sus respectivas licencias.</p>
+      <p>Los récords y apodos que creas te pertenecen.</p>
+
+      <h2><span class="num">5.</span>Exclusión de garantías (Tal cual)</h2>
+      <p>Este juego se ofrece <strong>"tal cual" (as-is)</strong>. El operador no garantiza:</p>
+      <ul>
+        <li>que el juego esté siempre disponible;</li>
+        <li>que funcione de forma idéntica en todos los navegadores y dispositivos;</li>
+        <li>que cada semilla de puzzle se ajuste con exactitud a la dificultad prevista.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Limitación de responsabilidad</h2>
+      <p>En la máxima medida permitida por la ley, el operador no es responsable de daños directos, indirectos o incidentales derivados del uso o la imposibilidad de uso de este juego. Quedan excluidas las situaciones de dolo o negligencia grave del operador.</p>
+
+      <h2><span class="num">7.</span>Cambios en estos términos</h2>
+      <p>Estos términos pueden modificarse a discreción del operador; la fecha de vigencia de la página se actualizará en cada cambio. Los términos modificados entran en vigor desde su publicación.</p>
+
+      <h2><span class="num">8.</span>Contacto</h2>
+      <p>Para preguntas sobre estos términos, escríbenos a:</p>
+      <ul><li>Correo: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Estos términos se interpretan según la legislación de la República de Corea; la ley coreana prevalece en caso de conflicto.
+      </p>
+    </article>
+
+    <article class="pt-only">
+      <p class="doc-subtitle">Zoograms · Termos</p>
+      <h1>Termos de uso</h1>
+      <p class="doc-meta">Em vigor desde: <strong>8 de maio de 2026</strong> · Versão <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Nosso compromisso</p>
+        <p>O Zoograms é um quebra-cabeça gratuito, sem assinatura, sem cadastro, mantido por anúncios.</p>
+      </div>
+
+      <p>Estes termos descrevem as condições de uso do Zoograms ("o jogo"). Ao usar o jogo, considera-se que você concorda com estes termos. Se não concordar, pare de usar o jogo.</p>
+
+      <h2><span class="num">1.</span>Escopo</h2>
+      <p>Estes termos se aplicam ao jogo Zoograms publicado em zoograms.com e suas páginas associadas (política de privacidade etc.).</p>
+
+      <h2><span class="num">2.</span>Natureza do serviço</h2>
+      <p>O Zoograms é um quebra-cabeça indie operado por uma só pessoa, servido como página web estática. O jogo roda do lado do cliente no seu navegador; não há processamento de dados no lado do servidor (à parte de serviços externos como o Google AdSense — veja §4 da política de privacidade).</p>
+
+      <h2><span class="num">3.</span>Uso aceitável</h2>
+      <p>O que é incentivado ou permitido:</p>
+      <ul>
+        <li>Uso pessoal e não comercial do jogo</li>
+        <li>Compartilhar resultados ou seeds com amigos e família</li>
+        <li>Escrever resenhas, posts ou vídeos sobre o jogo (dentro do uso justo)</li>
+      </ul>
+      <p>É proibido:</p>
+      <ul>
+        <li>Usar bots ou scripts automatizados em massa contra a interface do jogo</li>
+        <li>Clonar o código do jogo por inteiro e operar como serviço separado</li>
+        <li>Redistribuir com anúncios ou código de rastreamento arbitrários injetados</li>
+        <li>Inserir apelidos no leaderboard que se passem por outras pessoas ou as ofendam</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Propriedade intelectual</h2>
+      <p>O código, design, algoritmo de geração de puzzles e sistema de métricas V11 do Zoograms são propriedade intelectual do operador. Emojis de animais e fontes (Pretendard, Fraunces, Inter etc.) são usados conforme suas licenças.</p>
+      <p>Recordes e apelidos que você cria pertencem a você.</p>
+
+      <h2><span class="num">5.</span>Isenção de garantias (Como está)</h2>
+      <p>Este jogo é oferecido <strong>"como está" (as-is)</strong>. O operador não garante:</p>
+      <ul>
+        <li>que o jogo esteja sempre disponível;</li>
+        <li>que funcione de modo idêntico em todos os navegadores e dispositivos;</li>
+        <li>que cada seed de puzzle corresponda exatamente à dificuldade pretendida.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Limitação de responsabilidade</h2>
+      <p>Na máxima extensão permitida por lei, o operador não responde por danos diretos, indiretos ou incidentais decorrentes do uso ou da impossibilidade de uso deste jogo. Excetuam-se casos de dolo ou culpa grave do operador.</p>
+
+      <h2><span class="num">7.</span>Alterações destes termos</h2>
+      <p>Estes termos podem ser modificados a critério do operador; a data de vigência desta página será atualizada nas alterações. Os termos modificados entram em vigor a partir da publicação.</p>
+
+      <h2><span class="num">8.</span>Contato</h2>
+      <p>Para perguntas sobre estes termos, escreva para:</p>
+      <ul><li>E-mail: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Estes termos são interpretados segundo as leis da República da Coreia; a lei coreana prevalece em caso de conflito.
+      </p>
+    </article>
+
+    <article class="fr-only">
+      <p class="doc-subtitle">Zoograms · Conditions</p>
+      <h1>Conditions d'utilisation</h1>
+      <p class="doc-meta">Effective : <strong>8 mai 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Notre engagement</p>
+        <p>Zoograms est un puzzle gratuit, sans abonnement, sans inscription, financé par la publicité.</p>
+      </div>
+
+      <p>Ces conditions décrivent les modalités d'utilisation de Zoograms ("le jeu"). En utilisant le jeu, tu es réputé accepter ces conditions. Si tu n'es pas d'accord, cesse de l'utiliser.</p>
+
+      <h2><span class="num">1.</span>Portée</h2>
+      <p>Ces conditions s'appliquent au jeu Zoograms diffusé sur zoograms.com et à ses pages associées (politique de confidentialité, etc.).</p>
+
+      <h2><span class="num">2.</span>Nature du service</h2>
+      <p>Zoograms est un jeu de puzzle indépendant développé par une seule personne, servi sous forme de page web statique. Le jeu fonctionne côté client dans ton navigateur ; il n'y a pas de traitement de données côté serveur (hors services tiers comme Google AdSense — voir §4 de la politique de confidentialité).</p>
+
+      <h2><span class="num">3.</span>Utilisation acceptable</h2>
+      <p>Ce qui est encouragé ou autorisé :</p>
+      <ul>
+        <li>Jeu personnel et non commercial</li>
+        <li>Partage de résultats ou de graines avec amis et famille</li>
+        <li>Rédaction de critiques, articles de blog ou vidéos sur le jeu (dans les limites du fair use)</li>
+      </ul>
+      <p>Ce qui est interdit :</p>
+      <ul>
+        <li>Utiliser des bots ou scripts automatisés pour interagir massivement avec l'interface</li>
+        <li>Cloner intégralement le code du jeu et l'exploiter comme service distinct</li>
+        <li>Redistribuer avec publicité ou code de pistage arbitraire injecté</li>
+        <li>Saisir des pseudos qui usurpent l'identité d'autrui ou comportent des insultes</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Propriété intellectuelle</h2>
+      <p>Le code, le design, l'algorithme de génération de puzzles et le système de métriques V11 de Zoograms sont la propriété intellectuelle de l'exploitant. Les emojis d'animaux et les polices (Pretendard, Fraunces, Inter, etc.) sont utilisés selon leurs licences respectives.</p>
+      <p>Les records et pseudos que tu crées t'appartiennent.</p>
+
+      <h2><span class="num">5.</span>Exclusion de garantie (En l'état)</h2>
+      <p>Ce jeu est fourni <strong>"en l'état" (as-is)</strong>. L'exploitant ne garantit pas :</p>
+      <ul>
+        <li>que le jeu soit toujours disponible ;</li>
+        <li>qu'il fonctionne de façon identique sur tous les navigateurs et appareils ;</li>
+        <li>que chaque graine de puzzle corresponde exactement à la difficulté visée.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Limitation de responsabilité</h2>
+      <p>Dans la mesure maximale permise par la loi, l'exploitant n'est pas responsable des dommages directs, indirects ou accessoires découlant de l'utilisation ou de l'impossibilité d'utiliser ce jeu. Font exception les cas de faute intentionnelle ou de négligence grave de l'exploitant.</p>
+
+      <h2><span class="num">7.</span>Modifications de ces conditions</h2>
+      <p>Ces conditions peuvent être modifiées à la discrétion de l'exploitant ; la date de prise d'effet de cette page sera mise à jour lors de chaque modification. Les conditions modifiées prennent effet à compter de leur publication.</p>
+
+      <h2><span class="num">8.</span>Contact</h2>
+      <p>Pour toute question sur ces conditions, écris à :</p>
+      <ul><li>E-mail : <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Ces conditions s'interprètent selon les lois de la République de Corée ; le droit coréen prévaut en cas de conflit.
+      </p>
+    </article>
+
+    <article class="de-only">
+      <p class="doc-subtitle">Zoograms · Bedingungen</p>
+      <h1>Nutzungsbedingungen</h1>
+      <p class="doc-meta">Gültig ab: <strong>8. Mai 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Unser Versprechen</p>
+        <p>Zoograms ist ein kostenloses Logikrätselspiel ohne Abo, ohne Registrierung, finanziert durch Werbung.</p>
+      </div>
+
+      <p>Diese Bedingungen beschreiben die Nutzungsbedingungen für Zoograms ("das Spiel"). Mit der Nutzung des Spiels erkennst du diese Bedingungen an. Wenn du nicht einverstanden bist, höre bitte auf, das Spiel zu nutzen.</p>
+
+      <h2><span class="num">1.</span>Geltungsbereich</h2>
+      <p>Diese Bedingungen gelten für das Spiel Zoograms unter zoograms.com und seine zugehörigen Seiten (Datenschutzerklärung usw.).</p>
+
+      <h2><span class="num">2.</span>Art des Dienstes</h2>
+      <p>Zoograms ist ein von einer einzelnen Person betriebenes Indie-Logikrätselspiel, ausgeliefert als statische Webseite. Das Spiel läuft clientseitig in deinem Browser; serverseitige Datenverarbeitung findet nicht statt (abgesehen von Drittanbietern wie Google AdSense — siehe §4 der Datenschutzerklärung).</p>
+
+      <h2><span class="num">3.</span>Akzeptable Nutzung</h2>
+      <p>Folgendes ist erlaubt oder gerne gesehen:</p>
+      <ul>
+        <li>Persönliche, nicht-kommerzielle Nutzung des Spiels</li>
+        <li>Teilen von Rätsel-Ergebnissen oder Seeds mit Freunden und Familie</li>
+        <li>Reviews, Blogposts, Videos über das Spiel (im Rahmen des fairen Gebrauchs)</li>
+      </ul>
+      <p>Folgendes ist untersagt:</p>
+      <ul>
+        <li>Massenhafte automatisierte Skripte oder Bots, die mit der Spieloberfläche interagieren</li>
+        <li>Vollständiges Klonen des Spielcodes und Betreiben als eigenständigen Dienst</li>
+        <li>Weiterverbreitung mit eingeschleuster fremder Werbung oder Tracking-Code</li>
+        <li>Eingabe von Spitznamen, die andere imitieren oder beleidigen</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Geistiges Eigentum</h2>
+      <p>Code, Design, Rätsel-Generierungs-Algorithmus und das V11-Metriksystem von Zoograms sind geistiges Eigentum des Betreibers. Tier-Emojis und Schriften (Pretendard, Fraunces, Inter usw.) werden gemäß ihrer jeweiligen Lizenzen verwendet.</p>
+      <p>Lösungs-Records und Spitznamen, die du erstellst, gehören dir.</p>
+
+      <h2><span class="num">5.</span>Gewährleistungsausschluss (As-is)</h2>
+      <p>Dieses Spiel wird <strong>„wie besehen" (as-is)</strong> bereitgestellt. Der Betreiber gewährleistet nicht:</p>
+      <ul>
+        <li>dass das Spiel jederzeit verfügbar ist;</li>
+        <li>dass es auf allen Browsern und Geräten identisch funktioniert;</li>
+        <li>dass jeder Rätsel-Seed exakt der angestrebten Schwierigkeit entspricht.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Haftungsbeschränkung</h2>
+      <p>Im maximal gesetzlich zulässigen Umfang haftet der Betreiber nicht für unmittelbare, mittelbare oder Folgeschäden aus der Nutzung oder Nicht-Nutzbarkeit dieses Spiels. Davon ausgenommen sind Vorsatz und grobe Fahrlässigkeit des Betreibers.</p>
+
+      <h2><span class="num">7.</span>Änderungen dieser Bedingungen</h2>
+      <p>Diese Bedingungen können nach Ermessen des Betreibers geändert werden; das Inkrafttretedatum dieser Seite wird bei Änderungen aktualisiert. Geänderte Bedingungen gelten ab dem Datum ihrer Veröffentlichung.</p>
+
+      <h2><span class="num">8.</span>Kontakt</h2>
+      <p>Bei Fragen zu diesen Bedingungen schreib bitte an:</p>
+      <ul><li>E-Mail: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Diese Bedingungen werden nach dem Recht der Republik Korea ausgelegt; bei Konflikten geht koreanisches Recht vor.
+      </p>
+    </article>
+
+    <article class="ru-only">
+      <p class="doc-subtitle">Zoograms · Условия</p>
+      <h1>Условия использования</h1>
+      <p class="doc-meta">Действует с: <strong>8 мая 2026 г.</strong> · Версия <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Наше обещание</p>
+        <p>Zoograms — бесплатная головоломка без подписки и регистрации, поддерживается рекламой.</p>
+      </div>
+
+      <p>Эти условия описывают порядок использования Zoograms («игра»). Используя игру, ты считаешься согласившимся с этими условиями. Если ты не согласен, прекрати использование игры.</p>
+
+      <h2><span class="num">1.</span>Сфера действия</h2>
+      <p>Эти условия применяются к игре Zoograms на сайте zoograms.com и связанных страницах (политика конфиденциальности и т. д.).</p>
+
+      <h2><span class="num">2.</span>Природа сервиса</h2>
+      <p>Zoograms — это инди-головоломка одного разработчика, поставляемая как статическая веб-страница. Игра работает на стороне клиента в твоём браузере; обработки данных на стороне сервера нет (помимо сторонних сервисов вроде Google AdSense — см. §4 политики конфиденциальности).</p>
+
+      <h2><span class="num">3.</span>Допустимое использование</h2>
+      <p>Поощряется или разрешено:</p>
+      <ul>
+        <li>Личное, некоммерческое использование игры</li>
+        <li>Деление результатами или сидами с друзьями и семьёй</li>
+        <li>Написание обзоров, постов или видео об игре (в рамках добросовестного использования)</li>
+      </ul>
+      <p>Запрещено:</p>
+      <ul>
+        <li>Массовое использование ботов или автоматизированных скриптов для взаимодействия с интерфейсом</li>
+        <li>Клонирование кода игры целиком и его эксплуатация как отдельного сервиса</li>
+        <li>Перераспространение игры со встроенной произвольной рекламой или трекинг-кодом</li>
+        <li>Ввод в таблицу дуэлей ников, выдающих себя за других или содержащих оскорбления</li>
+      </ul>
+
+      <h2><span class="num">4.</span>Интеллектуальная собственность</h2>
+      <p>Код, дизайн, алгоритм генерации головоломок и система метрик V11 в Zoograms являются интеллектуальной собственностью оператора. Эмодзи животных и шрифты (Pretendard, Fraunces, Inter и др.) используются согласно их лицензиям.</p>
+      <p>Рекорды и ники, которые ты создаёшь, принадлежат тебе.</p>
+
+      <h2><span class="num">5.</span>Отказ от гарантий (As-is)</h2>
+      <p>Игра предоставляется <strong>«как есть» (as-is)</strong>. Оператор не гарантирует:</p>
+      <ul>
+        <li>что игра доступна постоянно;</li>
+        <li>что она работает одинаково во всех браузерах и на всех устройствах;</li>
+        <li>что каждый сид головоломки точно соответствует заявленной сложности.</li>
+      </ul>
+
+      <h2><span class="num">6.</span>Ограничение ответственности</h2>
+      <p>В максимально допустимой законом мере оператор не несёт ответственности за прямой, косвенный или случайный ущерб, возникающий из-за использования или невозможности использования этой игры. Исключение составляют случаи умысла или грубой небрежности оператора.</p>
+
+      <h2><span class="num">7.</span>Изменения условий</h2>
+      <p>Эти условия могут быть изменены по усмотрению оператора; дата вступления в силу на этой странице обновляется при изменениях. Изменённые условия действуют с момента публикации.</p>
+
+      <h2><span class="num">8.</span>Контакт</h2>
+      <p>По вопросам об условиях пиши на:</p>
+      <ul><li>Email: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Эти условия толкуются по законам Республики Корея; при коллизии преобладает корейское право.
+      </p>
+    </article>
+
+    <article class="zh-only">
+      <p class="doc-subtitle">Zoograms · 条款</p>
+      <h1>服务条款</h1>
+      <p class="doc-meta">生效日期: <strong>2026 年 5 月 8 日</strong> · 版本 <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">一句承诺</p>
+        <p>Zoograms 是免费的逻辑谜题游戏,无订阅费、无注册,通过广告维持运营。</p>
+      </div>
+
+      <p>本条款描述使用 Zoograms("本游戏")的条件。使用本游戏即视为同意本条款。如不同意,请停止使用。</p>
+
+      <h2><span class="num">1.</span>适用范围</h2>
+      <p>本条款适用于在 zoograms.com 提供的 Zoograms 游戏及其相关页面(隐私政策等)。</p>
+
+      <h2><span class="num">2.</span>服务的性质</h2>
+      <p>Zoograms 是由一人独立运营的独立逻辑谜题游戏,以静态网页形式提供。游戏在你的浏览器中以客户端方式运行;不存在服务器端数据处理(除 Google AdSense 等第三方服务的独立处理外——详见隐私政策 §4)。</p>
+
+      <h2><span class="num">3.</span>可接受的使用</h2>
+      <p>以下行为受到鼓励或被允许:</p>
+      <ul>
+        <li>个人非商业用途的游戏体验</li>
+        <li>与亲友分享谜题结果或种子</li>
+        <li>撰写有关本游戏的评测、博客文章或视频(在合理使用范围内)</li>
+      </ul>
+      <p>以下行为被禁止:</p>
+      <ul>
+        <li>使用自动化机器人或脚本批量与游戏界面交互</li>
+        <li>整体克隆游戏代码并作为另一个独立服务运营</li>
+        <li>注入任意广告或追踪代码后再分发本游戏</li>
+        <li>在排行榜昵称中冒充他人或写入侮辱内容</li>
+      </ul>
+
+      <h2><span class="num">4.</span>知识产权</h2>
+      <p>Zoograms 的代码、设计、谜题生成算法及 V11 度量系统等为运营方的知识产权。游戏中的动物表情符号与字体(Pretendard、Fraunces、Inter 等)依各自许可证使用。</p>
+      <p>你创建的解题记录与昵称归你所有。</p>
+
+      <h2><span class="num">5.</span>免责声明(按现状)</h2>
+      <p>本游戏按 <strong>"按现状"(as-is)</strong>提供。运营方不保证:</p>
+      <ul>
+        <li>游戏始终可用;</li>
+        <li>在所有浏览器与设备上以相同方式运行;</li>
+        <li>每个谜题种子精确符合预设难度。</li>
+      </ul>
+
+      <h2><span class="num">6.</span>责任限制</h2>
+      <p>在法律允许的最大范围内,运营方对因使用或无法使用本游戏所产生的直接、间接或附带损害不承担责任。但运营方故意或重大过失情形除外。</p>
+
+      <h2><span class="num">7.</span>本条款的变更</h2>
+      <p>本条款可由运营方酌情修改;变更时本页生效日期将更新。修改后的条款自发布之日起生效。</p>
+
+      <h2><span class="num">8.</span>联系</h2>
+      <p>关于本条款的疑问,请发送至:</p>
+      <ul><li>邮箱: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        本条款依大韩民国法律解释,与韩国法律冲突时以韩国法律为准。
+      </p>
+    </article>
+
+    <article class="ja-only">
+      <p class="doc-subtitle">Zoograms · 利用規約</p>
+      <h1>利用規約</h1>
+      <p class="doc-meta">施行日: <strong>2026 年 5 月 8 日</strong> · バージョン <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">私たちの約束</p>
+        <p>Zoograms は無料のロジックパズルゲームです。サブスク料金なし、登録不要、広告で運営されています。</p>
+      </div>
+
+      <p>本規約は Zoograms(「このゲーム」)の利用条件を記述します。本ゲームを利用すると本規約に同意したものとみなされます。同意されない場合は、ご利用を中止してください。</p>
+
+      <h2><span class="num">1.</span>適用範囲</h2>
+      <p>本規約は zoograms.com で提供される Zoograms ゲームおよび付属ページ(プライバシーポリシー等)に適用されます。</p>
+
+      <h2><span class="num">2.</span>サービスの性質</h2>
+      <p>Zoograms は 1 人で運営するインディーロジックパズルゲームで、静的ウェブページとして提供されます。ゲームはブラウザ上でクライアントサイドに動作し、サーバーサイドのデータ処理はありません(Google AdSense 等の外部サービスの個別処理を除く — 詳細はプライバシーポリシー §4 参照)。</p>
+
+      <h2><span class="num">3.</span>許容される利用</h2>
+      <p>以下は推奨または許容されます:</p>
+      <ul>
+        <li>個人的・非商業目的でのゲームプレイ</li>
+        <li>友人や家族との解いたパズル結果やシードの共有</li>
+        <li>本ゲームに関するレビュー、ブログ記事、動画の作成(フェアユースの範囲内)</li>
+      </ul>
+      <p>以下は禁止されます:</p>
+      <ul>
+        <li>自動化ボットやスクリプトによるゲームインターフェースの大量呼び出し</li>
+        <li>ゲームコードを丸ごと複製し別のサービスとして提供する行為</li>
+        <li>任意の広告や追跡コードを注入して再配布する行為</li>
+        <li>リーダーボードのニックネームに他人を詐称または侮辱する内容を入力する行為</li>
+      </ul>
+
+      <h2><span class="num">4.</span>知的財産権</h2>
+      <p>Zoograms のコード、デザイン、パズル生成アルゴリズム、V11 メトリックシステム等は運営者の知的財産です。ゲーム内の動物絵文字とフォント(Pretendard、Fraunces、Inter 等)は各権利者のライセンスに従って使用しています。</p>
+      <p>あなたが作り出した解答記録とニックネームはあなたに帰属します。</p>
+
+      <h2><span class="num">5.</span>保証の否認(現状有姿)</h2>
+      <p>本ゲームは <strong>「現状有姿(as-is)」</strong>で提供されます。運営者は以下を保証しません:</p>
+      <ul>
+        <li>ゲームが常に利用可能であること;</li>
+        <li>すべてのブラウザ・端末で同一に動作すること;</li>
+        <li>各パズルシードが意図した難易度に正確に合致すること。</li>
+      </ul>
+
+      <h2><span class="num">6.</span>責任の制限</h2>
+      <p>法令で許される最大限の範囲で、本ゲームの使用または使用不能から生じる直接的・間接的・付随的損害について、運営者は責任を負いません。ただし運営者の故意または重過失による場合はこの限りではありません。</p>
+
+      <h2><span class="num">7.</span>本規約の変更</h2>
+      <p>本規約は運営者の裁量により変更されることがあり、変更時に本ページの施行日が更新されます。変更後の規約は掲示された時点から効力を有します。</p>
+
+      <h2><span class="num">8.</span>お問い合わせ</h2>
+      <p>本規約に関するお問い合わせは次へお送りください:</p>
+      <ul><li>メール: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        本規約は大韓民国の法令に従って解釈され、韓国法令との抵触がある場合には韓国法が優先します。
+      </p>
+    </article>
+
+    <nav class="footer-nav">
+      <a href="/">
+        <span class="ko-only">← 게임으로 돌아가기</span>
+        <span class="en-only">← Back to game</span>
+        <span class="es-only">← Volver al juego</span>
+        <span class="pt-only">← Voltar ao jogo</span>
+        <span class="fr-only">← Retour au jeu</span>
+        <span class="de-only">← Zurück zum Spiel</span>
+        <span class="ru-only">← Вернуться в игру</span>
+        <span class="zh-only">← 返回游戏</span>
+        <span class="ja-only">← ゲームへ戻る</span>
+      </a>
+      <a href="/privacy.html">
+        <span class="ko-only">개인정보 처리방침</span>
+        <span class="en-only">Privacy</span>
+        <span class="es-only">Privacidad</span>
+        <span class="pt-only">Privacidade</span>
+        <span class="fr-only">Confidentialité</span>
+        <span class="de-only">Datenschutz</span>
+        <span class="ru-only">Конфиденциальность</span>
+        <span class="zh-only">隐私政策</span>
+        <span class="ja-only">プライバシー</span>
+      </a>
+    </nav>
+
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  var SUPPORTED = ['ko','en','es','pt','fr','de','ru','zh','ja'];
+
+  var TITLE_BY_LANG = {
+    ko: '이용약관',
+    en: 'Terms of Service',
+    es: 'Términos del servicio',
+    pt: 'Termos de uso',
+    fr: 'Conditions d\'utilisation',
+    de: 'Nutzungsbedingungen',
+    ru: 'Условия использования',
+    zh: '服务条款',
+    ja: '利用規約'
+  };
+
+  var HTML_LANG_BY_LANG = {
+    ko: 'ko', en: 'en', es: 'es', pt: 'pt-BR',
+    fr: 'fr', de: 'de', ru: 'ru', zh: 'zh-CN', ja: 'ja'
+  };
+
+  function detectLang() {
+    try {
+      var stored = localStorage.getItem('zoograms.lang');
+      if (SUPPORTED.indexOf(stored) !== -1) return stored;
+    } catch (e) {}
+    var hash = (location.hash || '').replace('#', '');
+    if (SUPPORTED.indexOf(hash) !== -1) return hash;
+    var nav = (navigator.language || '').toLowerCase().split('-')[0];
+    if (SUPPORTED.indexOf(nav) !== -1) return nav;
+    return 'en';
+  }
+
+  window.setLang = function(lang) {
+    if (SUPPORTED.indexOf(lang) === -1) return;
+    document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', HTML_LANG_BY_LANG[lang] || lang);
+    document.title = TITLE_BY_LANG[lang] + ' — Zoograms';
+
+    SUPPORTED.forEach(function(l) {
+      var btn = document.getElementById('btn-' + l);
+      if (btn) btn.setAttribute('aria-pressed', String(l === lang));
+    });
+
+    try { localStorage.setItem('zoograms.lang', lang); } catch (e) {}
+  };
+
+  // Init
+  window.setLang(detectLang());
+
+  // Cross-tab/window sync — if main game switches language, follow it.
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'zoograms.lang') {
+      if (SUPPORTED.indexOf(e.newValue) !== -1) {
+        window.setLang(e.newValue);
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

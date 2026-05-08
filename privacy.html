@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="index,follow" />
+<meta name="description" content="Zoograms Privacy Policy — we don't collect personal data. / 7 langs." />
+<title>Privacy Policy — Zoograms</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<style>
+  :root {
+    --bg-paper: #FAF7F0;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F5F2EA;
+    --bg-fixed: #EEE9DC;
+    --ink-primary: #1C1917;
+    --ink-secondary: #44403C;
+    --ink-tertiary: #78716C;
+    --border-soft: #E7E5E4;
+    --border-medium: #D6D3D1;
+    --accent-gold: #B45309;
+    --accent-gold-soft: #D97706;
+    --rule-line: #D6D3D1;
+    --display-font: 'Fraunces', 'Times New Roman', serif;
+    --latin-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --ko-font: 'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+    --zh-font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui, sans-serif;
+    --ja-font: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
+  body {
+    font-family: var(--ko-font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* Per-language body font — auto-applied based on <html lang=...> */
+  html[lang="ko"] body { font-family: var(--ko-font); }
+  html[lang="zh"] body, html[lang="zh-CN"] body { font-family: var(--zh-font); }
+  html[lang="ja"] body { font-family: var(--ja-font); }
+  html[lang="en"] body,
+  html[lang="es"] body,
+  html[lang="pt-BR"] body, html[lang="pt"] body,
+  html[lang="fr"] body,
+  html[lang="de"] body,
+  html[lang="ru"] body {
+    font-family: var(--latin-font);
+  }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+    position: relative;
+  }
+
+  .page::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image:
+      radial-gradient(circle at 25% 15%, rgba(180,83,9,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(28,25,23,0.025) 0%, transparent 40%);
+    z-index: -1;
+  }
+
+  /* Navigation */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-soft);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    text-decoration: none;
+    color: var(--ink-primary);
+  }
+  .brand-name {
+    font-family: var(--display-font);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Lang toggle — 7 buttons, scrollable on narrow screens */
+  .lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    overflow: auto;
+    background: var(--bg-card);
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .lang-toggle::-webkit-scrollbar { display: none; }
+  .lang-toggle button {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink-secondary);
+    transition: background 120ms, color 120ms;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .lang-toggle button:hover { background: var(--bg-subtle); }
+  .lang-toggle button[aria-pressed="true"] {
+    background: var(--bg-fixed);
+    color: var(--ink-primary);
+    font-weight: 600;
+  }
+  .lang-toggle button + button { border-left: 1px solid var(--border-medium); }
+
+  /* Article visibility — only one shows at a time */
+  .ko-only, .en-only, .es-only, .pt-only, .fr-only, .de-only, .ru-only,
+  .zh-only, .ja-only { display: none; }
+  html[data-lang="ko"] .ko-only,
+  html[data-lang="en"] .en-only,
+  html[data-lang="es"] .es-only,
+  html[data-lang="pt"] .pt-only,
+  html[data-lang="fr"] .fr-only,
+  html[data-lang="de"] .de-only,
+  html[data-lang="ru"] .ru-only,
+  html[data-lang="zh"] .zh-only,
+  html[data-lang="ja"] .ja-only {
+    display: block;
+  }
+
+  /* Document tokens */
+  .doc-subtitle {
+    font-family: var(--latin-font);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+    margin: 0 0 12px 0;
+  }
+  h1 {
+    font-family: var(--display-font);
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--ink-tertiary);
+    margin: 0 0 32px 0;
+  }
+  .doc-meta strong { color: var(--ink-secondary); font-weight: 600; }
+
+  .promise {
+    background: linear-gradient(135deg, rgba(180,83,9,0.04) 0%, rgba(180,83,9,0.07) 100%);
+    border-left: 3px solid var(--accent-gold);
+    border-radius: 0 6px 6px 0;
+    padding: 18px 22px;
+    margin: 32px 0 36px 0;
+  }
+  .promise-label {
+    font-family: var(--latin-font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin: 0 0 6px 0;
+  }
+  .promise p:last-child { margin: 0; font-weight: 500; color: var(--ink-primary); }
+
+  h2 {
+    font-family: var(--display-font);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 44px 0 16px 0;
+    color: var(--ink-primary);
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    display: inline-block;
+    width: 36px;
+    color: var(--accent-gold);
+    font-weight: 500;
+  }
+  p { margin: 0 0 14px 0; color: var(--ink-secondary); }
+  ul { margin: 0 0 16px 0; padding-left: 22px; color: var(--ink-secondary); }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink-primary); font-weight: 600; }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.88em;
+    background: var(--bg-subtle);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--ink-primary);
+  }
+
+  a {
+    color: var(--accent-gold);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover { color: var(--accent-gold-soft); }
+
+  .table-wrap {
+    margin: 16px 0 22px 0;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    overflow: auto;
+    background: var(--bg-card);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--bg-subtle);
+    color: var(--ink-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--ink-secondary);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  hr.rule {
+    border: none;
+    border-top: 1px solid var(--rule-line);
+    margin: 36px 0 22px 0;
+  }
+
+  .footer-nav {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--ink-tertiary);
+  }
+  .footer-nav a {
+    color: var(--ink-secondary);
+    text-decoration: none;
+  }
+  .footer-nav a:hover { color: var(--accent-gold); }
+
+  ::selection { background: rgba(180, 83, 9, 0.18); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 30px; }
+    h2 { font-size: 19px; }
+    .page { padding: 40px 18px 64px; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Navigation -->
+    <div class="nav">
+      <a href="/" class="brand" aria-label="Zoograms — Home">
+        <span class="brand-name">Zoograms</span>
+      </a>
+      <div class="lang-toggle" role="tablist" aria-label="Language">
+        <button id="btn-ko" type="button" aria-pressed="true"  onclick="setLang('ko')">한국어</button>
+        <button id="btn-en" type="button" aria-pressed="false" onclick="setLang('en')">English</button>
+        <button id="btn-es" type="button" aria-pressed="false" onclick="setLang('es')">Español</button>
+        <button id="btn-pt" type="button" aria-pressed="false" onclick="setLang('pt')">Português</button>
+        <button id="btn-fr" type="button" aria-pressed="false" onclick="setLang('fr')">Français</button>
+        <button id="btn-de" type="button" aria-pressed="false" onclick="setLang('de')">Deutsch</button>
+        <button id="btn-ru" type="button" aria-pressed="false" onclick="setLang('ru')">Русский</button>
+        <button id="btn-zh" type="button" aria-pressed="false" onclick="setLang('zh')">简体中文</button>
+        <button id="btn-ja" type="button" aria-pressed="false" onclick="setLang('ja')">日本語</button>
+      </div>
+    </div>
+
+    <article class="ko-only">
+      <p class="doc-subtitle">Zoograms · Privacy</p>
+      <h1>개인정보 처리방침</h1>
+      <p class="doc-meta">시행일자: <strong>2026년 5월 8일</strong> · 버전 <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">한 줄 약속</p>
+        <p>Zoograms는 사용자의 어떤 개인정보도 직접 수집·저장·전송하지 않습니다.</p>
+      </div>
+
+      <p>이 문서는 Zoograms("이 게임")가 사용자 정보를 어떻게 다루는지 — 그리고 무엇을 하지 않는지 — 정확히 기술합니다. 가능한 한 짧고, 명확하고, 모호함 없는 문장을 사용합니다.</p>
+
+      <h2><span class="num">1.</span>저장되는 정보의 전체 목록</h2>
+      <p>이 게임이 사용자 디바이스에 저장하는 모든 항목입니다. 이 목록은 완전합니다 — 여기에 없는 것은 저장되지 않습니다.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">항목</th><th style="width:22%;">저장 위치</th><th>내용</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>선택한 표시 언어 (예: <code>ko</code>, <code>en</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>고급 옵션 토글 상태 (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>현재 세션에서 본 퍼즐 식별자 (탭을 닫으면 사라짐)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>리더보드용 닉네임. <strong>사용자가 직접 입력한 경우에만</strong> 저장.</td></tr>
+        </tbody>
+      </table></div>
+      <p>위 항목들은 사용자의 디바이스에서만 존재하며, 어떤 외부 서버로도 전송되지 않습니다. 사용자는 언제든지 브라우저 설정에서 이 데이터를 삭제할 수 있으며, 삭제 후에도 게임은 정상 작동합니다.</p>
+
+      <h2><span class="num">2.</span>닉네임과 리더보드 공유</h2>
+      <p>리더보드 기능을 사용할 때 사용자가 직접 입력하는 닉네임은 다음과 같이 처리됩니다:</p>
+      <ul>
+        <li>닉네임은 사용자가 명시적으로 공유하는 URL의 일부(<code>?duel=...</code>)로 인코딩됩니다.</li>
+        <li>이 URL은 사용자가 선택한 대상에게만 전달됩니다 — 게임이 자동으로 어디에도 보내지 않습니다.</li>
+        <li>닉네임은 게임의 어떤 서버, 데이터베이스, 분석 도구에도 저장되지 않습니다.</li>
+        <li>닉네임에 본명, 전화번호, 이메일, 또는 실제로 본인을 식별할 수 있는 정보를 입력하지 마세요. 그 결정의 결과는 사용자가 직접 책임집니다.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>쿠키</h2>
+      <p>Zoograms 자체는 어떤 쿠키도 설정하지 않습니다.</p>
+      <p>이 게임에 게재되는 광고(아래 §4 참조)는 광고 제공자에 의해 쿠키가 설정될 수 있으며, 이는 해당 제공자의 정책에 따릅니다.</p>
+
+      <h2><span class="num">4.</span>광고 (Google AdSense)</h2>
+      <p>이 게임은 Google AdSense를 통해 광고를 표시합니다. Google은 광고 송출과 관련하여 사용자 정보를 독립적으로 처리하는 별도의 데이터 처리자(controller)입니다. 게임 운영자는 Google의 데이터 처리 방식에 직접 관여하지 않습니다.</p>
+      <p>Google이 광고 송출 과정에서 어떤 정보를 어떻게 처리하는지에 대한 구체적인 내용은 다음을 참조하세요:</p>
+      <ul>
+        <li>Google 광고 정책: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>광고 개인설정 관리: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>사용자는 위 Google 페이지에서 본인의 광고 개인설정을 직접 관리하거나 거부할 수 있습니다.</p>
+
+      <h2><span class="num">5.</span>방문자 분석</h2>
+      <p>운영자는 사이트의 기본적인 traffic 패턴(방문자 수, 페이지 view, 대략적인 지역)을 파악하기 위해 Cloudflare Web Analytics를 사용할 수 있습니다. Cloudflare Web Analytics는 다음과 같은 특성을 가집니다:</p>
+      <ul>
+        <li>쿠키를 사용하지 않습니다.</li>
+        <li>사용자를 개별적으로 추적하지 않습니다.</li>
+        <li>IP 주소를 저장하지 않습니다.</li>
+      </ul>
+      <p>자세한 내용: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>어린이</h2>
+      <p>이 게임은 모든 연령에게 안전하도록 설계된 콘텐츠를 제공하지만, 만 14세 미만 어린이를 특별히 대상으로 하는 서비스가 아닙니다. 어린이가 게임을 이용할 때 보호자의 적절한 감독이 권장됩니다. 이 게임은 어린이로부터 의도적으로 어떤 개인정보도 수집하지 않습니다.</p>
+
+      <h2><span class="num">7.</span>사용자의 권리</h2>
+      <p>이 게임은 사용자에 대한 어떤 식별 정보도 보유하지 않으므로, "내 정보 열람", "수정", "삭제"와 같은 전통적인 데이터 주체 권리는 단순한 형태로 작동합니다:</p>
+      <ul>
+        <li><strong>열람</strong>: 위 §1의 표가 저장되는 모든 항목입니다.</li>
+        <li><strong>삭제</strong>: 브라우저 설정에서 이 사이트의 저장 데이터를 삭제하면 즉시 완료됩니다.</li>
+        <li><strong>이전</strong>: 저장 항목이 모두 사용자 디바이스에 있으므로, 이전이라는 개념이 적용되지 않습니다.</li>
+      </ul>
+      <p>한국 「개인정보 보호법」, EU GDPR, 캘리포니아 CCPA 등의 법령이 보장하는 추가 권리에 대해서는 아래 §10의 연락처로 문의하실 수 있습니다.</p>
+
+      <h2><span class="num">8.</span>보안</h2>
+      <p>이 사이트는 HTTPS를 통해 제공되며, 모든 통신은 암호화됩니다. 게임이 사용자 정보를 외부 서버로 전송하지 않으므로, 가장 일반적인 데이터 유출 경로는 구조적으로 차단되어 있습니다.</p>
+
+      <h2><span class="num">9.</span>이 정책의 변경</h2>
+      <p>이 정책이 실질적으로 변경될 경우, 이 페이지의 시행일자가 갱신되며 변경 내용이 명시됩니다. 사용자는 이 페이지를 주기적으로 확인하여 최신 내용을 알 수 있습니다.</p>
+
+      <h2><span class="num">10.</span>문의</h2>
+      <p>이 정책 또는 사용자의 정보 처리에 관한 문의는 다음으로 보내주세요:</p>
+      <ul><li>이메일: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        이 정책은 한국 「개인정보 보호법」, EU GDPR, 캘리포니아 CCPA의 일반 원칙을 참고하여 작성되었습니다. 다만 이 게임은 식별 가능한 개인정보를 수집하지 않으므로, 위 법령들의 다수 조항이 구조적으로 적용되지 않습니다.
+      </p>
+    </article>
+
+    <article class="en-only">
+      <p class="doc-subtitle">Zoograms · Privacy</p>
+      <h1>Privacy Policy</h1>
+      <p class="doc-meta">Effective: <strong>May 8, 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Our Promise</p>
+        <p>Zoograms does not collect, store, or transmit any personal information directly.</p>
+      </div>
+
+      <p>This document describes precisely how Zoograms ("the game") handles user information — and what it does not do. We use sentences that are as short, clear, and unambiguous as possible.</p>
+
+      <h2><span class="num">1.</span>Complete list of stored information</h2>
+      <p>Every item this game stores on your device. This list is complete — anything not listed here is not stored.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Item</th><th style="width:22%;">Location</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Selected display language (e.g. <code>ko</code>, <code>en</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>Advanced option toggle state (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>Puzzle identifiers seen in current session (gone when tab closes)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Leaderboard nickname. Stored <strong>only if you explicitly enter one</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>These items exist only on your device and are never transmitted to any external server. You may delete this data through your browser settings at any time, and the game will continue to function normally afterward.</p>
+
+      <h2><span class="num">2.</span>Nicknames and leaderboard sharing</h2>
+      <p>Nicknames you enter when using the leaderboard feature are handled as follows:</p>
+      <ul>
+        <li>The nickname is encoded as part of a URL (<code>?duel=...</code>) that you explicitly share.</li>
+        <li>This URL is delivered only to the recipients you choose — the game does not automatically send it anywhere.</li>
+        <li>Nicknames are not stored on any server, database, or analytics tool used by the game.</li>
+        <li>Do not enter your real name, phone number, email, or any actually identifying information as a nickname. The consequences of that decision are your own responsibility.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookies</h2>
+      <p>Zoograms itself does not set any cookies.</p>
+      <p>Advertisements served on this game (see §4 below) may set cookies via the ad provider, subject to their policy.</p>
+
+      <h2><span class="num">4.</span>Advertising (Google AdSense)</h2>
+      <p>This game displays advertising via Google AdSense. Google is a separate data controller that independently processes user information for ad delivery. The game operator has no direct involvement in Google's data processing.</p>
+      <p>For specifics on what information Google processes during ad delivery and how, see:</p>
+      <ul>
+        <li>Google ads policy: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Manage ad personalization: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>You can manage or opt out of personalized advertising directly through the Google pages above.</p>
+
+      <h2><span class="num">5.</span>Visitor analytics</h2>
+      <p>The operator may use Cloudflare Web Analytics to understand basic traffic patterns (visitor count, page views, approximate region). Cloudflare Web Analytics has the following characteristics:</p>
+      <ul>
+        <li>No cookies are used.</li>
+        <li>Individual visitors are not tracked.</li>
+        <li>IP addresses are not stored.</li>
+      </ul>
+      <p>Details: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Children</h2>
+      <p>This game offers content designed to be safe for all ages, but is not specifically directed at children under 14. Adult supervision is recommended when children use this game. The game does not knowingly collect any personal information from children.</p>
+
+      <h2><span class="num">7.</span>Your rights</h2>
+      <p>Because this game does not hold any identifying information about you, the traditional data-subject rights of "access", "correction", and "deletion" work in a simple form:</p>
+      <ul>
+        <li><strong>Access</strong>: the table in §1 above is everything that is stored.</li>
+        <li><strong>Deletion</strong>: deleting this site's stored data through browser settings completes the action immediately.</li>
+        <li><strong>Portability</strong>: since all stored items reside on your own device, the concept of portability does not apply.</li>
+      </ul>
+      <p>For additional rights guaranteed by laws such as Korea's Personal Information Protection Act, EU GDPR, and California CCPA, please contact us at the address in §10 below.</p>
+
+      <h2><span class="num">8.</span>Security</h2>
+      <p>This site is served over HTTPS, and all communication is encrypted. Because the game does not transmit user information to any external server, the most common data-leak vector is structurally blocked.</p>
+
+      <h2><span class="num">9.</span>Changes to this policy</h2>
+      <p>If this policy is materially changed, the effective date on this page will be updated and the changes will be clearly noted. You can stay informed by checking this page periodically.</p>
+
+      <h2><span class="num">10.</span>Contact</h2>
+      <p>For questions about this policy or how your information is handled, please write to:</p>
+      <ul><li>Email: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        This policy was written with reference to general principles of Korea's Personal Information Protection Act, EU GDPR, and California CCPA. However, because this game does not collect identifiable personal information, many provisions of those laws do not structurally apply.
+      </p>
+    </article>
+
+    <article class="es-only">
+      <p class="doc-subtitle">Zoograms · Privacidad</p>
+      <h1>Política de privacidad</h1>
+      <p class="doc-meta">Vigente desde: <strong>8 de mayo de 2026</strong> · Versión <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Nuestro compromiso</p>
+        <p>Zoograms no recopila, almacena ni transmite directamente ninguna información personal.</p>
+      </div>
+
+      <p>Este documento describe con precisión cómo Zoograms ("el juego") maneja la información del usuario — y lo que no hace. Usamos frases lo más cortas, claras y sin ambigüedades posible.</p>
+
+      <h2><span class="num">1.</span>Lista completa de la información almacenada</h2>
+      <p>Todo lo que este juego almacena en tu dispositivo. Esta lista es completa — lo que no figura aquí no se almacena.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Elemento</th><th style="width:22%;">Ubicación</th><th>Contenido</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Idioma de visualización elegido (p. ej. <code>ko</code>, <code>en</code>, <code>es</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>Estado del interruptor de opciones avanzadas (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>Identificadores de los puzzles vistos en la sesión actual (se borran al cerrar la pestaña)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Apodo para la tabla. Se guarda <strong>solo si lo introduces tú</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Estos elementos existen únicamente en tu dispositivo y nunca se envían a ningún servidor externo. Puedes borrarlos en cualquier momento desde la configuración del navegador, y el juego seguirá funcionando con normalidad.</p>
+
+      <h2><span class="num">2.</span>Apodos y tabla de duelos</h2>
+      <p>Los apodos que introduces al usar la tabla de duelos se manejan así:</p>
+      <ul>
+        <li>El apodo se codifica dentro de una URL (<code>?duel=...</code>) que tú compartes de forma explícita.</li>
+        <li>Esa URL solo llega a las personas que tú elijas — el juego no la envía automáticamente a ningún sitio.</li>
+        <li>Los apodos no se guardan en ningún servidor, base de datos ni herramienta de analítica que use el juego.</li>
+        <li>No introduzcas como apodo tu nombre real, teléfono, correo o cualquier dato que de verdad pueda identificarte. La consecuencia de esa decisión es tu propia responsabilidad.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookies</h2>
+      <p>Zoograms en sí no establece ninguna cookie.</p>
+      <p>Los anuncios que aparecen en el juego (véase §4) pueden establecer cookies a través del proveedor publicitario, según su política.</p>
+
+      <h2><span class="num">4.</span>Publicidad (Google AdSense)</h2>
+      <p>Este juego muestra anuncios mediante Google AdSense. Google es un responsable del tratamiento independiente que procesa información de los usuarios para la entrega de anuncios. El operador del juego no participa directamente en el tratamiento de datos por parte de Google.</p>
+      <p>Para detalles sobre qué información procesa Google durante la entrega de anuncios y cómo lo hace, consulta:</p>
+      <ul>
+        <li>Política publicitaria de Google: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Configurar la personalización de anuncios: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>Puedes gestionar o desactivar la publicidad personalizada directamente desde las páginas de Google de arriba.</p>
+
+      <h2><span class="num">5.</span>Analítica de visitas</h2>
+      <p>El operador puede usar Cloudflare Web Analytics para conocer patrones básicos de tráfico (visitantes, páginas vistas, región aproximada). Cloudflare Web Analytics tiene estas características:</p>
+      <ul>
+        <li>No usa cookies.</li>
+        <li>No rastrea a los visitantes individualmente.</li>
+        <li>No almacena direcciones IP.</li>
+      </ul>
+      <p>Más información: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Menores de edad</h2>
+      <p>Este juego ofrece contenido pensado para ser seguro a todas las edades, pero no está específicamente dirigido a menores de 14 años. Se recomienda la supervisión de un adulto cuando un menor lo use. El juego no recopila intencionadamente ninguna información personal de menores.</p>
+
+      <h2><span class="num">7.</span>Tus derechos</h2>
+      <p>Como este juego no posee ninguna información identificativa sobre ti, los derechos clásicos del titular de los datos — "acceso", "rectificación", "supresión" — funcionan de forma muy simple:</p>
+      <ul>
+        <li><strong>Acceso</strong>: la tabla del §1 anterior contiene todo lo que se almacena.</li>
+        <li><strong>Supresión</strong>: borrar los datos almacenados de este sitio en la configuración del navegador completa la acción al instante.</li>
+        <li><strong>Portabilidad</strong>: como todos los elementos almacenados residen en tu dispositivo, este concepto no se aplica.</li>
+      </ul>
+      <p>Para derechos adicionales reconocidos por leyes como la Ley de Protección de Datos Personales de Corea, el RGPD de la UE o la CCPA de California, escríbenos al contacto del §10.</p>
+
+      <h2><span class="num">8.</span>Seguridad</h2>
+      <p>Este sitio se sirve por HTTPS y toda la comunicación está cifrada. Como el juego no envía información del usuario a ningún servidor externo, la vía más habitual de filtración de datos queda bloqueada por diseño.</p>
+
+      <h2><span class="num">9.</span>Cambios en esta política</h2>
+      <p>Si esta política cambia de forma sustancial, se actualizará la fecha de vigencia de la página y los cambios se indicarán claramente. Puedes mantenerte informado revisando esta página periódicamente.</p>
+
+      <h2><span class="num">10.</span>Contacto</h2>
+      <p>Para preguntas sobre esta política o sobre cómo se trata tu información, escríbenos a:</p>
+      <ul><li>Correo: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Esta política se redactó tomando como referencia los principios generales de la Ley de Protección de Datos Personales de Corea, el RGPD de la UE y la CCPA de California. No obstante, como este juego no recopila información personal identificable, muchas disposiciones de esas leyes no se aplican estructuralmente.
+      </p>
+    </article>
+
+    <article class="pt-only">
+      <p class="doc-subtitle">Zoograms · Privacidade</p>
+      <h1>Política de privacidade</h1>
+      <p class="doc-meta">Em vigor desde: <strong>8 de maio de 2026</strong> · Versão <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Nosso compromisso</p>
+        <p>O Zoograms não coleta, armazena nem transmite diretamente nenhuma informação pessoal.</p>
+      </div>
+
+      <p>Este documento descreve com precisão como o Zoograms ("o jogo") trata as informações do usuário — e o que ele não faz. Usamos frases curtas, claras e sem ambiguidade sempre que possível.</p>
+
+      <h2><span class="num">1.</span>Lista completa das informações armazenadas</h2>
+      <p>Tudo o que este jogo armazena no seu dispositivo. Esta lista é completa — o que não está aqui não é armazenado.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Item</th><th style="width:22%;">Local</th><th>Conteúdo</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Idioma de exibição escolhido (ex. <code>ko</code>, <code>en</code>, <code>pt</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>Estado do interruptor de opções avançadas (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>Identificadores dos puzzles vistos na sessão atual (somem ao fechar a aba)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Apelido para o leaderboard. Salvo <strong>só se você digitar um</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Esses itens existem apenas no seu dispositivo e nunca são enviados a nenhum servidor externo. Você pode apagá-los a qualquer momento nas configurações do navegador, e o jogo continuará funcionando normalmente.</p>
+
+      <h2><span class="num">2.</span>Apelidos e leaderboard</h2>
+      <p>Os apelidos que você digita ao usar o leaderboard são tratados assim:</p>
+      <ul>
+        <li>O apelido é codificado dentro de uma URL (<code>?duel=...</code>) que você compartilha de forma explícita.</li>
+        <li>Essa URL chega só a quem você escolher — o jogo não envia automaticamente para lugar nenhum.</li>
+        <li>Apelidos não ficam em nenhum servidor, banco de dados ou ferramenta de analytics usados pelo jogo.</li>
+        <li>Não use como apelido seu nome real, telefone, e-mail ou qualquer informação que possa identificar você de fato. A consequência dessa decisão é responsabilidade sua.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookies</h2>
+      <p>O Zoograms em si não coloca nenhum cookie.</p>
+      <p>Anúncios exibidos no jogo (veja §4) podem definir cookies pelo provedor de anúncios, conforme a política dele.</p>
+
+      <h2><span class="num">4.</span>Publicidade (Google AdSense)</h2>
+      <p>Este jogo exibe anúncios via Google AdSense. O Google é um controlador de dados independente que processa informações dos usuários para a entrega de anúncios. O operador do jogo não tem envolvimento direto no processamento de dados pelo Google.</p>
+      <p>Para detalhes sobre que informações o Google processa durante a entrega de anúncios e como, consulte:</p>
+      <ul>
+        <li>Política de anúncios do Google: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Gerenciar personalização de anúncios: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>Você pode gerenciar ou desativar a personalização de anúncios diretamente nas páginas do Google acima.</p>
+
+      <h2><span class="num">5.</span>Análise de visitantes</h2>
+      <p>O operador pode usar o Cloudflare Web Analytics para entender padrões básicos de tráfego (número de visitantes, visualizações de página, região aproximada). O Cloudflare Web Analytics tem estas características:</p>
+      <ul>
+        <li>Não usa cookies.</li>
+        <li>Não rastreia visitantes individualmente.</li>
+        <li>Não armazena endereços IP.</li>
+      </ul>
+      <p>Detalhes: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Crianças</h2>
+      <p>Este jogo oferece conteúdo pensado para ser seguro em todas as idades, mas não é especificamente direcionado a crianças menores de 14 anos. Recomenda-se supervisão de adultos quando crianças usarem o jogo. O jogo não coleta intencionalmente nenhuma informação pessoal de crianças.</p>
+
+      <h2><span class="num">7.</span>Seus direitos</h2>
+      <p>Como este jogo não tem nenhuma informação que identifique você, os direitos clássicos do titular de dados — "acesso", "correção", "exclusão" — funcionam de forma simples:</p>
+      <ul>
+        <li><strong>Acesso</strong>: a tabela do §1 acima contém tudo o que é armazenado.</li>
+        <li><strong>Exclusão</strong>: apagar os dados armazenados deste site nas configurações do navegador completa a ação imediatamente.</li>
+        <li><strong>Portabilidade</strong>: como todos os itens armazenados ficam no seu próprio dispositivo, o conceito de portabilidade não se aplica.</li>
+      </ul>
+      <p>Para direitos adicionais garantidos por leis como a LGPD do Brasil, a Lei de Proteção de Dados Pessoais da Coreia, o GDPR da UE e a CCPA da Califórnia, escreva para o contato do §10.</p>
+
+      <h2><span class="num">8.</span>Segurança</h2>
+      <p>Este site é servido por HTTPS, e toda comunicação é criptografada. Como o jogo não transmite informações do usuário a nenhum servidor externo, a via mais comum de vazamento de dados está estruturalmente bloqueada.</p>
+
+      <h2><span class="num">9.</span>Mudanças nesta política</h2>
+      <p>Se esta política mudar de forma substancial, a data de vigência desta página será atualizada e as mudanças serão indicadas claramente. Você pode se manter informado checando esta página periodicamente.</p>
+
+      <h2><span class="num">10.</span>Contato</h2>
+      <p>Para perguntas sobre esta política ou sobre como suas informações são tratadas, escreva para:</p>
+      <ul><li>E-mail: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Esta política foi escrita com referência aos princípios gerais da LGPD do Brasil, da Lei de Proteção de Dados Pessoais da Coreia, do GDPR da UE e da CCPA da Califórnia. Porém, como este jogo não coleta informações pessoais identificáveis, muitas disposições dessas leis não se aplicam estruturalmente.
+      </p>
+    </article>
+
+    <article class="fr-only">
+      <p class="doc-subtitle">Zoograms · Confidentialité</p>
+      <h1>Politique de confidentialité</h1>
+      <p class="doc-meta">Effective : <strong>8 mai 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Notre engagement</p>
+        <p>Zoograms ne collecte, ne stocke et ne transmet directement aucune information personnelle.</p>
+      </div>
+
+      <p>Ce document décrit précisément comment Zoograms ("le jeu") gère les informations de l'utilisateur — et ce qu'il ne fait pas. On utilise des phrases aussi courtes, claires et sans ambiguïté que possible.</p>
+
+      <h2><span class="num">1.</span>Liste complète des informations stockées</h2>
+      <p>Tout ce que ce jeu stocke sur ton appareil. Cette liste est complète — ce qui n'y figure pas n'est pas stocké.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Élément</th><th style="width:22%;">Emplacement</th><th>Contenu</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Langue d'affichage choisie (ex. <code>ko</code>, <code>en</code>, <code>fr</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>État du commutateur d'options avancées (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>Identifiants des puzzles vus dans la session actuelle (effacés à la fermeture de l'onglet)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Pseudo pour le classement. Stocké <strong>uniquement si tu en saisis un</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Ces éléments existent uniquement sur ton appareil et ne sont jamais transmis à un serveur externe. Tu peux les supprimer à tout moment depuis les paramètres du navigateur, et le jeu continuera à fonctionner normalement.</p>
+
+      <h2><span class="num">2.</span>Pseudos et partage de classement</h2>
+      <p>Les pseudos que tu saisis pour utiliser le classement sont gérés ainsi :</p>
+      <ul>
+        <li>Le pseudo est encodé dans une URL (<code>?duel=...</code>) que tu partages explicitement.</li>
+        <li>Cette URL n'est livrée qu'aux destinataires que tu choisis — le jeu ne l'envoie pas automatiquement ailleurs.</li>
+        <li>Les pseudos ne sont stockés sur aucun serveur, base de données ou outil d'analyse utilisés par le jeu.</li>
+        <li>Ne saisis pas comme pseudo ton vrai nom, ton numéro, ton e-mail ou toute information qui pourrait réellement t'identifier. Les conséquences de cette décision relèvent de ta seule responsabilité.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookies</h2>
+      <p>Zoograms en lui-même ne pose aucun cookie.</p>
+      <p>Les publicités diffusées dans le jeu (voir §4) peuvent définir des cookies via le fournisseur publicitaire, selon sa propre politique.</p>
+
+      <h2><span class="num">4.</span>Publicité (Google AdSense)</h2>
+      <p>Ce jeu affiche des publicités via Google AdSense. Google est un responsable de traitement distinct qui traite indépendamment les informations des utilisateurs pour la diffusion publicitaire. L'exploitant du jeu n'intervient pas directement dans le traitement de données par Google.</p>
+      <p>Pour les détails sur ce que Google traite pendant la diffusion publicitaire et comment, consulte :</p>
+      <ul>
+        <li>Politique publicitaire de Google : <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Gérer la personnalisation des annonces : <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>Tu peux gérer ou désactiver la publicité personnalisée directement depuis les pages Google ci-dessus.</p>
+
+      <h2><span class="num">5.</span>Analyse des visiteurs</h2>
+      <p>L'exploitant peut utiliser Cloudflare Web Analytics pour comprendre les schémas de trafic de base (nombre de visiteurs, pages vues, région approximative). Cloudflare Web Analytics présente les caractéristiques suivantes :</p>
+      <ul>
+        <li>Aucun cookie n'est utilisé.</li>
+        <li>Les visiteurs individuels ne sont pas suivis.</li>
+        <li>Les adresses IP ne sont pas stockées.</li>
+      </ul>
+      <p>Détails : <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Enfants</h2>
+      <p>Ce jeu propose un contenu conçu pour être sûr à tout âge, mais il n'est pas spécifiquement destiné aux enfants de moins de 14 ans. Une supervision parentale est recommandée lorsque des enfants l'utilisent. Le jeu ne collecte sciemment aucune information personnelle des enfants.</p>
+
+      <h2><span class="num">7.</span>Tes droits</h2>
+      <p>Comme ce jeu ne détient aucune information identifiante sur toi, les droits classiques de la personne concernée — "accès", "rectification", "suppression" — fonctionnent simplement :</p>
+      <ul>
+        <li><strong>Accès</strong> : le tableau du §1 ci-dessus contient tout ce qui est stocké.</li>
+        <li><strong>Suppression</strong> : supprimer les données stockées de ce site via les paramètres du navigateur achève l'action immédiatement.</li>
+        <li><strong>Portabilité</strong> : comme tous les éléments stockés résident sur ton propre appareil, la notion de portabilité ne s'applique pas.</li>
+      </ul>
+      <p>Pour les droits supplémentaires garantis par des lois comme le RGPD européen, la loi coréenne sur la protection des renseignements personnels ou le CCPA californien, contacte-nous à l'adresse du §10.</p>
+
+      <h2><span class="num">8.</span>Sécurité</h2>
+      <p>Ce site est servi via HTTPS, et toute communication est chiffrée. Comme le jeu ne transmet pas d'informations utilisateur à un serveur externe, la voie de fuite de données la plus courante est structurellement bloquée.</p>
+
+      <h2><span class="num">9.</span>Modifications de cette politique</h2>
+      <p>Si cette politique change de manière substantielle, la date de prise d'effet de cette page sera mise à jour et les modifications seront clairement indiquées. Tu peux rester informé en consultant cette page périodiquement.</p>
+
+      <h2><span class="num">10.</span>Contact</h2>
+      <p>Pour toute question sur cette politique ou sur le traitement de tes informations, écris à :</p>
+      <ul><li>E-mail : <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Cette politique a été rédigée en référence aux principes généraux du RGPD de l'UE, de la loi coréenne sur la protection des renseignements personnels et du CCPA californien. Cependant, comme ce jeu ne collecte aucune information personnelle identifiable, de nombreuses dispositions de ces lois ne s'appliquent pas structurellement.
+      </p>
+    </article>
+
+    <article class="de-only">
+      <p class="doc-subtitle">Zoograms · Datenschutz</p>
+      <h1>Datenschutzerklärung</h1>
+      <p class="doc-meta">Gültig ab: <strong>8. Mai 2026</strong> · Version <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Unser Versprechen</p>
+        <p>Zoograms erhebt, speichert oder übermittelt keinerlei personenbezogene Daten direkt.</p>
+      </div>
+
+      <p>Dieses Dokument beschreibt präzise, wie Zoograms ("das Spiel") Nutzerinformationen behandelt — und was es nicht tut. Wir verwenden möglichst kurze, klare und eindeutige Sätze.</p>
+
+      <h2><span class="num">1.</span>Vollständige Liste der gespeicherten Informationen</h2>
+      <p>Alles, was dieses Spiel auf deinem Gerät speichert. Diese Liste ist vollständig — was hier nicht steht, wird nicht gespeichert.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Eintrag</th><th style="width:22%;">Speicherort</th><th>Inhalt</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Gewählte Anzeigesprache (z. B. <code>ko</code>, <code>en</code>, <code>de</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>Status des erweiterten Optionsschalters (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>IDs der in der aktuellen Sitzung gesehenen Rätsel (verschwinden beim Schließen des Tabs)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Spitzname fürs Leaderboard. Wird <strong>nur gespeichert, wenn du selbst einen eingibst</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Diese Einträge existieren ausschließlich auf deinem Gerät und werden niemals an einen externen Server übertragen. Du kannst sie jederzeit über die Browsereinstellungen löschen, und das Spiel funktioniert danach weiterhin normal.</p>
+
+      <h2><span class="num">2.</span>Spitznamen und Leaderboard-Sharing</h2>
+      <p>Spitznamen, die du beim Leaderboard eingibst, werden so behandelt:</p>
+      <ul>
+        <li>Der Spitzname wird in einer URL (<code>?duel=...</code>) kodiert, die du selbst aktiv teilst.</li>
+        <li>Diese URL erreicht nur die von dir gewählten Empfänger — das Spiel sendet sie nicht automatisch irgendwohin.</li>
+        <li>Spitznamen werden auf keinem Server, in keiner Datenbank und in keinem Analytics-Tool des Spiels gespeichert.</li>
+        <li>Gib als Spitznamen nicht deinen echten Namen, Telefonnummer, E-Mail oder andere Informationen ein, die dich tatsächlich identifizieren könnten. Die Folgen dieser Entscheidung trägst du selbst.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookies</h2>
+      <p>Zoograms selbst setzt keinerlei Cookies.</p>
+      <p>Werbung, die im Spiel angezeigt wird (siehe §4), kann durch den Werbeanbieter gemäß dessen Richtlinie Cookies setzen.</p>
+
+      <h2><span class="num">4.</span>Werbung (Google AdSense)</h2>
+      <p>Dieses Spiel zeigt Werbung über Google AdSense an. Google ist ein eigenständig Verantwortlicher, der Nutzerinformationen für die Werbeauslieferung unabhängig verarbeitet. Der Spielbetreiber ist an Googles Datenverarbeitung nicht direkt beteiligt.</p>
+      <p>Details dazu, welche Informationen Google bei der Werbeauslieferung verarbeitet und wie:</p>
+      <ul>
+        <li>Google-Werberichtlinie: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Werbe-Personalisierung verwalten: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>Du kannst personalisierte Werbung direkt über die Google-Seiten oben verwalten oder ablehnen.</p>
+
+      <h2><span class="num">5.</span>Besucher-Analyse</h2>
+      <p>Der Betreiber kann Cloudflare Web Analytics nutzen, um grundlegende Traffic-Muster zu verstehen (Besucherzahl, Seitenaufrufe, ungefähre Region). Cloudflare Web Analytics hat folgende Eigenschaften:</p>
+      <ul>
+        <li>Keine Cookies werden verwendet.</li>
+        <li>Einzelne Besucher werden nicht verfolgt.</li>
+        <li>IP-Adressen werden nicht gespeichert.</li>
+      </ul>
+      <p>Details: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Kinder</h2>
+      <p>Dieses Spiel bietet Inhalte, die für alle Altersgruppen sicher sind, richtet sich aber nicht speziell an Kinder unter 14 Jahren. Bei Nutzung durch Kinder wird Aufsicht durch Erwachsene empfohlen. Das Spiel erhebt wissentlich keine personenbezogenen Daten von Kindern.</p>
+
+      <h2><span class="num">7.</span>Deine Rechte</h2>
+      <p>Da dieses Spiel keinerlei identifizierende Informationen über dich besitzt, funktionieren die klassischen Betroffenenrechte — "Auskunft", "Berichtigung", "Löschung" — in einfacher Form:</p>
+      <ul>
+        <li><strong>Auskunft</strong>: Die Tabelle in §1 oben ist alles, was gespeichert wird.</li>
+        <li><strong>Löschung</strong>: Das Löschen der gespeicherten Daten dieser Seite über die Browsereinstellungen schließt den Vorgang sofort ab.</li>
+        <li><strong>Übertragbarkeit</strong>: Da alle gespeicherten Einträge auf deinem eigenen Gerät liegen, greift das Konzept der Datenübertragbarkeit nicht.</li>
+      </ul>
+      <p>Für zusätzliche Rechte aus Gesetzen wie der EU-DSGVO, dem koreanischen Datenschutzgesetz (PIPA) oder dem kalifornischen CCPA wende dich bitte an den Kontakt in §10.</p>
+
+      <h2><span class="num">8.</span>Sicherheit</h2>
+      <p>Diese Seite wird über HTTPS ausgeliefert, jegliche Kommunikation ist verschlüsselt. Da das Spiel keine Nutzerinformationen an externe Server überträgt, ist der häufigste Datenleck-Pfad strukturell blockiert.</p>
+
+      <h2><span class="num">9.</span>Änderungen dieser Erklärung</h2>
+      <p>Bei wesentlichen Änderungen wird das Inkrafttretedatum auf dieser Seite aktualisiert und die Änderungen werden klar gekennzeichnet. Du kannst dich auf dem Laufenden halten, indem du diese Seite regelmäßig besuchst.</p>
+
+      <h2><span class="num">10.</span>Kontakt</h2>
+      <p>Bei Fragen zu dieser Erklärung oder zur Verarbeitung deiner Informationen schreib bitte an:</p>
+      <ul><li>E-Mail: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Diese Erklärung wurde unter Bezugnahme auf die allgemeinen Prinzipien der EU-DSGVO, des koreanischen Datenschutzgesetzes (PIPA) und des kalifornischen CCPA verfasst. Da dieses Spiel jedoch keine identifizierbaren personenbezogenen Daten erhebt, greifen viele Bestimmungen dieser Gesetze strukturell nicht.
+      </p>
+    </article>
+
+    <article class="ru-only">
+      <p class="doc-subtitle">Zoograms · Конфиденциальность</p>
+      <h1>Политика конфиденциальности</h1>
+      <p class="doc-meta">Действует с: <strong>8 мая 2026 г.</strong> · Версия <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">Наше обещание</p>
+        <p>Zoograms напрямую не собирает, не хранит и не передаёт никакой персональной информации.</p>
+      </div>
+
+      <p>Этот документ точно описывает, как Zoograms («игра») обращается с информацией пользователя — и чего она не делает. Мы используем максимально короткие, ясные и однозначные формулировки.</p>
+
+      <h2><span class="num">1.</span>Полный список хранимой информации</h2>
+      <p>Всё, что эта игра хранит на твоём устройстве. Список полный — то, чего здесь нет, не хранится.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">Запись</th><th style="width:22%;">Где хранится</th><th>Содержимое</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>Выбранный язык интерфейса (например, <code>ko</code>, <code>en</code>, <code>ru</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>Состояние переключателя продвинутых опций (true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>Идентификаторы головоломок текущей сессии (исчезают при закрытии вкладки)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>Ник для таблицы дуэлей. Сохраняется <strong>только если ты сам ввёл его</strong>.</td></tr>
+        </tbody>
+      </table></div>
+      <p>Эти записи существуют только на твоём устройстве и никогда не передаются на внешние серверы. Ты можешь удалить их в любой момент через настройки браузера, и игра продолжит работать нормально.</p>
+
+      <h2><span class="num">2.</span>Ники и таблица дуэлей</h2>
+      <p>Ники, которые ты вводишь для использования таблицы дуэлей, обрабатываются так:</p>
+      <ul>
+        <li>Ник кодируется внутри URL (<code>?duel=...</code>), которую ты явно делишь.</li>
+        <li>Эта URL доставляется только тем получателям, которых ты выбрал — игра сама никуда её не отправляет.</li>
+        <li>Ники не хранятся ни на одном сервере, в базе данных или инструменте аналитики, используемых игрой.</li>
+        <li>Не вводи в качестве ника настоящее имя, телефон, email или иную информацию, которая может реально идентифицировать тебя. Последствия такого решения — твоя ответственность.</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Файлы cookie</h2>
+      <p>Сам Zoograms никаких cookie не устанавливает.</p>
+      <p>Реклама, отображаемая в игре (см. §4), может устанавливать cookie через рекламного провайдера согласно его политике.</p>
+
+      <h2><span class="num">4.</span>Реклама (Google AdSense)</h2>
+      <p>Эта игра показывает рекламу через Google AdSense. Google является самостоятельным контролёром данных, который независимо обрабатывает информацию пользователей для показа рекламы. Оператор игры не участвует напрямую в обработке данных Google.</p>
+      <p>Детали о том, какую информацию Google обрабатывает при показе рекламы и как именно, см.:</p>
+      <ul>
+        <li>Рекламная политика Google: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>Управление персонализацией рекламы: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>Ты можешь управлять или отключить персонализированную рекламу прямо на страницах Google выше.</p>
+
+      <h2><span class="num">5.</span>Аналитика посетителей</h2>
+      <p>Оператор может использовать Cloudflare Web Analytics для понимания базовых паттернов трафика (число посетителей, просмотры страниц, приблизительный регион). Cloudflare Web Analytics обладает следующими свойствами:</p>
+      <ul>
+        <li>Cookie не используются.</li>
+        <li>Отдельные посетители не отслеживаются.</li>
+        <li>IP-адреса не сохраняются.</li>
+      </ul>
+      <p>Подробнее: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>Дети</h2>
+      <p>Эта игра предлагает контент, разработанный быть безопасным для всех возрастов, но не предназначена специально для детей младше 14 лет. При использовании детьми рекомендуется присмотр взрослого. Игра намеренно не собирает никакой персональной информации от детей.</p>
+
+      <h2><span class="num">7.</span>Твои права</h2>
+      <p>Поскольку эта игра не хранит никакой идентифицирующей информации о тебе, классические права субъекта данных — «доступ», «исправление», «удаление» — работают в простой форме:</p>
+      <ul>
+        <li><strong>Доступ</strong>: таблица в §1 выше — это всё, что хранится.</li>
+        <li><strong>Удаление</strong>: удаление данных этого сайта через настройки браузера моментально завершает действие.</li>
+        <li><strong>Переносимость</strong>: поскольку все записи находятся на твоём собственном устройстве, концепция переносимости не применяется.</li>
+      </ul>
+      <p>По дополнительным правам, гарантированным такими законами, как корейский закон о защите персональных данных, GDPR ЕС или CCPA Калифорнии, обращайся по контакту в §10.</p>
+
+      <h2><span class="num">8.</span>Безопасность</h2>
+      <p>Сайт работает по HTTPS, вся коммуникация шифруется. Поскольку игра не передаёт пользовательскую информацию на внешние серверы, наиболее распространённый канал утечки данных структурно заблокирован.</p>
+
+      <h2><span class="num">9.</span>Изменения политики</h2>
+      <p>При существенных изменениях политики дата вступления в силу на этой странице будет обновлена, а изменения чётко обозначены. Ты можешь оставаться в курсе, заглядывая сюда периодически.</p>
+
+      <h2><span class="num">10.</span>Контакт</h2>
+      <p>По вопросам о политике или обработке твоей информации пиши на:</p>
+      <ul><li>Email: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        Эта политика составлена со ссылкой на общие принципы корейского закона о защите персональных данных, GDPR ЕС и CCPA Калифорнии. Однако, поскольку игра не собирает идентифицируемой персональной информации, многие положения этих законов структурно неприменимы.
+      </p>
+    </article>
+
+    <article class="zh-only">
+      <p class="doc-subtitle">Zoograms · 隐私</p>
+      <h1>隐私政策</h1>
+      <p class="doc-meta">生效日期: <strong>2026 年 5 月 8 日</strong> · 版本 <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">一句承诺</p>
+        <p>Zoograms 不直接收集、存储或传输任何个人信息。</p>
+      </div>
+
+      <p>本文档准确说明 Zoograms("本游戏")如何处理用户信息——以及不做什么。我们尽量使用简短、清晰、毫无歧义的句子。</p>
+
+      <h2><span class="num">1.</span>已存储信息的完整清单</h2>
+      <p>本游戏在你的设备上存储的所有项目。此清单是完整的——这里没列出的不会被存储。</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">项目</th><th style="width:22%;">存储位置</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>所选显示语言(例如 <code>ko</code>、<code>en</code>、<code>zh</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>高级选项开关状态(true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>当前会话中看过的谜题标识(关闭标签页即消失)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>排行榜昵称。<strong>仅在你主动输入时</strong>才会保存。</td></tr>
+        </tbody>
+      </table></div>
+      <p>这些项目仅存在于你的设备上,从不传送到任何外部服务器。你可以随时通过浏览器设置删除这些数据,删除后游戏依然正常运行。</p>
+
+      <h2><span class="num">2.</span>昵称与排行榜分享</h2>
+      <p>使用排行榜功能时你输入的昵称按以下方式处理:</p>
+      <ul>
+        <li>昵称会编码到你主动分享的 URL(<code>?duel=...</code>)中。</li>
+        <li>该 URL 仅送达你选择的接收方——游戏不会自动发送到任何地方。</li>
+        <li>昵称不存储在游戏使用的任何服务器、数据库或分析工具中。</li>
+        <li>请勿在昵称中输入真实姓名、电话、邮箱或任何能真正识别你身份的信息。该决定的后果由你自负。</li>
+      </ul>
+
+      <h2><span class="num">3.</span>Cookie</h2>
+      <p>Zoograms 本身不设置任何 cookie。</p>
+      <p>本游戏中投放的广告(见 §4)可能由广告提供方设置 cookie,具体遵循其各自的政策。</p>
+
+      <h2><span class="num">4.</span>广告(Google AdSense)</h2>
+      <p>本游戏通过 Google AdSense 显示广告。Google 是独立的数据控制者,为广告投放独立处理用户信息。游戏运营方不直接参与 Google 的数据处理。</p>
+      <p>关于 Google 在广告投放中处理哪些信息及如何处理的细节,请参见:</p>
+      <ul>
+        <li>Google 广告政策: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>管理广告个性化: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>你可以直接通过上述 Google 页面管理或拒绝个性化广告。</p>
+
+      <h2><span class="num">5.</span>访客分析</h2>
+      <p>运营方可能使用 Cloudflare Web Analytics 来了解基本流量模式(访客数、页面浏览量、大致地区)。Cloudflare Web Analytics 具有以下特性:</p>
+      <ul>
+        <li>不使用 cookie。</li>
+        <li>不对访客进行个体追踪。</li>
+        <li>不存储 IP 地址。</li>
+      </ul>
+      <p>详情: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>儿童</h2>
+      <p>本游戏的内容设计上对各年龄段都安全,但并非专门面向 14 岁以下儿童。儿童使用本游戏时建议有成人监督。本游戏不会刻意收集儿童的任何个人信息。</p>
+
+      <h2><span class="num">7.</span>你的权利</h2>
+      <p>由于本游戏不持有关于你的任何识别信息,经典的数据主体权利——"访问"、"更正"、"删除"——以简单形式生效:</p>
+      <ul>
+        <li><strong>访问</strong>: 上方 §1 的表格就是全部已存储内容。</li>
+        <li><strong>删除</strong>: 通过浏览器设置删除本站的存储数据即时完成。</li>
+        <li><strong>可携</strong>: 由于所有存储项均位于你自己的设备上,可携性概念不适用。</li>
+      </ul>
+      <p>关于韩国《个人信息保护法》、欧盟 GDPR、加州 CCPA 等法律所保障的额外权利,请通过下方 §10 的联系方式咨询。</p>
+
+      <h2><span class="num">8.</span>安全</h2>
+      <p>本站通过 HTTPS 提供服务,所有通信均经加密。由于游戏不向任何外部服务器传输用户信息,最常见的数据泄露路径在结构上被阻断。</p>
+
+      <h2><span class="num">9.</span>政策变更</h2>
+      <p>若本政策实质性变更,本页生效日期将更新,变更内容会清晰标示。你可定期查看本页保持知悉。</p>
+
+      <h2><span class="num">10.</span>联系</h2>
+      <p>关于本政策或你的信息处理的疑问,请发送至:</p>
+      <ul><li>邮箱: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        本政策参照韩国《个人信息保护法》、欧盟 GDPR、加州 CCPA 的一般原则起草。但由于本游戏不收集可识别的个人信息,上述法律的许多条款在结构上不适用。
+      </p>
+    </article>
+
+    <article class="ja-only">
+      <p class="doc-subtitle">Zoograms · プライバシー</p>
+      <h1>プライバシーポリシー</h1>
+      <p class="doc-meta">施行日: <strong>2026 年 5 月 8 日</strong> · バージョン <strong>1.0</strong></p>
+
+      <div class="promise">
+        <p class="promise-label">私たちの約束</p>
+        <p>Zoograms はユーザーの個人情報を一切直接収集・保存・送信しません。</p>
+      </div>
+
+      <p>本ドキュメントは、Zoograms(「このゲーム」)がユーザー情報をどのように扱うか — そして何をしないか — を正確に記述します。可能な限り短く、明確で、曖昧さのない文を使います。</p>
+
+      <h2><span class="num">1.</span>保存される情報の全リスト</h2>
+      <p>このゲームがあなたのデバイスに保存するすべての項目です。このリストは完全です — ここに無いものは保存されません。</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:28%;">項目</th><th style="width:22%;">保存場所</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>zoograms.lang</code></td><td>localStorage</td><td>選択した表示言語(例: <code>ko</code>、<code>en</code>、<code>ja</code>)</td></tr>
+          <tr><td><code>zoograms.useV9Retry</code></td><td>localStorage</td><td>上級オプションのトグル状態(true/false)</td></tr>
+          <tr><td><code>zoograms.recentSeeds</code></td><td>sessionStorage</td><td>現在のセッションで見たパズルの識別子(タブを閉じると消去)</td></tr>
+          <tr><td><code>zoograms.duelIdentity</code></td><td>localStorage</td><td>リーダーボード用ニックネーム。<strong>あなたが自分で入力した場合のみ</strong>保存。</td></tr>
+        </tbody>
+      </table></div>
+      <p>これらの項目はあなたのデバイスのみに存在し、いかなる外部サーバーにも送信されません。ブラウザ設定からいつでも削除でき、削除後もゲームは正常に動作します。</p>
+
+      <h2><span class="num">2.</span>ニックネームとリーダーボード共有</h2>
+      <p>リーダーボード機能で入力するニックネームは次のように扱われます:</p>
+      <ul>
+        <li>ニックネームは、あなたが明示的に共有する URL(<code>?duel=...</code>)の一部としてエンコードされます。</li>
+        <li>その URL はあなたが選んだ相手にのみ届きます — ゲームが自動でどこかに送ることはありません。</li>
+        <li>ニックネームはゲームが使用するいかなるサーバー、データベース、分析ツールにも保存されません。</li>
+        <li>ニックネームに本名、電話番号、メール、その他あなたを実際に特定できる情報を入力しないでください。その判断の結果はあなた自身が責任を負います。</li>
+      </ul>
+
+      <h2><span class="num">3.</span>クッキー</h2>
+      <p>Zoograms 自体は一切のクッキーを設定しません。</p>
+      <p>このゲームに掲載される広告(下記 §4 参照)は、広告プロバイダーによってクッキーが設定される場合があり、これは当該プロバイダーのポリシーに従います。</p>
+
+      <h2><span class="num">4.</span>広告(Google AdSense)</h2>
+      <p>このゲームは Google AdSense を通じて広告を表示します。Google は広告配信に関してユーザー情報を独立して処理する別個のデータ管理者(controller)です。ゲーム運営者は Google のデータ処理に直接関与していません。</p>
+      <p>Google が広告配信過程でどのような情報を、どのように処理するかの詳細は次をご参照ください:</p>
+      <ul>
+        <li>Google 広告ポリシー: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer">policies.google.com/technologies/ads</a></li>
+        <li>広告のパーソナライズ管理: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">adssettings.google.com</a></li>
+      </ul>
+      <p>上記 Google ページから、パーソナライズ広告を直接管理またはオプトアウトできます。</p>
+
+      <h2><span class="num">5.</span>訪問者分析</h2>
+      <p>運営者はサイトの基本的なトラフィックパターン(訪問者数、ページビュー、おおよその地域)を把握するため、Cloudflare Web Analytics を使用することがあります。Cloudflare Web Analytics には次の特性があります:</p>
+      <ul>
+        <li>クッキーを使用しません。</li>
+        <li>個別の訪問者を追跡しません。</li>
+        <li>IP アドレスを保存しません。</li>
+      </ul>
+      <p>詳細: <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener noreferrer">cloudflare.com/web-analytics</a></p>
+
+      <h2><span class="num">6.</span>子ども</h2>
+      <p>このゲームは全年齢に安全な内容を意図して設計されていますが、14 歳未満の子どもを特に対象としたサービスではありません。子どもがこのゲームを使用する際は、保護者の適切な監督を推奨します。このゲームは子どもから意図的に個人情報を収集しません。</p>
+
+      <h2><span class="num">7.</span>あなたの権利</h2>
+      <p>このゲームはあなたに関するいかなる識別情報も保持しないため、伝統的なデータ主体の権利 — 「アクセス」「訂正」「削除」 — はシンプルな形で機能します:</p>
+      <ul>
+        <li><strong>アクセス</strong>: 上記 §1 の表が保存されているすべての項目です。</li>
+        <li><strong>削除</strong>: ブラウザ設定からこのサイトの保存データを削除すれば即時完了します。</li>
+        <li><strong>移転</strong>: 保存項目はすべてあなたのデバイス上にあるため、移転の概念は適用されません。</li>
+      </ul>
+      <p>韓国「個人情報保護法」、EU GDPR、カリフォルニア CCPA などの法律が保証する追加の権利については、下記 §10 の連絡先までお問い合わせください。</p>
+
+      <h2><span class="num">8.</span>セキュリティ</h2>
+      <p>このサイトは HTTPS で提供され、すべての通信は暗号化されます。ゲームはユーザー情報を外部サーバーに送信しないため、最も一般的なデータ漏洩経路は構造的に遮断されています。</p>
+
+      <h2><span class="num">9.</span>本ポリシーの変更</h2>
+      <p>本ポリシーが実質的に変更される場合、このページの施行日が更新され、変更内容が明示されます。本ページを定期的に確認することで最新の内容を知ることができます。</p>
+
+      <h2><span class="num">10.</span>お問い合わせ</h2>
+      <p>本ポリシーまたはあなたの情報の取扱いについてのお問い合わせは、次へお送りください:</p>
+      <ul><li>メール: <code>contact@zoograms.com</code></li></ul>
+
+      <hr class="rule" />
+      <p style="font-size: 13px; color: var(--ink-tertiary); font-style: italic;">
+        本ポリシーは韓国「個人情報保護法」、EU GDPR、カリフォルニア CCPA の一般原則を参考に作成されました。ただし、このゲームは識別可能な個人情報を収集しないため、上記法律の多くの条項は構造的に適用されません。
+      </p>
+    </article>
+
+    <nav class="footer-nav">
+      <a href="/">
+        <span class="ko-only">← 게임으로 돌아가기</span>
+        <span class="en-only">← Back to game</span>
+        <span class="es-only">← Volver al juego</span>
+        <span class="pt-only">← Voltar ao jogo</span>
+        <span class="fr-only">← Retour au jeu</span>
+        <span class="de-only">← Zurück zum Spiel</span>
+        <span class="ru-only">← Вернуться в игру</span>
+        <span class="zh-only">← 返回游戏</span>
+        <span class="ja-only">← ゲームへ戻る</span>
+      </a>
+      <a href="/terms.html">
+        <span class="ko-only">이용약관</span>
+        <span class="en-only">Terms</span>
+        <span class="es-only">Términos</span>
+        <span class="pt-only">Termos</span>
+        <span class="fr-only">Conditions</span>
+        <span class="de-only">Nutzungsbedingungen</span>
+        <span class="ru-only">Условия</span>
+        <span class="zh-only">服务条款</span>
+        <span class="ja-only">利用規約</span>
+      </a>
+    </nav>
+
+  </div>
+
+<script>
+(function() {
+  'use strict';
+
+  var SUPPORTED = ['ko','en','es','pt','fr','de','ru','zh','ja'];
+
+  var TITLE_BY_LANG = {
+    ko: '개인정보 처리방침',
+    en: 'Privacy Policy',
+    es: 'Política de privacidad',
+    pt: 'Política de privacidade',
+    fr: 'Politique de confidentialité',
+    de: 'Datenschutzerklärung',
+    ru: 'Политика конфиденциальности',
+    zh: '隐私政策',
+    ja: 'プライバシーポリシー'
+  };
+
+  var HTML_LANG_BY_LANG = {
+    ko: 'ko', en: 'en', es: 'es', pt: 'pt-BR',
+    fr: 'fr', de: 'de', ru: 'ru', zh: 'zh-CN', ja: 'ja'
+  };
+
+  function detectLang() {
+    try {
+      var stored = localStorage.getItem('zoograms.lang');
+      if (SUPPORTED.indexOf(stored) !== -1) return stored;
+    } catch (e) {}
+    var hash = (location.hash || '').replace('#', '');
+    if (SUPPORTED.indexOf(hash) !== -1) return hash;
+    var nav = (navigator.language || '').toLowerCase().split('-')[0];
+    if (SUPPORTED.indexOf(nav) !== -1) return nav;
+    return 'en';
+  }
+
+  window.setLang = function(lang) {
+    if (SUPPORTED.indexOf(lang) === -1) return;
+    document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', HTML_LANG_BY_LANG[lang] || lang);
+    document.title = TITLE_BY_LANG[lang] + ' — Zoograms';
+
+    SUPPORTED.forEach(function(l) {
+      var btn = document.getElementById('btn-' + l);
+      if (btn) btn.setAttribute('aria-pressed', String(l === lang));
+    });
+
+    try { localStorage.setItem('zoograms.lang', lang); } catch (e) {}
+  };
+
+  // Init
+  window.setLang(detectLang());
+
+  // Cross-tab/window sync — if main game switches language, follow it.
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'zoograms.lang') {
+      if (SUPPORTED.indexOf(e.newValue) !== -1) {
+        window.setLang(e.newValue);
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
