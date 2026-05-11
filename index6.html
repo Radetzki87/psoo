@@ -5905,6 +5905,30 @@ const STRINGS = {
     zh: '💎 大师 V2 动态采样中',
     ja: '💎 マスター V2 動的サンプリング中',
   },
+  // SOTA EXPANSION (May 2026): meaningful expert generation feedback.
+  // Shows the current best candidate score vs the target during 24s search.
+  'loading.master.bestScore': {
+    ko: '최고 점수 {best}/{required} (목표 {required}↑)',
+    en: 'Best score {best}/{required} (target {required}+)',
+    es: 'Mejor puntaje {best}/{required} (objetivo {required}+)',
+    pt: 'Melhor pontuação {best}/{required} (alvo {required}+)',
+    fr: 'Meilleur score {best}/{required} (cible {required}+)',
+    de: 'Bester Score {best}/{required} (Ziel {required}+)',
+    ru: 'Лучший счёт {best}/{required} (цель {required}+)',
+    zh: '最高分 {best}/{required} (目标 {required}+)',
+    ja: '最高点 {best}/{required} (目標 {required}+)',
+  },
+  'loading.master.searching': {
+    ko: '추론 깊이 + 공리폭 ≥ {required} 을 만족하는 퍼즐 탐색 중…',
+    en: 'Searching for depth + axiom-breadth ≥ {required}…',
+    es: 'Buscando puzzle con profundidad + axiomas ≥ {required}…',
+    pt: 'Buscando puzzle com profundidade + axiomas ≥ {required}…',
+    fr: 'Recherche d\'un puzzle profondeur + axiomes ≥ {required}…',
+    de: 'Suche Puzzle mit Tiefe + Axiomen ≥ {required}…',
+    ru: 'Поиск головоломки с глубиной + аксиомами ≥ {required}…',
+    zh: '搜索深度 + 公理数 ≥ {required} 的谜题…',
+    ja: '推論深度 + 公理幅 ≥ {required} のパズルを探索中…',
+  },
   'loading.phase.adjust': {
     ko: '⚖ 난이도 균형 조정 중',
     en: '⚖ Balancing difficulty',
@@ -16196,19 +16220,39 @@ const NEW_PRESETS = [
   },
   { id: 'hard6', label: '상급 6×6', glyph: '🏔', gridSize: 6, row: 2, col: 3, tierBand: 'expert',
     generator: 'v13',
-    v13Params: { difficulty: 'Medium', qualityTier: 'expert', axiomBreadthV12Min: 6 },
+    // SOTA TUNING (May 2026): 6-second generation budget per user request.
+    // Tighter than default Medium tier (~10-15s) — accepts the best result
+    // found within the budget rather than holding out for ideal scores.
+    v13Params: { difficulty: 'Medium', qualityTier: 'expert', axiomBreadthV12Min: 6,
+                 totalBudgetMs: 6000, perAttemptBudgetMs: 1500 },
   },
   { id: 'hard7', label: '상급 7×7', glyph: '⛰', gridSize: 7, row: 2, col: 4, tierBand: 'expert',
     generator: 'v13',
-    v13Params: { difficulty: 'Medium', qualityTier: 'expert', axiomBreadthV12Min: 6 },
+    v13Params: { difficulty: 'Medium', qualityTier: 'expert', axiomBreadthV12Min: 6,
+                 totalBudgetMs: 6000, perAttemptBudgetMs: 1500 },
   },
 
   // ─── Row 3: highest tier (only for 6×6 and 7×7) ────────────────────────
+  // SOTA UNIFICATION (May 2026):
+  //   Both expert tiers now use Master*V2 (V2 sampling pipeline) for
+  //   structural consistency. Previously expert7 used Master7 (V1) while
+  //   expert6 used Master6V2 — different engines, different quality bars.
+  //
+  //   Each is given a 24-second budget. Within that window the V2 pipeline
+  //   keeps sampling configurations (k/fixed/rules/forbid ranges) and
+  //   accepts the first puzzle meeting depth ≥ 4 AND axiomBreadth ≥ 6.
+  //   If no candidate meets the bar, the best-of-tried is returned, with
+  //   `fallbackPresetId` triggering automatic re-activation to the
+  //   "상급" preset for a graceful degradation path.
   { id: 'expert6', label: '전문가 6×6', glyph: '💎', gridSize: 6, row: 3, col: 3, tierBand: 'master-v2',
     generator: 'master', masterLevel: 'Master6V2',
+    masterBudgetMs: 24000,
+    fallbackPresetId: 'hard6',
   },
   { id: 'expert7', label: '전문가 7×7', glyph: '💎', gridSize: 7, row: 3, col: 4, tierBand: 'master-v2',
-    generator: 'master', masterLevel: 'Master7',
+    generator: 'master', masterLevel: 'Master7V2',    // ← was 'Master7' (V1); now unified with V2 pipeline
+    masterBudgetMs: 24000,
+    fallbackPresetId: 'hard7',
   },
 ];
 
@@ -27047,6 +27091,12 @@ function LoadingOverlay({ show, level, progress, presetLabel }) {
     currentMaxSolutions: Number.isFinite(progress.currentMaxSolutions) ? progress.currentMaxSolutions : 1,
     candidatesFound: Number.isFinite(progress.candidatesFound) ? progress.candidatesFound : null,
     subProgress: progress.subProgress || null,
+    // SOTA EXPANSION (May 2026): master V2 expert generation surfaces
+    // bestScore (depth + axiomBreadth sum of best candidate so far) and
+    // requiredScore (target threshold, typically 10 = 4+6). LoadingOverlay
+    // shows these so the user has meaningful feedback during 24s master search.
+    bestScore: Number.isFinite(progress.bestScore) ? progress.bestScore : null,
+    requiredScore: Number.isFinite(progress.requiredScore) ? progress.requiredScore : null,
   } : null;
 
   const pct = safeProgress
@@ -27200,6 +27250,79 @@ function LoadingOverlay({ show, level, progress, presetLabel }) {
                   width: `${subPct}%`, height: '100%',
                   background: 'var(--ink-tertiary)',
                   transition: 'width 200ms',
+                }} />
+              </div>
+            </div>
+          )}
+
+          {/* SOTA EXPANSION (May 2026): Master expert search panel.
+              Only shows when V2 sampling is in progress AND we have score
+              metadata. Replaces the "fast-flickering uninformative" feedback
+              with concrete quality signals:
+                • "최고 점수 X/10 (목표 10↑)" — best candidate score so far
+                • Stable progress bar normalized to required threshold
+              Renders BEFORE the uniqueness hint so it's the primary
+              attention point during expert generation. */}
+          {safeProgress
+            && safeProgress.phase === 'master-v2-sample'
+            && safeProgress.requiredScore
+            && safeProgress.bestScore !== null && (
+            <div style={{
+              marginTop: 16,
+              width: 360,
+              padding: '12px 16px',
+              background: 'rgba(184, 134, 11, 0.06)',
+              border: '1px solid rgba(184, 134, 11, 0.22)',
+              borderRadius: 4,
+              animation: 'fadeInUp 240ms',
+            }}>
+              <div style={{
+                fontSize: 12,
+                color: 'var(--ink-secondary)',
+                letterSpacing: '0.04em',
+                marginBottom: 8,
+                lineHeight: 1.4,
+              }} className="font-body">
+                {t('loading.master.searching', { required: safeProgress.requiredScore })}
+              </div>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                marginBottom: 4,
+              }} className="font-mono">
+                <span style={{
+                  fontSize: 11, color: 'var(--ink-tertiary)',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                }}>
+                  {t('loading.master.bestScore', {
+                    best: safeProgress.bestScore,
+                    required: safeProgress.requiredScore,
+                  })}
+                </span>
+                {/* Quality indicator: green if best ≥ required, gold if approaching */}
+                <span style={{
+                  fontSize: 14,
+                  color: safeProgress.bestScore >= safeProgress.requiredScore
+                    ? '#15803D'
+                    : (safeProgress.bestScore >= safeProgress.requiredScore * 0.7
+                       ? 'var(--accent-gold)'
+                       : 'var(--ink-tertiary)'),
+                  fontWeight: 600,
+                }}>
+                  {safeProgress.bestScore >= safeProgress.requiredScore ? '✓' : '◦'}
+                </span>
+              </div>
+              {/* Score progress bar — normalized to required threshold */}
+              <div style={{
+                width: '100%', height: 3, background: 'var(--border-soft)',
+                borderRadius: 1.5, overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${Math.min(100, Math.round((safeProgress.bestScore / Math.max(1, safeProgress.requiredScore)) * 100))}%`,
+                  height: '100%',
+                  background: safeProgress.bestScore >= safeProgress.requiredScore
+                    ? '#15803D'
+                    : 'var(--accent-gold)',
+                  transition: 'width 240ms ease-out',
                 }} />
               </div>
             </div>
@@ -32948,6 +33071,11 @@ function ZoogramsApp() {
     //   the setTimeout fires. To avoid this race, allow callers to pass the
     //   customConfig EXPLICITLY via opts — it takes precedence over state.
     const explicitCustomConfig = opts && opts.customConfig;
+    // SOTA EXPANSION (May 2026): per-call master budget override. Lets
+    // presets enforce a tighter budget than DIFFICULTY_CONFIGS default,
+    // e.g. 전문가 6×6/7×7 are capped at 24000ms even though Master*V2
+    // baselines are 90-120s. Applied to the V2 outer attempts loop.
+    const masterBudgetOverride = opts && opts.masterBudgetOverride;
     dispatch({
       type: 'GENERATION_PROGRESS',
       progress: {
@@ -33057,13 +33185,20 @@ function ZoogramsApp() {
         // 단, k가 range로 지정되었으므로 매 outer attempt마다 customConfig sample.
         // criteria 통과시 즉시 채택. 미달시 best-of 추적, 다음 sample 시도.
         // "찾을 때까지 탐색" — 최대 30회 (또는 budget 소진까지).
+        //
+        // SOTA REFINEMENT (May 2026): masterBudgetOverride support.
+        //   Preset-driven activations (e.g. 전문가 6×6/7×7) can shrink the
+        //   budget to ~24s. Each attempt's budget scales proportionally so
+        //   even with a tight outer cap we still get enough internal attempts.
         const baseConfig = DIFFICULTY_CONFIGS[effectiveLevel];
         const ranges = baseConfig.masterV2Ranges;
         const minDepth = (baseConfig.masterV2MinDepth != null) ? baseConfig.masterV2MinDepth : 4;
         const minAxiomBreadth = (baseConfig.masterV2MinAxiomBreadth != null) ? baseConfig.masterV2MinAxiomBreadth : 6;
         const overallStart = performance.now();
-        const overallBudgetMs = baseConfig.totalBudgetMs || 90000;
-        const perAttemptBudgetMs = Math.min(20000, Math.round(overallBudgetMs / 5));
+        const overallBudgetMs = masterBudgetOverride || (baseConfig.totalBudgetMs || 90000);
+        // perAttemptBudgetMs scales with overall budget; cap at 20s, floor at 2s
+        // so a 24s outer budget yields ~8s per attempt (still 3 effective tries).
+        const perAttemptBudgetMs = Math.max(2000, Math.min(20000, Math.round(overallBudgetMs / 3)));
 
         const sampleInRange = ([lo, hi]) => lo + Math.floor(Math.random() * (hi - lo + 1));
         const sampleCfgFromRange = () => {
@@ -33094,10 +33229,14 @@ function ZoogramsApp() {
         while (attemptIdx < maxAttempts && (performance.now() - overallStart) < overallBudgetMs) {
           const sampledCfg = sampleCfgFromRange();
           attemptIdx++;
+          // SOTA progress dispatch (May 2026): include bestScore so LoadingOverlay
+          // can show "최고 점수: X" — gives the user meaningful feedback during
+          // the long master search instead of just spinning attempt counters.
           _throttledDispatch({
             phase: 'master-v2-sample',
             attempts: attemptIdx,
-            budget: maxAttempts,
+            maxRetries: maxAttempts,
+            budget: overallBudgetMs,
             elapsed: performance.now() - overallStart,
             currentMaxSolutions: 1,
             level: effectiveLevel,
@@ -33105,6 +33244,8 @@ function ZoogramsApp() {
             sampledFixed: sampledCfg.fixedTileCount,
             sampledRules: sampledCfg.ruleCount,
             sampledForbid: sampledCfg.forbiddenCount,
+            bestScore: bestStrict ? scoreOfCandidate(bestStrict) : 0,
+            requiredScore: minDepth + minAxiomBreadth,   // target sum (e.g. 10)
           });
           let candidate;
           try {
@@ -33155,9 +33296,14 @@ function ZoogramsApp() {
         dispatch({ type: 'PUZZLE_READY', puzzle: p, level });
       }
       else dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(effectiveLevel), level });
+      // SOTA (May 2026): return puzzle so caller can check quality + apply fallback.
+      // p===null means generation failed and we loaded a Sprout fallback — callers
+      // (e.g. expert preset master branch) detect this to trigger preset fallback.
+      return p || null;
     } catch (e) {
       console.error('generate failed', e);
       dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(effectiveLevel), level });
+      return null;
     } finally {
       // V12.37: Daily PRNG 항상 복구 — 다음 generation은 native Math.random 사용
       if (isDaily) deactivateDailyPrng();
@@ -33265,9 +33411,48 @@ function ZoogramsApp() {
       return;
     }
     if (preset.generator === 'master') {
-      // Use existing master tier — set level + generate
+      // SOTA (May 2026): unified expert preset pipeline.
+      //   • masterBudgetMs: tighter budget override (default 24s for experts)
+      //   • fallbackPresetId: graceful degradation if quality threshold missed
+      //
+      // Flow:
+      //   1. Set preset label/id + start generation
+      //   2. Call generate with budget override; await result
+      //   3. Inspect result.v9.breakdown — if depth/axiomBreadth fall short
+      //      of master tier requirements (depth ≥ 4, axiomBreadth ≥ 6) OR
+      //      result is a Sprout fallback, route to fallback preset
+      //   4. Fallback re-activates via handleActivatePresetRef (avoids ref to
+      //      handleActivatePreset itself before it's fully defined)
       dispatch({ type: 'SET_PRESET_LABEL', label: preset.label, presetId: preset.id });
-      generate(preset.masterLevel);
+      const budgetMs = preset.masterBudgetMs;   // undefined → no override (legacy behavior)
+      const result = await generate(preset.masterLevel,
+        budgetMs ? { masterBudgetOverride: budgetMs } : undefined);
+
+      // Quality check — only when fallback is configured
+      if (preset.fallbackPresetId) {
+        // Detect failure conditions:
+        //   (a) result === null         → generate threw / loaded Sprout fallback
+        //   (b) result.tokens missing   → malformed puzzle
+        //   (c) v9.breakdown short      → best-of accepted with subpar metrics
+        const v9bd = (result && result.v9 && result.v9.breakdown) || {};
+        const depth = v9bd.depth || 0;
+        const axBreadth = v9bd.axiomBreadth || 0;
+        // Master V2 floor: depth ≥ 4 AND axiomBreadth ≥ 6 (same as the
+        // V2 sampler's filter). If best-of fell below, fall back to 상급.
+        const insufficient = result && (depth < 4 || axBreadth < 6);
+        const failure = !result || !result.tokens || result.tokens.length === 0;
+        if (failure || insufficient) {
+          const fb = NEW_PRESETS_BY_ID[preset.fallbackPresetId];
+          if (fb && handleActivatePresetRef.current) {
+            console.log(`[Preset] ${preset.id} fallback → ${fb.id}`,
+              { failure, insufficient, depth, axBreadth, result: !!result });
+            // Brief pause so users see the expert puzzle attempt's outcome
+            // briefly before the fallback generation overlay re-appears
+            await new Promise(r => setTimeout(r, 250));
+            handleActivatePresetRef.current(fb);
+          }
+        }
+      }
       return;
     }
     if (preset.generator === 'custom') {
@@ -33310,6 +33495,18 @@ function ZoogramsApp() {
                           && V13_GEN_TIER_BUDGETS[level])
         || { maxAttempts: 60, perAttemptMs: 2000, totalMs: 60000 };
 
+      // SOTA FIX (May 2026): per-preset budget override.
+      //   Some presets (e.g. 상급 6×6, 상급 7×7) want a tighter generation budget
+      //   than the default Medium tier (~10-15s). The preset can declare:
+      //     v13Params: { totalBudgetMs: 6000, perAttemptBudgetMs: 1500, ... }
+      //   and the override is applied here. Missing fields fall back to tier
+      //   defaults so existing presets are unaffected.
+      const effectiveBudget = {
+        maxAttempts: p.maxAttempts ?? tierBudget.maxAttempts,
+        perAttemptMs: p.perAttemptBudgetMs ?? tierBudget.perAttemptMs,
+        totalMs: p.totalBudgetMs ?? tierBudget.totalMs,
+      };
+
       dispatch({ type: 'SET_PRESET_LABEL', label: preset.label, presetId: preset.id });
       dispatch({ type: 'START_GENERATING', level });   // ★ correct action name
 
@@ -33317,12 +33514,21 @@ function ZoogramsApp() {
       dispatch({ type: 'GENERATION_PROGRESS', progress: {
         phase: 'init',
         elapsed: 0,
-        budget: tierBudget.totalMs,
+        budget: effectiveBudget.totalMs,
         attempts: 1,
-        maxRetries: tierBudget.maxAttempts,
+        maxRetries: effectiveBudget.maxAttempts,
         currentMaxSolutions: 1,
         level,
       }});
+
+      // SOTA FIX (May 2026): Force paint of LoadingOverlay BEFORE entering
+      // the V13 generation pipeline. Without this delay, fast V13 generation
+      // (e.g. medium6/medium7 with proficient tier — sometimes <300ms) can
+      // complete before React commits the START_GENERATING state, causing
+      // the LoadingOverlay to skip entirely. The 60ms await mirrors the
+      // pattern used in `generate()` for the same reason. Users always see
+      // the loading screen, even if generation completes in 100ms.
+      await new Promise(r => setTimeout(r, 60));
 
       const t0 = Date.now();
       // Throttle progress dispatches to ~60ms intervals or on phase/attempt
@@ -33354,8 +33560,8 @@ function ZoogramsApp() {
                 elapsed: progressPayload.elapsed != null
                   ? progressPayload.elapsed
                   : (Date.now() - t0),
-                budget: progressPayload.budget || tierBudget.totalMs,
-                maxRetries: progressPayload.maxRetries || tierBudget.maxAttempts,
+                budget: progressPayload.budget || effectiveBudget.totalMs,
+                maxRetries: progressPayload.maxRetries || effectiveBudget.maxAttempts,
                 currentMaxSolutions: progressPayload.currentMaxSolutions || 1,
                 candidatesFound: progressPayload.candidatesFound,
                 subProgress: progressPayload.subProgress,
@@ -33366,9 +33572,9 @@ function ZoogramsApp() {
           {
             gridSize: preset.gridSize,
             fastMode: false,
-            maxAttempts: tierBudget.maxAttempts,
-            perAttemptBudgetMs: tierBudget.perAttemptMs,
-            totalBudgetMs: tierBudget.totalMs,
+            maxAttempts: effectiveBudget.maxAttempts,
+            perAttemptBudgetMs: effectiveBudget.perAttemptMs,
+            totalBudgetMs: effectiveBudget.totalMs,
             extraVerify: (verification, metric, trace) => {
               // CRITICAL FIX (May 2026): parameter order matches caller signature
               //   Caller (v13_generateWithGate L17614):
