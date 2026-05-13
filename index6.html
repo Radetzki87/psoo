@@ -12428,6 +12428,7 @@ function v15_toV14CompatTier(v15Tier) {
       requireStrict: v15Tier.requireStrict !== false,
       requireBacktrack: !!v15Tier.requireBacktrack,
       backtrackMinCost: v15Tier.backtrackMinCost || 9,
+      backtrackWaiverScore: v15Tier.backtrackWaiverScore || null,  // V15.4
       scoreMin: (v15Tier.scoreRange && v15Tier.scoreRange.min !== null && v15Tier.scoreRange.min !== undefined)
               ? v15Tier.scoreRange.min : 0,
       scoreMax: (v15Tier.scoreRange && v15Tier.scoreRange.max !== null && v15Tier.scoreRange.max !== undefined)
@@ -12529,11 +12530,16 @@ function v15_isBetterStrictBest(newM, currentBest, tier) {
   if (!newM || newM.uniqueness !== 'strict') return false;
   if (!currentBest) return true;
 
-  // Backtrack 우선 (expert tier)
+  // V15.4: 'expert-passing' 우선 — backtrack OR waiverScore 이상
+  // 사용자 spec: expert6는 (backtrack || score>=130) 둘 중 하나만 있어도 accept
+  //              expert7는 (backtrack || score>=120) 둘 중 하나만 있어도 accept
   if (tier && tier.requireBacktrack) {
-    const newBt = newM.hasBacktrack;
-    const oldBt = currentBest.metrics.hasBacktrack;
-    if (newBt !== oldBt) return newBt;
+    const waiverScore = tier.backtrackWaiverScore;
+    const newExpertPassing = newM.hasBacktrack
+      || (typeof waiverScore === 'number' && newM.score >= waiverScore);
+    const oldExpertPassing = currentBest.metrics.hasBacktrack
+      || (typeof waiverScore === 'number' && currentBest.metrics.score >= waiverScore);
+    if (newExpertPassing !== oldExpertPassing) return newExpertPassing;
   }
 
   // 점수 범위 내 우선
@@ -12576,14 +12582,28 @@ function v15_checkCompletion(metrics, tier) {
     }
   }
   // 3. BACKTRACK (expert)
+  //
+  // V15.4: 백트랙 OR 높은 점수 — backtrackWaiverScore가 정의된 tier에서는
+  // 점수가 waiverScore 이상이면 backtrack 요구가 면제됨.
+  //   expert6: backtrackWaiverScore=130 → score>=130이면 backtrack 없어도 accept
+  //   expert7: backtrackWaiverScore=120 → score>=120이면 backtrack 없어도 accept
   if (tier.requireBacktrack) {
     const minCost = tier.backtrackMinCost || 9;
-    if ((metrics.maxCost || 0) < minCost) {
+    const waiverScore = tier.backtrackWaiverScore;
+    const hasBacktrack = (metrics.maxCost || 0) >= minCost;
+    const hasHighScore = (typeof waiverScore === 'number')
+                       && (metrics.score >= waiverScore);
+    if (!hasBacktrack && !hasHighScore) {
+      const detail = (typeof waiverScore === 'number')
+        ? `maxCost ${metrics.maxCost} < ${minCost} AND score ${metrics.score.toFixed(1)} < waiver ${waiverScore}`
+        : `maxCost ${metrics.maxCost} < ${minCost}`;
       reasons.push({
         code: 'no-backtrack',
-        detail: `maxCost ${metrics.maxCost} < ${minCost}`,
+        detail: detail,
         observed: metrics.maxCost,
         required: minCost,
+        waiverScore: waiverScore,
+        currentScore: metrics.score,
       });
     }
   }
@@ -12813,6 +12833,7 @@ const V15_TIER_REGISTRY = {
     requireStrict: true,
     requireBacktrack: true,
     backtrackMinCost: 9,
+    backtrackWaiverScore: 130,      // ★ V15.4: score >= 130이면 backtrack 면제
     bestStrictFallback: true,       // ★ 시간 초과 시 strict 최고점 반환
     maxAttempts: 50000, absoluteMaxAttempts: 200000,
     perAttemptBudgetMs: 2200,
@@ -12929,6 +12950,7 @@ const V15_TIER_REGISTRY = {
     requireStrict: true,
     requireBacktrack: true,
     backtrackMinCost: 9,
+    backtrackWaiverScore: 120,      // ★ V15.4: score >= 120이면 backtrack 면제
     bestStrictFallback: true,       // ★ V15.3: 30초 generation 후 strict 최고점 반환
     bestStrictFallbackCutoffMs: 30000,  // V15.3: cutoff = timeLimit (30초 다 활용)
     maxAttempts: 50000, absoluteMaxAttempts: 200000,
@@ -27253,9 +27275,11 @@ function PuzzleMeta({ puzzle, placedCount, totalTokens, genderedCount, adjacency
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       gap: 10, flexWrap: 'wrap',
     }}>
-      {/* Left: uniqueness + metrics table + optional engine/explore chips */}
+      {/* Left: uniqueness + score + metrics table + optional engine/explore chips */}
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <UniquenessBadge uniqueness={puzzle.uniqueness} solutionCount={puzzle.solutionCount} />
+        {/* V15.5: Zoograms 점수 = identityScore + v5/10 */}
+        <PuzzleScoreBadge puzzle={puzzle} />
         {/* V13 SOTA (May 2026): 10-metric compact table — computed on-demand for any puzzle */}
         <PuzzleMetricsTable puzzle={puzzle} />
         {puzzle.exploreMode && (
@@ -27845,6 +27869,110 @@ function UniquenessBadge({ uniqueness, solutionCount }) {
     }} className="font-body">
       <span style={{ fontSize: 11 }}>{c.icon}</span>
       <span>{c.label}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15.5 — PuzzleScoreBadge
+// 그리드 상단 좌측 UniquenessBadge 옆에 표시되는 *zoograms 점수* badge.
+//
+// 점수 공식 (V15 표준): identityScore + v5Difficulty / 10
+//
+// 작동 방식:
+//   1. puzzle 객체에 _v15Score 캐시가 있으면 즉시 표시 (생성된 puzzle)
+//   2. 캐시 없으면 비동기 v15_extractMetrics 호출 (시드 로드 puzzle)
+//      → trace solver 재실행되므로 ~50ms~수초 걸림. setTimeout으로 unblock
+//   3. 색상 — score >= 90 노란색 / 60~90 파란색 / <60 회색 (시각적 구분)
+//
+// 사용자 spec:
+//   - 생성된 puzzle: 점수 표시 ✓
+//   - 시드 로드 puzzle: 점수 표시 ✓ (비동기 계산 후 등장)
+// ─────────────────────────────────────────────────────────────────────────────
+function PuzzleScoreBadge({ puzzle }) {
+  const [metrics, setMetrics] = React.useState(() => {
+    // Initial state: 캐시 있으면 즉시 표시
+    if (puzzle && typeof puzzle._v15Score === 'number') {
+      return {
+        score: puzzle._v15Score,
+        identityScore: puzzle._v15IdentityScore || 0,
+        v5Difficulty: puzzle._v15Difficulty || 0,
+      };
+    }
+    return null;
+  });
+
+  React.useEffect(() => {
+    if (!puzzle) { setMetrics(null); return; }
+    // Cache 적중 확인 (다른 puzzle로 prop 변경됐을 수 있음)
+    if (typeof puzzle._v15Score === 'number') {
+      setMetrics({
+        score: puzzle._v15Score,
+        identityScore: puzzle._v15IdentityScore || 0,
+        v5Difficulty: puzzle._v15Difficulty || 0,
+      });
+      return;
+    }
+    // 비동기 계산 — render block 방지
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      try {
+        if (typeof v15_extractMetrics !== 'function') {
+          console.warn('[PuzzleScoreBadge] v15_extractMetrics not available');
+          return;
+        }
+        const m = v15_extractMetrics(puzzle, { traceTimeoutMs: 2000 });
+        if (cancelled || !m || typeof m.score !== 'number') return;
+        // Cache on puzzle for future renders (avoid re-computation)
+        puzzle._v15Score = m.score;
+        puzzle._v15IdentityScore = m.identityScore;
+        puzzle._v15Difficulty = m.v5Difficulty;
+        setMetrics({
+          score: m.score,
+          identityScore: m.identityScore,
+          v5Difficulty: m.v5Difficulty,
+        });
+      } catch (e) {
+        console.warn('[PuzzleScoreBadge] failed to extract metrics:', e);
+      }
+    }, 30);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [puzzle]);
+
+  if (!metrics || typeof metrics.score !== 'number' || !Number.isFinite(metrics.score)) {
+    return null;
+  }
+  // 색상 결정 (score 임계값 기반)
+  let color, bg;
+  if (metrics.score >= 120) {
+    color = '#7C3AED';      // 매우 높음 — 보라
+    bg = 'rgba(124,58,237,0.08)';
+  } else if (metrics.score >= 90) {
+    color = '#B45309';      // 높음 — 호박색
+    bg = 'rgba(180,83,9,0.08)';
+  } else if (metrics.score >= 60) {
+    color = '#1D4ED8';      // 중간 — 파랑
+    bg = 'rgba(29,78,216,0.08)';
+  } else if (metrics.score >= 30) {
+    color = '#047857';      // 낮음 — 녹색
+    bg = 'rgba(4,120,87,0.08)';
+  } else {
+    color = 'var(--ink-tertiary)';
+    bg = 'var(--bg-subtle)';
+  }
+  const tooltipText = `Zoograms 점수: ${metrics.score.toFixed(1)}\n  정체성: ${metrics.identityScore.toFixed(1)}\n  V5 난이도: ${metrics.v5Difficulty.toFixed(1)} (÷10 = ${(metrics.v5Difficulty / 10).toFixed(1)})`;
+  return (
+    <div title={tooltipText} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px',
+      border: `1px solid ${color}`, background: bg, color: color,
+      borderRadius: 2, fontSize: 10,
+      letterSpacing: '0.06em', textTransform: 'uppercase',
+      fontWeight: 600,
+    }} className="font-body">
+      <span style={{ fontSize: 11 }}>★</span>
+      <span>{metrics.score.toFixed(1)}</span>
     </div>
   );
 }
