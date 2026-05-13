@@ -7593,6 +7593,270 @@ const STRINGS = {
     zh: '👇 你也来挑战',
     ja: '👇 君も挑戦しよう',
   },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // V14 — TIER SYSTEM v2.0 i18n KEYS (9-language: ko/en/es/pt/fr/de/ru/zh/ja)
+  // ════════════════════════════════════════════════════════════════════════════
+  // Tier label composition keys (CJK languages reverse order: size→difficulty)
+  'tier.label.format': {
+    ko: ({ difficulty, size }) => `${difficulty} ${size}`,
+    en: ({ difficulty, size }) => `${difficulty} ${size}`,
+    es: ({ difficulty, size }) => `${difficulty} ${size}`,
+    pt: ({ difficulty, size }) => `${difficulty} ${size}`,
+    fr: ({ difficulty, size }) => `${difficulty} ${size}`,
+    de: ({ difficulty, size }) => `${difficulty} ${size}`,
+    ru: ({ difficulty, size }) => `${difficulty} ${size}`,
+    zh: ({ difficulty, size }) => `${size} ${difficulty}`,
+    ja: ({ difficulty, size }) => `${size} ${difficulty}`,
+  },
+
+  // Tier difficulty class names
+  'tier.diff.sprout': {
+    ko: '새싹', en: 'Sprout', es: 'Brote', pt: 'Broto',
+    fr: 'Pousse', de: 'Spross', ru: 'Росток',
+    zh: '新芽', ja: '新芽',
+  },
+  'tier.diff.easy': {
+    ko: '보통', en: 'Easy', es: 'Fácil', pt: 'Fácil',
+    fr: 'Facile', de: 'Einfach', ru: 'Лёгкий',
+    zh: '简单', ja: 'やさしい',
+  },
+  'tier.diff.basic': {
+    ko: '기초', en: 'Basic', es: 'Básico', pt: 'Básico',
+    fr: 'Base', de: 'Basis', ru: 'Базовый',
+    zh: '基础', ja: '基本',
+  },
+  'tier.diff.normal': {
+    ko: '보통', en: 'Medium', es: 'Medio', pt: 'Médio',
+    fr: 'Moyen', de: 'Mittel', ru: 'Средний',
+    zh: '普通', ja: '普通',
+  },
+  'tier.diff.intermediate': {
+    ko: '중급', en: 'Medium', es: 'Intermedio', pt: 'Intermediário',
+    fr: 'Intermédiaire', de: 'Mittelstufe', ru: 'Средний',
+    zh: '中级', ja: '中級',
+  },
+  'tier.diff.hard': {
+    ko: '상급', en: 'Hard', es: 'Avanzado', pt: 'Avançado',
+    fr: 'Avancé', de: 'Fortgeschritten', ru: 'Сложный',
+    zh: '高级', ja: '上級',
+  },
+  'tier.diff.expert': {
+    ko: '전문가', en: 'Expert', es: 'Experto', pt: 'Especialista',
+    fr: 'Expert', de: 'Experte', ru: 'Эксперт',
+    zh: '专家', ja: 'エキスパート',
+  },
+
+  // Loading overlay — Tier mode title
+  'tierLoad.title': {
+    ko: ({ label }) => `${label} 생성 중`,
+    en: ({ label }) => `Generating ${label}`,
+    es: ({ label }) => `Generando ${label}`,
+    pt: ({ label }) => `Gerando ${label}`,
+    fr: ({ label }) => `Génération: ${label}`,
+    de: ({ label }) => `Erstelle ${label}`,
+    ru: ({ label }) => `Создание: ${label}`,
+    zh: ({ label }) => `正在生成 ${label}`,
+    ja: ({ label }) => `${label} を生成中`,
+  },
+  // Attempt + time info (always visible)
+  'tierLoad.attempt': {
+    ko: ({ n }) => `시도 ${n}`,
+    en: ({ n }) => `Attempt ${n}`,
+    es: ({ n }) => `Intento ${n}`,
+    pt: ({ n }) => `Tentativa ${n}`,
+    fr: ({ n }) => `Tentative ${n}`,
+    de: ({ n }) => `Versuch ${n}`,
+    ru: ({ n }) => `Попытка ${n}`,
+    zh: ({ n }) => `尝试 ${n}`,
+    ja: ({ n }) => `試行 ${n}`,
+  },
+  'tierLoad.timing': {
+    ko: ({ elapsed, budget }) => `${elapsed}초 / ${budget}초`,
+    en: ({ elapsed, budget }) => `${elapsed}s / ${budget}s`,
+    es: ({ elapsed, budget }) => `${elapsed}s / ${budget}s`,
+    pt: ({ elapsed, budget }) => `${elapsed}s / ${budget}s`,
+    fr: ({ elapsed, budget }) => `${elapsed}s / ${budget}s`,
+    de: ({ elapsed, budget }) => `${elapsed}s / ${budget}s`,
+    ru: ({ elapsed, budget }) => `${elapsed}с / ${budget}с`,
+    zh: ({ elapsed, budget }) => `${elapsed}秒 / ${budget}秒`,
+    ja: ({ elapsed, budget }) => `${elapsed}秒 / ${budget}秒`,
+  },
+  // Phase labels
+  'tierLoad.phase.starting': {
+    ko: '시작 중', en: 'Starting', es: 'Iniciando', pt: 'Iniciando',
+    fr: 'Démarrage', de: 'Starte', ru: 'Запуск',
+    zh: '正在启动', ja: '開始中',
+  },
+  'tierLoad.phase.generating': {
+    ko: '퍼즐 생성 중', en: 'Generating puzzle', es: 'Generando puzzle',
+    pt: 'Gerando quebra-cabeça', fr: 'Génération du puzzle', de: 'Rätsel wird erstellt',
+    ru: 'Создание головоломки', zh: '正在生成谜题', ja: 'パズルを生成中',
+  },
+  'tierLoad.phase.solving': {
+    ko: '솔버 검증 중', en: 'Verifying with solver', es: 'Verificando con solver',
+    pt: 'Verificando com solver', fr: 'Vérification par solver', de: 'Solver prüft',
+    ru: 'Решатель проверяет', zh: '求解器验证中', ja: 'ソルバーで検証中',
+  },
+  'tierLoad.phase.verifying': {
+    ko: '조건 검증 중', en: 'Checking criteria', es: 'Verificando criterios',
+    pt: 'Verificando critérios', fr: 'Vérification des critères', de: 'Kriterien prüfen',
+    ru: 'Проверка критериев', zh: '验证条件中', ja: '条件を検証中',
+  },
+  // Best-strict-so-far (CRITICAL — user constraint 2)
+  'tierLoad.bestSoFar': {
+    ko: ({ score }) => `현재 최고 점수: ${score}점`,
+    en: ({ score }) => `Best so far: ${score} pts`,
+    es: ({ score }) => `Mejor hasta ahora: ${score} pts`,
+    pt: ({ score }) => `Melhor até agora: ${score} pts`,
+    fr: ({ score }) => `Meilleur actuel: ${score} pts`,
+    de: ({ score }) => `Bisher bestes: ${score} Pkt`,
+    ru: ({ score }) => `Лучший пока: ${score} очков`,
+    zh: ({ score }) => `当前最高: ${score} 分`,
+    ja: ({ score }) => `現在の最高: ${score}点`,
+  },
+  'tierLoad.bestSoFarTarget': {
+    ko: ({ target }) => `(목표 ${target}점)`,
+    en: ({ target }) => `(target ${target})`,
+    es: ({ target }) => `(objetivo ${target})`,
+    pt: ({ target }) => `(alvo ${target})`,
+    fr: ({ target }) => `(cible ${target})`,
+    de: ({ target }) => `(Ziel ${target})`,
+    ru: ({ target }) => `(цель ${target})`,
+    zh: ({ target }) => `(目标 ${target})`,
+    ja: ({ target }) => `(目標 ${target})`,
+  },
+  'tierLoad.bestStrictBadge': {
+    ko: '유일해 보장',
+    en: 'Unique solution',
+    es: 'Solución única',
+    pt: 'Solução única',
+    fr: 'Solution unique',
+    de: 'Eindeutige Lösung',
+    ru: 'Единственное решение',
+    zh: '唯一解',
+    ja: '一意解',
+  },
+  // Completion criteria checklist (debug mode)
+  'tierLoad.crit.strict': {
+    ko: '유일해', en: 'Unique', es: 'Único', pt: 'Único',
+    fr: 'Unique', de: 'Eindeutig', ru: 'Единств.',
+    zh: '唯一解', ja: '一意解',
+  },
+  'tierLoad.crit.scoreRange': {
+    ko: ({ min, max }) => `점수 ${min}–${max}`,
+    en: ({ min, max }) => `Score ${min}–${max}`,
+    es: ({ min, max }) => `Puntaje ${min}–${max}`,
+    pt: ({ min, max }) => `Pontuação ${min}–${max}`,
+    fr: ({ min, max }) => `Score ${min}–${max}`,
+    de: ({ min, max }) => `Punkte ${min}–${max}`,
+    ru: ({ min, max }) => `Очки ${min}–${max}`,
+    zh: ({ min, max }) => `分数 ${min}–${max}`,
+    ja: ({ min, max }) => `得点 ${min}–${max}`,
+  },
+  'tierLoad.crit.scoreMin': {
+    ko: ({ min }) => `점수 ≥ ${min}`,
+    en: ({ min }) => `Score ≥ ${min}`,
+    es: ({ min }) => `Puntaje ≥ ${min}`,
+    pt: ({ min }) => `Pontuação ≥ ${min}`,
+    fr: ({ min }) => `Score ≥ ${min}`,
+    de: ({ min }) => `Punkte ≥ ${min}`,
+    ru: ({ min }) => `Очки ≥ ${min}`,
+    zh: ({ min }) => `分数 ≥ ${min}`,
+    ja: ({ min }) => `得点 ≥ ${min}`,
+  },
+  'tierLoad.crit.backtrack': {
+    ko: '깊은 추론',
+    en: 'Deep inference',
+    es: 'Inferencia profunda',
+    pt: 'Inferência profunda',
+    fr: 'Inférence profonde',
+    de: 'Tiefe Schlussfolgerung',
+    ru: 'Глубокий вывод',
+    zh: '深度推理',
+    ja: '深い推論',
+  },
+  // Cancel button
+  'tierLoad.cancel': {
+    ko: '취소', en: 'Cancel', es: 'Cancelar', pt: 'Cancelar',
+    fr: 'Annuler', de: 'Abbrechen', ru: 'Отмена',
+    zh: '取消', ja: 'キャンセル',
+  },
+  'tierLoad.cancelling': {
+    ko: '취소 중...', en: 'Cancelling...', es: 'Cancelando...',
+    pt: 'Cancelando...', fr: 'Annulation...', de: 'Wird abgebrochen...',
+    ru: 'Отмена...', zh: '正在取消...', ja: 'キャンセル中...',
+  },
+  // Best-effort / time exhaustion (CRITICAL — user constraint 2)
+  'tierLoad.bestEffortStrict': {
+    ko: '시간 초과 — 탐색한 유일해 중 최고 점수 퍼즐을 표시',
+    en: 'Time exhausted — showing best unique puzzle found',
+    es: 'Tiempo agotado — mostrando el mejor puzzle único encontrado',
+    pt: 'Tempo esgotado — mostrando o melhor quebra-cabeça único encontrado',
+    fr: 'Temps écoulé — affichage du meilleur puzzle unique trouvé',
+    de: 'Zeit überschritten — zeige bestes gefundenes Rätsel mit eindeutiger Lösung',
+    ru: 'Время вышло — показываю лучшую найденную головоломку с единственным решением',
+    zh: '时间已到 — 显示已找到的最佳唯一解谜题',
+    ja: '時間切れ — 見つかった最高得点の一意解パズルを表示',
+  },
+  'tierLoad.fallback': {
+    ko: ({ tier }) => `더 낮은 난이도(${tier})로 시도 중`,
+    en: ({ tier }) => `Falling back to ${tier}`,
+    es: ({ tier }) => `Recurriendo a ${tier}`,
+    pt: ({ tier }) => `Usando ${tier}`,
+    fr: ({ tier }) => `Retour à ${tier}`,
+    de: ({ tier }) => `Wechsle zu ${tier}`,
+    ru: ({ tier }) => `Переход на ${tier}`,
+    zh: ({ tier }) => `降级到 ${tier}`,
+    ja: ({ tier }) => `${tier} に降級`,
+  },
+  'tierLoad.failed': {
+    ko: '퍼즐 생성 실패', en: 'Failed to generate puzzle',
+    es: 'No se pudo generar el puzzle', pt: 'Falha ao gerar quebra-cabeça',
+    fr: 'Échec de génération du puzzle', de: 'Rätsel konnte nicht erstellt werden',
+    ru: 'Не удалось создать головоломку', zh: '生成谜题失败',
+    ja: 'パズルの生成に失敗',
+  },
+  // Debug mode
+  'tierLoad.debug.toggle': {
+    ko: '디버그 정보', en: 'Debug info', es: 'Info debug',
+    pt: 'Info debug', fr: 'Info débogage', de: 'Debug-Info',
+    ru: 'Отладочная информация', zh: '调试信息', ja: 'デバッグ情報',
+  },
+  'tierLoad.debug.candidate': {
+    ko: ({ idx, total, k, f, fx, r }) => `후보 #${idx}/${total}: k=${k}, 금지=${f}, 고정=${fx}, 규약=${r}`,
+    en: ({ idx, total, k, f, fx, r }) => `Candidate #${idx}/${total}: k=${k}, forbid=${f}, fixed=${fx}, rules=${r}`,
+    es: ({ idx, total, k, f, fx, r }) => `Candidato #${idx}/${total}: k=${k}, prohib=${f}, fijo=${fx}, reglas=${r}`,
+    pt: ({ idx, total, k, f, fx, r }) => `Candidato #${idx}/${total}: k=${k}, proib=${f}, fixo=${fx}, regras=${r}`,
+    fr: ({ idx, total, k, f, fx, r }) => `Candidat #${idx}/${total}: k=${k}, interdit=${f}, fixé=${fx}, règles=${r}`,
+    de: ({ idx, total, k, f, fx, r }) => `Kandidat #${idx}/${total}: k=${k}, verboten=${f}, fest=${fx}, Regeln=${r}`,
+    ru: ({ idx, total, k, f, fx, r }) => `Кандидат #${idx}/${total}: k=${k}, запрет=${f}, фикс=${fx}, правил=${r}`,
+    zh: ({ idx, total, k, f, fx, r }) => `候选 #${idx}/${total}: k=${k}, 禁止=${f}, 固定=${fx}, 规则=${r}`,
+    ja: ({ idx, total, k, f, fx, r }) => `候補 #${idx}/${total}: k=${k}, 禁止=${f}, 固定=${fx}, ルール=${r}`,
+  },
+  'tierLoad.debug.seed': {
+    ko: ({ seed }) => `시드: ${seed}`,
+    en: ({ seed }) => `Seed: ${seed}`,
+    es: ({ seed }) => `Semilla: ${seed}`,
+    pt: ({ seed }) => `Semente: ${seed}`,
+    fr: ({ seed }) => `Graine: ${seed}`,
+    de: ({ seed }) => `Seed: ${seed}`,
+    ru: ({ seed }) => `Сид: ${seed}`,
+    zh: ({ seed }) => `种子: ${seed}`,
+    ja: ({ seed }) => `シード: ${seed}`,
+  },
+  'tierLoad.debug.attempts': {
+    ko: ({ n, c }) => `시도 횟수: ${n}, 후보 사용: ${c}`,
+    en: ({ n, c }) => `Attempts: ${n}, candidates used: ${c}`,
+    es: ({ n, c }) => `Intentos: ${n}, candidatos usados: ${c}`,
+    pt: ({ n, c }) => `Tentativas: ${n}, candidatos usados: ${c}`,
+    fr: ({ n, c }) => `Tentatives: ${n}, candidats utilisés: ${c}`,
+    de: ({ n, c }) => `Versuche: ${n}, Kandidaten verwendet: ${c}`,
+    ru: ({ n, c }) => `Попыток: ${n}, кандидатов использовано: ${c}`,
+    zh: ({ n, c }) => `尝试: ${n}, 使用候选: ${c}`,
+    ja: ({ n, c }) => `試行: ${n}, 使用候補: ${c}`,
+  },
+
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -9043,6 +9307,434 @@ const ACCEPTANCE_TARGETS_V6 = {
     maxAttempts: 18,
   },
 };
+
+
+// =============================================================================
+// SECTION 2.5 — DIFFICULTY TIER SYSTEM v2.0 DATA REGISTRY (V14)
+// =============================================================================
+// Zoograms Difficulty Tier System v2.0 (TSD §부록 A) + UI Layout v2 통합.
+//
+// 핵심 invariants (User constraints):
+//   I1. requireStrict: true 가 모든 tier에 강제 — loose puzzle은 어떤 경우에도 표시되지 않음
+//   I2. expertBestStrictPolicy: 'best-strict-on-exhaustion' — 시간 초과 시
+//       bestStrictSoFar (strict-only + 최고 점수) 반환. loose fallback은 절대 사용 안 함.
+//   I3. 모든 tier label은 9-언어로 정의 (ko/en/es/pt/fr/de/ru/zh/ja)
+//   I4. uiPlacement.row/col 이 §UI 레이아웃 v2의 grid 좌표 — 4×3 grid의 정확한 위치
+//   I5. candidatePool은 35,818 puzzles sweep 실측 기반 (TSD §A1 — Data over Heuristic)
+//
+// 기존 NEW_PRESETS / DAILY_PRESETS는 *보존*되며, 본 Registry는 그 위에 *augment*됨
+// (TSD §A4 — Backward Compatibility First). USE_TIER_SYSTEM_V14 = false 일 때
+// 기존 path가 작동하고, true 일 때 새 path로 라우팅.
+// =============================================================================
+
+const USE_TIER_SYSTEM_V14 = true;      // Phase 3 활성화 후 true
+
+const DIFFICULTY_TIER_REGISTRY_V14 = {
+
+  // ─── Column 1 (4×4) ────────────────────────────────────────────────────────
+  sprout4: {
+    id: 'sprout4',
+    difficultyKey: 'tier.diff.sprout',
+    sizeLabel: '4×4',
+    glyph: '🌱',
+    gridSize: 4,
+    countCoverage: [8, 8],
+    completionCriteria: {
+      scoreMin: 0, scoreMax: 30,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 5000,
+    perAttemptBudgetMs: 800,
+    maxAttempts: 40,
+    selectionStrategy: 'uniform',
+    fallbackTierId: null,                // sprout4 is the floor
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 4, forbid: 2, fixed: 4, rule: 3, meta: { strictPerMin: 334 } },
+      { k: 4, forbid: 2, fixed: 4, rule: 1, meta: { strictPerMin: 234 } },
+      { k: 4, forbid: 0, fixed: 4, rule: 1, meta: { strictPerMin: 168 } },
+      { k: 5, forbid: 2, fixed: 4, rule: 3, meta: { strictPerMin: 168 } },
+      { k: 4, forbid: 0, fixed: 4, rule: 3, meta: { strictPerMin: 126 } },
+      { k: 4, forbid: 2, fixed: 3, rule: 3, meta: { strictPerMin: 60 } },
+    ],
+    uiPlacement: { row: 1, col: 1, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 200, expectedSecondsPerStrict: 0.3 },
+  },
+
+  easy4: {
+    id: 'easy4',
+    difficultyKey: 'tier.diff.easy',
+    sizeLabel: '4×4',
+    glyph: '🌾',
+    gridSize: 4,
+    countCoverage: [8, 8],
+    completionCriteria: {
+      scoreMin: 30, scoreMax: 60,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 3000, perAttemptBudgetMs: 500, maxAttempts: 30,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'sprout4',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 4, forbid: 2, fixed: 4, rule: 1, meta: { strictPerMin: 1696 } },
+      { k: 5, forbid: 2, fixed: 4, rule: 3, meta: { strictPerMin: 1606 } },
+      { k: 4, forbid: 0, fixed: 4, rule: 1, meta: { strictPerMin: 1349 } },
+      { k: 4, forbid: 2, fixed: 3, rule: 1, meta: { strictPerMin: 1210 } },
+      { k: 5, forbid: 0, fixed: 4, rule: 3, meta: { strictPerMin: 1103 } },
+      { k: 5, forbid: 2, fixed: 3, rule: 3, meta: { strictPerMin: 1098 } },
+      { k: 4, forbid: 2, fixed: 3, rule: 3, meta: { strictPerMin: 951 } },
+      { k: 4, forbid: 0, fixed: 3, rule: 1, meta: { strictPerMin: 850 } },
+    ],
+    uiPlacement: { row: 2, col: 1, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 1200, expectedSecondsPerStrict: 0.05 },
+  },
+
+  // ─── Column 2 (5×5) ────────────────────────────────────────────────────────
+  easy5: {
+    id: 'easy5',
+    difficultyKey: 'tier.diff.basic',
+    sizeLabel: '5×5',
+    glyph: '🌿',
+    gridSize: 5,
+    countCoverage: [10, 10],
+    completionCriteria: {
+      scoreMin: 30, scoreMax: 60,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 3000, perAttemptBudgetMs: 500, maxAttempts: 30,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'easy4',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 5, forbid: 3, fixed: 5, rule: 2, meta: { strictPerMin: 815 } },
+      { k: 5, forbid: 1, fixed: 5, rule: 2, meta: { strictPerMin: 700 } },
+      { k: 5, forbid: 3, fixed: 4, rule: 2, meta: { strictPerMin: 654 } },
+      { k: 6, forbid: 3, fixed: 5, rule: 4, meta: { strictPerMin: 623 } },
+      { k: 5, forbid: 1, fixed: 4, rule: 2, meta: { strictPerMin: 456 } },
+      { k: 6, forbid: 3, fixed: 5, rule: 2, meta: { strictPerMin: 443 } },
+      { k: 5, forbid: 3, fixed: 4, rule: 4, meta: { strictPerMin: 384 } },
+      { k: 6, forbid: 3, fixed: 4, rule: 4, meta: { strictPerMin: 335 } },
+    ],
+    uiPlacement: { row: 1, col: 2, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 600, expectedSecondsPerStrict: 0.1 },
+  },
+
+  medium5: {
+    id: 'medium5',
+    difficultyKey: 'tier.diff.normal',
+    sizeLabel: '5×5',
+    glyph: '🪴',
+    gridSize: 5,
+    countCoverage: [10, 10],
+    completionCriteria: {
+      scoreMin: 60, scoreMax: 90,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 4000, perAttemptBudgetMs: 700, maxAttempts: 30,
+    selectionStrategy: 'weighted',
+    fallbackTierId: 'easy5',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 6, forbid: 3, fixed: 4, rule: 4, meta: { strictPerMin: 155 } },
+      { k: 6, forbid: 1, fixed: 4, rule: 4, meta: { strictPerMin: 144 } },
+      { k: 6, forbid: 1, fixed: 5, rule: 2, meta: { strictPerMin: 126 } },
+      { k: 6, forbid: 3, fixed: 5, rule: 2, meta: { strictPerMin: 120 } },
+      { k: 6, forbid: 3, fixed: 4, rule: 2, meta: { strictPerMin: 120 } },
+      { k: 6, forbid: 1, fixed: 4, rule: 2, meta: { strictPerMin: 90 } },
+      { k: 5, forbid: 1, fixed: 4, rule: 2, meta: { strictPerMin: 84 } },
+      { k: 6, forbid: 1, fixed: 5, rule: 4, meta: { strictPerMin: 78 } },
+    ],
+    uiPlacement: { row: 2, col: 2, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 130, expectedSecondsPerStrict: 0.5 },
+  },
+
+  // ─── Column 3 (6×6) ────────────────────────────────────────────────────────
+  medium6: {
+    id: 'medium6',
+    difficultyKey: 'tier.diff.intermediate',
+    sizeLabel: '6×6',
+    glyph: '🌳',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    completionCriteria: {
+      scoreMin: 60, scoreMax: 90,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 4000, perAttemptBudgetMs: 700, maxAttempts: 30,
+    selectionStrategy: 'weighted',
+    fallbackTierId: 'easy5',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 8, forbid: 6, fixed: 6, rule: 5, meta: { strictPerMin: 100 } },
+      { k: 10, forbid: 8, fixed: 8, rule: 5, meta: { strictPerMin: 84 } },
+      { k: 8, forbid: 6, fixed: 8, rule: 3, meta: { strictPerMin: 80 } },
+      { k: 8, forbid: 4, fixed: 6, rule: 5, meta: { strictPerMin: 76 } },
+      { k: 8, forbid: 2, fixed: 6, rule: 5, meta: { strictPerMin: 72 } },
+      { k: 8, forbid: 8, fixed: 6, rule: 3, meta: { strictPerMin: 72 } },
+      { k: 8, forbid: 6, fixed: 6, rule: 3, meta: { strictPerMin: 68 } },
+      { k: 8, forbid: 4, fixed: 8, rule: 3, meta: { strictPerMin: 64 } },
+      { k: 8, forbid: 8, fixed: 8, rule: 3, meta: { strictPerMin: 64 } },
+      { k: 8, forbid: 2, fixed: 8, rule: 3, meta: { strictPerMin: 60 } },
+    ],
+    uiPlacement: { row: 1, col: 3, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 80, expectedSecondsPerStrict: 0.75 },
+  },
+
+  hard6: {
+    id: 'hard6',
+    difficultyKey: 'tier.diff.hard',
+    sizeLabel: '6×6',
+    glyph: '🏔',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    completionCriteria: {
+      scoreMin: 90, scoreMax: null,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 13000, perAttemptBudgetMs: 1500, maxAttempts: 30,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'medium6',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 8, forbid: 6, fixed: 6, rule: 3, meta: { strictPerMin: 8.0, strictRateInBin: 0.008 } },
+      { k: 8, forbid: 8, fixed: 4, rule: 5, meta: { strictPerMin: 8.0, strictRateInBin: 0.008 } },
+      { k: 10, forbid: 2, fixed: 8, rule: 5, meta: { strictPerMin: 8.0, strictRateInBin: 0.011 } },
+      { k: 8, forbid: 6, fixed: 4, rule: 5, meta: { strictPerMin: 8.0, strictRateInBin: 0.009 } },
+      { k: 8, forbid: 2, fixed: 4, rule: 5, meta: { strictPerMin: 8.0, strictRateInBin: 0.011 } },
+    ],
+    uiPlacement: { row: 2, col: 3, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 8, expectedSecondsPerStrict: 7.5 },
+  },
+
+  expert6: {
+    id: 'expert6',
+    difficultyKey: 'tier.diff.expert',
+    sizeLabel: '6×6',
+    glyph: '💎',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    completionCriteria: {
+      scoreMin: 90, scoreMax: null,
+      requireStrict: true,
+      requireBacktrack: true,
+      backtrackMinCost: 9,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',  // ★ I2
+    },
+    totalBudgetMs: 24000, perAttemptBudgetMs: 2400, maxAttempts: 30,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'hard6',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 8, forbid: 8, fixed: 4, rule: 5, meta: { strictPerMin: 4.0, btStrictRate: 0.0039 }, tags: ['verified-backtrack'] },
+      { k: 8, forbid: 2, fixed: 6, rule: 3, meta: { strictPerMin: 4.0, btStrictRate: 0.0042 }, tags: ['verified-backtrack'] },
+      { k: 8, forbid: 4, fixed: 6, rule: 3, meta: { strictPerMin: 4.0, btStrictRate: 0.0038 }, tags: ['verified-backtrack'] },
+      { k: 8, forbid: 6, fixed: 4, rule: 5, meta: { strictPerMin: 4.0, btStrictRate: 0.0041 }, tags: ['verified-backtrack'] },
+      { k: 11, forbid: 2, fixed: 8, rule: 5, meta: { strictPerMin: 3.9, btStrictRate: 0.0062 }, tags: ['verified-backtrack'] },
+    ],
+    uiPlacement: { row: 3, col: 3, group: 'expert' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 4, expectedSecondsPerStrict: 15,
+            note: 'Backtrack+strict is very rare. Avg 15-20s expected. bestStrictSoFar 보장.' },
+  },
+
+  // ─── Column 4 (7×7) ────────────────────────────────────────────────────────
+  medium7: {
+    id: 'medium7',
+    difficultyKey: 'tier.diff.intermediate',
+    sizeLabel: '7×7',
+    glyph: '🗻',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    completionCriteria: {
+      scoreMin: 60, scoreMax: 90,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 4000, perAttemptBudgetMs: 800, maxAttempts: 25,
+    selectionStrategy: 'weighted',
+    fallbackTierId: 'medium6',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 10, forbid: 9, fixed: 9, rule: 4, meta: { strictPerMin: 72 } },
+      { k: 9, forbid: 9, fixed: 9, rule: 5, meta: { strictPerMin: 56 } },
+      { k: 9, forbid: 9, fixed: 7, rule: 4, meta: { strictPerMin: 44 } },
+      { k: 10, forbid: 9, fixed: 9, rule: 5, meta: { strictPerMin: 40 } },
+      { k: 9, forbid: 9, fixed: 9, rule: 4, meta: { strictPerMin: 40 } },
+      { k: 9, forbid: 3, fixed: 9, rule: 4, meta: { strictPerMin: 40 } },
+      { k: 9, forbid: 6, fixed: 7, rule: 5, meta: { strictPerMin: 32 } },
+      { k: 10, forbid: 6, fixed: 9, rule: 5, meta: { strictPerMin: 32 } },
+      { k: 10, forbid: 3, fixed: 9, rule: 4, meta: { strictPerMin: 28 } },
+      { k: 9, forbid: 3, fixed: 7, rule: 5, meta: { strictPerMin: 28 } },
+    ],
+    uiPlacement: { row: 1, col: 4, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 40, expectedSecondsPerStrict: 1.5 },
+  },
+
+  hard7: {
+    id: 'hard7',
+    difficultyKey: 'tier.diff.hard',
+    sizeLabel: '7×7',
+    glyph: '⛰',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    completionCriteria: {
+      scoreMin: 90, scoreMax: null,
+      requireStrict: true,
+      requireBacktrack: false,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',
+    },
+    totalBudgetMs: 20000, perAttemptBudgetMs: 2000, maxAttempts: 25,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'medium7',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      { k: 9, forbid: 3, fixed: 7, rule: 4, meta: { strictPerMin: 4.0 } },
+      { k: 10, forbid: 9, fixed: 7, rule: 7, meta: { strictPerMin: 4.0 } },
+      { k: 10, forbid: 6, fixed: 7, rule: 7, meta: { strictPerMin: 4.0 } },
+      { k: 10, forbid: 9, fixed: 7, rule: 5, meta: { strictPerMin: 4.0 } },
+      { k: 10, forbid: 9, fixed: 7, rule: 4, meta: { strictPerMin: 4.0 } },
+      { k: 10, forbid: 3, fixed: 7, rule: 4, meta: { strictPerMin: 4.0 } },
+      { k: 12, forbid: 6, fixed: 9, rule: 4, meta: { strictPerMin: 3.9 } },
+      { k: 10, forbid: 3, fixed: 5, rule: 5, meta: { strictPerMin: 3.7 } },
+      { k: 12, forbid: 9, fixed: 9, rule: 4, meta: { strictPerMin: 3.7 } },
+    ],
+    uiPlacement: { row: 2, col: 4, group: 'standard' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 4, expectedSecondsPerStrict: 15 },
+  },
+
+  expert7: {
+    id: 'expert7',
+    difficultyKey: 'tier.diff.expert',
+    sizeLabel: '7×7',
+    glyph: '💎',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    completionCriteria: {
+      scoreMin: 90, scoreMax: null,
+      requireStrict: true,
+      requireBacktrack: true,
+      backtrackMinCost: 9,
+      expertBestStrictPolicy: 'best-strict-on-exhaustion',  // ★ I2
+    },
+    totalBudgetMs: 24000, perAttemptBudgetMs: 2400, maxAttempts: 30,
+    selectionStrategy: 'uniform',
+    fallbackTierId: 'hard7',
+    engine: 'cdg-v4-strict',
+    candidatePool: [
+      // Single verified-backtrack candidate from 35,818 puzzles sweep.
+      // Additional sweeps may discover more — current pool is rare-but-confirmed.
+      { k: 9, forbid: 3, fixed: 7, rule: 4, meta: { strictPerMin: 4.0, btStrictRate: 0.0073 }, tags: ['verified-backtrack'] },
+    ],
+    uiPlacement: { row: 3, col: 4, group: 'expert' },
+    meta: { sweepDate: '2026-05-12', expectedPuzzlesPerMin: 4, expectedSecondsPerStrict: 15,
+            note: 'Single candidate currently. Additional sweep recommended for pool expansion.' },
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Daily Duel — 3 size variants (deterministic seed from date)
+// ─────────────────────────────────────────────────────────────────────────────
+const DAILY_DUEL_REGISTRY_V14 = {
+  daily6: {
+    id: 'daily6',
+    sizeLabel: '6×6',
+    baseTierId: 'expert6',          // Daily is expert difficulty
+    gridSize: 6,
+  },
+  daily7: {
+    id: 'daily7',
+    sizeLabel: '7×7',
+    baseTierId: 'expert7',
+    gridSize: 7,
+  },
+  daily8: {
+    id: 'daily8',
+    sizeLabel: '8×8',
+    baseTierId: 'expert7',          // 8×8 fallback to expert7 until 8×8 sweep done
+    gridSize: 8,
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW_PRESETS (line 16160) ↔ TIER REGISTRY 매핑
+// 기존 preset id가 §TSD tier id로 어떻게 매핑되는가
+// ─────────────────────────────────────────────────────────────────────────────
+const PRESET_TO_TIER_V14 = {
+  // NEW_PRESETS ids (lowercase)
+  'sprout4':  'sprout4',
+  'basic5':   'easy5',
+  'medium6':  'medium6',
+  'medium7':  'medium7',
+  'normal4':  'easy4',
+  'normal5':  'medium5',
+  'hard6':    'hard6',
+  'hard7':    'hard7',
+  'expert6':  'expert6',
+  'expert7':  'expert7',
+  // Legacy V6 level names (PascalCase) — getDifficultyLevelsList() output
+  'Sprout4':  'sprout4',
+  'Easy5':    'easy5',
+  'Medium6':  'medium6',
+  'Hard6':    'hard6',
+  'Medium7':  'medium7',
+  'Hard7':    'hard7',
+  // Legacy 5-tier names (Sprout/Easy/Medium/MediumPlus/Hard) — approximate mapping
+  'Sprout':   'sprout4',
+  'Easy':     'easy4',
+  'Medium':   'medium5',
+  'MediumPlus': 'medium6',
+  'Hard':     'hard6',
+  // Master tier internal names (handleActivatePreset's master generator path)
+  'Master6':   'expert6',
+  'Master6V2': 'expert6',
+  'Master7':   'expert7',
+  'Master7V2': 'expert7',
+};
+
+function resolveTierIdFromPreset(presetId) {
+  if (!presetId) return null;
+  // Direct lookup
+  if (PRESET_TO_TIER_V14[presetId]) return PRESET_TO_TIER_V14[presetId];
+  // Case-insensitive lookup (defensive)
+  const lower = String(presetId).toLowerCase();
+  for (const key in PRESET_TO_TIER_V14) {
+    if (key.toLowerCase() === lower) return PRESET_TO_TIER_V14[key];
+  }
+  return null;
+}
+
+function getTierById(tierId) {
+  if (!tierId) return null;
+  return DIFFICULTY_TIER_REGISTRY_V14[tierId] || null;
+}
+
+function listAllTierIds() {
+  return Object.keys(DIFFICULTY_TIER_REGISTRY_V14);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tier label composition (i18n-aware)
+//   t() 함수를 받아 한 tier의 표시 라벨 생성 — CJK 언어는 size 우선
+// ─────────────────────────────────────────────────────────────────────────────
+function composeTierLabel(tier, t) {
+  if (!tier) return '';
+  const diff = t(tier.difficultyKey);
+  return t('tier.label.format', { difficulty: diff, size: tier.sizeLabel });
+}
+
 
 // V6 mode global flag — false면 legacy 5-tier, true면 V6 7-tier 사용
 let USE_DIFFICULTY_V6 = true;
@@ -10755,6 +11447,2323 @@ function getTokensInRow(r, tokens) { return tokens.filter(t => t.row === r); }
 function getTokensInCol(c, tokens) { return tokens.filter(t => t.col === c); }
 
 function animalById(id) { return ANIMALS.find(a => a.id === id); }
+
+// =============================================================================
+// SECTION 2.6 — TIER SYSTEM v2.0 ENGINE (V14)
+// =============================================================================
+// Components:
+//   • createSeededRng — xorshift32 PRNG (deterministic reproducibility, TSD §A3)
+//   • Selector classes (Uniform / Weighted / RoundRobin / Adaptive)
+//   • ProgressBus — pub/sub event hub for UI coherence (TSD §A6, §5.1)
+//   • CompletionChecker — atomic predicate composition (TSD §4.3, §A7)
+//   • isBetterStrictOnly — strict-only bestSoFar comparator (User constraint I2)
+//   • TierGenerator (generateForTier) — main orchestrator (TSD §4.1)
+//
+// Invariants:
+//   • All Selectors deterministic given seed
+//   • ProgressBus events flow in strict order: tier-started → candidate-selected*
+//     → attempt-progress* → (attempt-accepted | attempt-rejected) → ...
+//     → (attempt-accepted | tier-failed | tier-cancelled)
+//   • bestStrictSoFar candidates filtered: uniqueness === 'strict' (HARD reject loose)
+//   • finishWithStrictBestEffort returns strict puzzle or fallback (never loose)
+// =============================================================================
+
+// ─── Seeded PRNG (xorshift32, deterministic) ─────────────────────────────────
+function createSeededRng(seed) {
+  let state = (seed | 0) || 1;
+  return function rng() {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return ((state >>> 0) / 0x100000000);
+  };
+}
+
+function hashStringToSeed(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function binarySearchLeq(arr, target) {
+  let lo = 0, hi = arr.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (arr[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+// ─── Candidate Selectors (Strategy pattern) ──────────────────────────────────
+
+class UniformRandomSelector {
+  constructor(pool, rng) {
+    this.pool = pool;
+    this.rng = rng;
+  }
+  selectNext(_ctx) {
+    const idx = Math.floor(this.rng() * this.pool.length);
+    return this.pool[idx];
+  }
+}
+
+class WeightedRandomSelector {
+  constructor(pool, rng) {
+    this.pool = pool;
+    this.rng = rng;
+    this.cumWeights = [];
+    let cum = 0;
+    for (const c of pool) {
+      const w = (typeof c.weight === 'number')
+        ? c.weight
+        : ((c.meta && c.meta.strictPerMin) || 1.0);
+      cum += Math.max(0.01, w);
+      this.cumWeights.push(cum);
+    }
+    this.totalWeight = cum;
+  }
+  selectNext(_ctx) {
+    const target = this.rng() * this.totalWeight;
+    const idx = binarySearchLeq(this.cumWeights, target);
+    return this.pool[idx];
+  }
+}
+
+class RoundRobinSelector {
+  constructor(pool, rng) {
+    // Deterministic shuffle with Fisher-Yates
+    this.shuffled = [...pool];
+    for (let i = this.shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [this.shuffled[i], this.shuffled[j]] = [this.shuffled[j], this.shuffled[i]];
+    }
+    this.cursor = 0;
+  }
+  selectNext(_ctx) {
+    const c = this.shuffled[this.cursor % this.shuffled.length];
+    this.cursor++;
+    return c;
+  }
+}
+
+class AdaptiveSelector {
+  // ε-greedy with Laplace smoothing — exploration vs exploitation
+  constructor(pool, rng) {
+    this.pool = pool;
+    this.rng = rng;
+    this.scores = pool.map(() => ({ tries: 0, accepts: 0, rejects: 0 }));
+    this.exploration = 0.2;
+  }
+  selectNext(_ctx) {
+    if (this.rng() < this.exploration) {
+      return this.pool[Math.floor(this.rng() * this.pool.length)];
+    }
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+    for (let i = 0; i < this.pool.length; i++) {
+      const s = this.scores[i];
+      const lap = (s.accepts + 1) / (s.tries + 2);
+      if (lap > bestScore) {
+        bestScore = lap;
+        bestIdx = i;
+      }
+    }
+    return this.pool[bestIdx];
+  }
+  recordResult(candidate, accepted) {
+    const idx = this.pool.indexOf(candidate);
+    if (idx < 0) return;
+    this.scores[idx].tries++;
+    if (accepted) this.scores[idx].accepts++;
+    else this.scores[idx].rejects++;
+  }
+}
+
+function createSelector(strategy, pool, seed) {
+  const rng = createSeededRng(seed);
+  switch (strategy) {
+    case 'uniform':     return new UniformRandomSelector(pool, rng);
+    case 'weighted':    return new WeightedRandomSelector(pool, rng);
+    case 'round-robin': return new RoundRobinSelector(pool, rng);
+    case 'adaptive':    return new AdaptiveSelector(pool, rng);
+    default:            return new UniformRandomSelector(pool, rng);
+  }
+}
+
+// ─── ProgressBus (Pub/Sub event hub) ─────────────────────────────────────────
+
+function createProgressBus() {
+  const subscribers = new Set();
+  const bus = {
+    subscribe(fn) {
+      subscribers.add(fn);
+      return { unsubscribe: () => subscribers.delete(fn) };
+    },
+    emit(event) {
+      const stamped = Object.assign({}, event, { _t: performance.now() });
+      bus._recentEvents.push(stamped);
+      if (bus._recentEvents.length > bus._maxRecent) bus._recentEvents.shift();
+      for (const fn of subscribers) {
+        try { fn(stamped); } catch (e) { console.error('[ProgressBus] subscriber error:', e); }
+      }
+    },
+    _recentEvents: [],
+    _maxRecent: 200,
+    _subscriberCount: () => subscribers.size,
+  };
+  return bus;
+}
+
+function emitProgress(bus, event) {
+  if (!bus) return;
+  bus.emit(event);
+}
+
+// ─── Completion Checker (atomic predicates composition) ──────────────────────
+
+function checkCompletion(metrics, criteria) {
+  const predicates = buildPredicates(criteria);
+  const results = predicates.map(p => p.check(metrics));
+  const failures = results.filter(r => !r.passed);
+  if (failures.length === 0) {
+    return { passed: true, unmet: [], primaryFailure: null };
+  }
+  return {
+    passed: false,
+    unmet: failures.map(f => f.code),
+    primaryFailure: failures[0].reason,
+  };
+}
+
+function buildPredicates(criteria) {
+  const ps = [];
+  // Predicate 1 (HIGHEST priority): strict uniqueness — User constraint I1
+  if (criteria.requireStrict) {
+    ps.push({
+      code: 'strict',
+      check(m) {
+        if (m.uniqueness !== 'strict') {
+          return {
+            passed: false,
+            code: 'not-strict',
+            reason: {
+              code: 'not-strict',
+              detail: `uniqueness=${m.uniqueness}, solutions=${m.solutionCount || '?'}`,
+              observed: m.uniqueness, required: 'strict',
+            },
+          };
+        }
+        return { passed: true };
+      },
+    });
+  }
+  // Predicate 2: score range
+  ps.push({
+    code: 'score-range',
+    check(m) {
+      if (m.finalDiff < criteria.scoreMin) {
+        return {
+          passed: false, code: 'score-too-low',
+          reason: { code: 'score-too-low',
+            detail: `finalDiff ${m.finalDiff.toFixed(1)} < min ${criteria.scoreMin}`,
+            observed: m.finalDiff, required: criteria.scoreMin },
+        };
+      }
+      if (criteria.scoreMax !== null && criteria.scoreMax !== undefined
+          && m.finalDiff > criteria.scoreMax) {
+        return {
+          passed: false, code: 'score-too-high',
+          reason: { code: 'score-too-high',
+            detail: `finalDiff ${m.finalDiff.toFixed(1)} > max ${criteria.scoreMax}`,
+            observed: m.finalDiff, required: criteria.scoreMax },
+        };
+      }
+      return { passed: true };
+    },
+  });
+  // Predicate 3: backtrack (Expert tier only)
+  if (criteria.requireBacktrack) {
+    const minCost = criteria.backtrackMinCost || 9;
+    ps.push({
+      code: 'backtrack',
+      check(m) {
+        const mc = m.maxCost || 0;
+        if (mc < minCost) {
+          return {
+            passed: false, code: 'no-backtrack',
+            reason: { code: 'no-backtrack',
+              detail: `maxCost ${mc} < required ${minCost}`,
+              observed: mc, required: minCost },
+          };
+        }
+        return { passed: true };
+      },
+    });
+  }
+  return ps;
+}
+
+// ─── Strict-only bestSoFar comparator (User constraint I2) ───────────────────
+// loose puzzle은 어떤 점수든 bestSoFar 후보가 *되지 않는다*. backtrack 만족이
+// 점수보다 우선. 같은 backtrack 상태 내에서는 finalDiff 비교.
+
+function isBetterStrictOnly(newM, currentBest, criteria) {
+  // HARD reject loose
+  if (!newM || newM.uniqueness !== 'strict') return false;
+  if (!currentBest) return true;
+  const minBt = (criteria && criteria.backtrackMinCost) || 9;
+  const reqBt = !!(criteria && criteria.requireBacktrack);
+  const newBtOk = !reqBt || (newM.maxCost || 0) >= minBt;
+  const curBtOk = !reqBt || (currentBest.metrics.maxCost || 0) >= minBt;
+  if (newBtOk !== curBtOk) return newBtOk;
+  // Same backtrack status → score comparison
+  return (newM.finalDiff || 0) > (currentBest.metrics.finalDiff || 0);
+}
+
+// ─── Extract metrics from puzzle object ──────────────────────────────────────
+// Adapter: existing puzzle shape → canonical ObservedMetrics
+
+function extractMetricsFromPuzzle(puzzle) {
+  if (!puzzle) return null;
+  const v9 = puzzle.v9 || {};
+  const v9bd = v9.breakdown || {};
+  const v12 = puzzle.v12_axioms || {};
+
+  // ─────────────────────────────────────────────────────────────────────
+  // V14.1 — ACCEPTANCE SCORE FORMULA (mirrors generation acceptance scoring)
+  // Reproduces the exact 0-100 scale acceptance score from
+  // generatePuzzleAsyncV2 (line 22288-22303). This is the score that
+  // maps to user-defined thresholds: 30 / 60 / 90.
+  // ─────────────────────────────────────────────────────────────────────
+  const qualScore     = (typeof v9.quality === 'number') ? v9.quality : 0;
+  const onbScore      = (v9bd.onboardingQ || 0) * 100;
+  const climaxScore   = (v9bd.climaxQ || 0) * 100;
+  const equityScore   = (v9bd.ruleEquityQ || 0) * 100;
+  const freedomScore  = (v9bd.placementFreedomQ || 0) * 100;
+  const sizeAppScore  = (v9bd.sizeAppropriatenessQ || 0) * 100;
+  const gridAppropriateBonus = v9.gridAppropriate ? 10 : -50;
+
+  const finalDiff = qualScore       * 0.30
+                  + onbScore        * 0.20
+                  + climaxScore     * 0.15
+                  + equityScore     * 0.10
+                  + freedomScore    * 0.10
+                  + sizeAppScore    * 0.15
+                  + gridAppropriateBonus;
+
+  // Uniqueness: strict / loose / null
+  let uniqueness = null;
+  if (puzzle.uniqueness === 'strict' || puzzle.uniqueness === 'loose') {
+    uniqueness = puzzle.uniqueness;
+  } else if (typeof puzzle.solutionCount === 'number') {
+    uniqueness = puzzle.solutionCount === 1 ? 'strict' : 'loose';
+  } else if (v9.solutions && Array.isArray(v9.solutions)) {
+    uniqueness = v9.solutions.length === 1 ? 'strict' : 'loose';
+  } else {
+    // Default: assume strict if strict generator was used
+    uniqueness = 'strict';
+  }
+  const solutionCount = (typeof puzzle.solutionCount === 'number') ? puzzle.solutionCount
+                      : (uniqueness === 'strict' ? 1 : 2);
+
+  // maxCost — V5 backtrack cost from trace (attached by generation, see Fix 3)
+  // cost 9 = backtrack-fallback; cost 0-8 = direct deduction / lookahead
+  const maxCost = (typeof v9.maxCost === 'number') ? v9.maxCost
+                : ((typeof puzzle.maxCost === 'number') ? puzzle.maxCost
+                   : (v9bd.maxCost || v12.maxCost || 0));
+  const hasBacktrack = maxCost >= 9;
+  const axiomBreadthV12 = v12.axiomBreadth || v9bd.axiomBreadth || 0;
+  const generationTimeMs = puzzle.generationTimeMs || 0;
+
+  return {
+    finalDiff,
+    v9Quality: qualScore,
+    onboardingScore: onbScore,
+    climaxScore, equityScore, freedomScore, sizeAppScore,
+    gridAppropriate: !!v9.gridAppropriate,
+    uniqueness, solutionCount, maxCost, hasBacktrack,
+    axiomBreadthV12, generationTimeMs,
+  };
+}
+
+// ─── Build customConfig from CandidateConfig + TierSpec ─────────────────────
+// TierSpec.candidatePool[i] + gridSize/countCoverage → existing customConfig format
+
+function buildCustomConfigFromCandidate(tierSpec, candidate) {
+  return {
+    n: tierSpec.gridSize,
+    k: candidate.k,
+    forbiddenCount: [candidate.forbid, candidate.forbid],
+    fixedTileCount: [candidate.fixed, candidate.fixed],
+    ruleCount: [candidate.rule, candidate.rule],
+    countCoverage: tierSpec.countCoverage,
+    ruleDimensions: candidate.ruleDimensions || ['habitat', 'diet'],
+    animalPoolRestriction: 'any',
+    maxSolutions: 1,                  // STRICT enforced at gen level (I1)
+    totalBudgetMs: tierSpec.perAttemptBudgetMs,
+    generationStrategy: 'cdg-v4-strict',
+    _tierSystemV14: true,             // marker for downstream debugging
+  };
+}
+
+// ─── Async sleep helper ──────────────────────────────────────────────────────
+function tierSleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ─── snapshotBest helper ────────────────────────────────────────────────────
+function snapshotBest(bestStrictSoFar) {
+  if (!bestStrictSoFar) return null;
+  return {
+    attemptNumber: bestStrictSoFar.attemptNumber,
+    candidate: bestStrictSoFar.candidate,
+    metrics: bestStrictSoFar.metrics,
+    unmetCriteria: bestStrictSoFar.unmetCriteria || [],
+  };
+}
+
+// ─── Call underlying engine with progress forwarding ─────────────────────────
+
+async function callGeneratorWithProgress(engine, customConfig, ctx, candidate) {
+  const subPhaseHandler = (subProgress) => {
+    if (!subProgress) return;
+    if (ctx.abortSignal && ctx.abortSignal.aborted) return;
+    const elapsed = performance.now() - ctx.startTime;
+    const enginePhase = subProgress.phase || 'generating';
+    let canonical = 'generating';
+    if (/build|axiom|attempt|adjust|prune|minim/.test(enginePhase)) canonical = 'generating';
+    else if (/solve|trace|enumerat/.test(enginePhase)) canonical = 'solving';
+    else if (/verify|check/.test(enginePhase)) canonical = 'verifying';
+    emitProgress(ctx.progressBus, {
+      type: 'attempt-progress',
+      tierId: ctx.tier.id,
+      attemptNumber: ctx.attemptNumber,
+      phase: canonical,
+      subPhase: enginePhase,
+      candidate: candidate,
+      candidateIndex: ctx.tier.candidatePool.indexOf(candidate),
+      elapsedMs: elapsed,
+      totalBudgetMs: ctx.tier.totalBudgetMs,
+    });
+  };
+  // Use existing generatePuzzleAsyncV2 — engine type passed through
+  // Custom 'tier-strict' label routes to cdg-v4-strict by default
+  const opts = {
+    engine: engine || 'cdg-v4-strict',
+    fallbackOnFailure: 'classic',
+    validateWithSolver: true,
+    customConfig,
+    _tierSystemV14Source: { tierId: ctx.tier.id, attempt: ctx.attemptNumber },
+  };
+  // generatePuzzleAsyncV2 expects a level string for legacy reasons — 'Custom' triggers customConfig path
+  return await generatePuzzleAsyncV2('Custom', opts, subPhaseHandler);
+}
+
+// ─── Main: generateForTier ───────────────────────────────────────────────────
+
+async function generateForTier(tierSpec, options) {
+  options = options || {};
+  const seed = (typeof options.seed === 'number' && Number.isFinite(options.seed))
+    ? options.seed
+    : Math.floor(Math.random() * 0x7fffffff);
+
+  const ctx = {
+    tier: tierSpec,
+    abortSignal: options.abortSignal || null,
+    seed: seed,
+    progressBus: options.progressBus || null,
+    startTime: performance.now(),
+    attemptNumber: 0,
+    candidatesUsed: new Set(),
+    bestStrictSoFar: null,            // ★ I2 — strict only
+    debugLog: [],
+  };
+  ctx.rng = createSeededRng(seed);
+  ctx.selector = createSelector(
+    tierSpec.selectionStrategy,
+    tierSpec.candidatePool,
+    seed,
+  );
+
+  emitProgress(ctx.progressBus, {
+    type: 'tier-started',
+    tierId: tierSpec.id,
+    tierSpec: tierSpec,
+    candidatePoolSize: tierSpec.candidatePool.length,
+    maxAttempts: tierSpec.maxAttempts,
+    completionCriteria: tierSpec.completionCriteria,
+    elapsedMs: 0,
+    totalBudgetMs: tierSpec.totalBudgetMs,
+    seed: seed,
+  });
+
+  while (true) {
+    // 1a. Abort check
+    if (ctx.abortSignal && ctx.abortSignal.aborted) {
+      emitProgress(ctx.progressBus, {
+        type: 'tier-cancelled',
+        tierId: tierSpec.id,
+        attemptNumber: ctx.attemptNumber,
+        reason: 'user-cancel',
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tierSpec.totalBudgetMs,
+        bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+      });
+      return {
+        status: 'cancelled',
+        bestStrictSoFar: ctx.bestStrictSoFar,
+        attempts: ctx.attemptNumber,
+        debugLog: ctx.debugLog,
+      };
+    }
+    // 1b. Budget check
+    const elapsed = performance.now() - ctx.startTime;
+    if (elapsed >= tierSpec.totalBudgetMs) {
+      return await finishWithStrictBestEffort(ctx, 'budget-exhausted', options);
+    }
+    if (ctx.attemptNumber >= tierSpec.maxAttempts) {
+      return await finishWithStrictBestEffort(ctx, 'max-attempts-exhausted', options);
+    }
+
+    ctx.attemptNumber++;
+
+    // 1c. Candidate selection
+    const candidate = ctx.selector.selectNext({
+      attemptNumber: ctx.attemptNumber,
+      history: ctx.candidatesUsed,
+      bestStrictSoFar: ctx.bestStrictSoFar,
+    });
+    const candFingerprint = `k${candidate.k}f${candidate.forbid}fx${candidate.fixed}r${candidate.rule}`;
+    ctx.candidatesUsed.add(candFingerprint);
+
+    emitProgress(ctx.progressBus, {
+      type: 'candidate-selected',
+      tierId: tierSpec.id,
+      attemptNumber: ctx.attemptNumber,
+      candidate: candidate,
+      candidateIndex: tierSpec.candidatePool.indexOf(candidate),
+      attemptBudgetMs: tierSpec.perAttemptBudgetMs,
+      elapsedMs: elapsed,
+      totalBudgetMs: tierSpec.totalBudgetMs,
+      candidatesUsed: ctx.candidatesUsed.size,
+    });
+
+    // 1d. Build customConfig + invoke generator
+    const customConfig = buildCustomConfigFromCandidate(tierSpec, candidate);
+    let puzzle = null;
+    let generationError = null;
+    try {
+      puzzle = await callGeneratorWithProgress(
+        tierSpec.engine, customConfig, ctx, candidate,
+      );
+    } catch (e) {
+      generationError = e;
+      ctx.debugLog.push({
+        attempt: ctx.attemptNumber,
+        candidate: candFingerprint,
+        error: (e && e.message) || String(e),
+      });
+    }
+
+    if (generationError || !puzzle) {
+      emitProgress(ctx.progressBus, {
+        type: 'attempt-rejected',
+        tierId: tierSpec.id,
+        attemptNumber: ctx.attemptNumber,
+        candidate: candidate,
+        candidateIndex: tierSpec.candidatePool.indexOf(candidate),
+        reason: {
+          code: generationError ? 'generator-error' : 'unsolvable',
+          detail: generationError ? generationError.message : 'generator returned null',
+        },
+        observedMetrics: null,
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tierSpec.totalBudgetMs,
+        bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+      });
+      // Adaptive selector feedback
+      if (ctx.selector.recordResult) ctx.selector.recordResult(candidate, false);
+      await tierSleep(0);
+      continue;
+    }
+
+    // 1e. Verify completion criteria
+    const metrics = extractMetricsFromPuzzle(puzzle);
+    const check = checkCompletion(metrics, tierSpec.completionCriteria);
+
+    if (check.passed) {
+      emitProgress(ctx.progressBus, {
+        type: 'attempt-accepted',
+        tierId: tierSpec.id,
+        attemptNumber: ctx.attemptNumber,
+        candidate: candidate,
+        candidateIndex: tierSpec.candidatePool.indexOf(candidate),
+        puzzle: puzzle,
+        observedMetrics: metrics,
+        totalAttemptsTried: ctx.attemptNumber,
+        candidatesUsed: ctx.candidatesUsed.size,
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tierSpec.totalBudgetMs,
+      });
+      if (ctx.selector.recordResult) ctx.selector.recordResult(candidate, true);
+      return {
+        status: 'accepted',
+        puzzle: puzzle,
+        candidate: candidate,
+        metrics: metrics,
+        attempts: ctx.attemptNumber,
+        candidatesUsed: ctx.candidatesUsed.size,
+        bestStrictSoFar: ctx.bestStrictSoFar,
+        debugLog: ctx.debugLog,
+        seed: seed,
+      };
+    }
+
+    // 1f. Update bestStrictSoFar (STRICT only — User constraint I2)
+    if (isBetterStrictOnly(metrics, ctx.bestStrictSoFar, tierSpec.completionCriteria)) {
+      ctx.bestStrictSoFar = {
+        attemptNumber: ctx.attemptNumber,
+        candidate: candidate,
+        metrics: metrics,
+        puzzle: puzzle,
+        unmetCriteria: check.unmet,
+      };
+      emitProgress(ctx.progressBus, {
+        type: 'best-strict-updated',
+        tierId: tierSpec.id,
+        attemptNumber: ctx.attemptNumber,
+        bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tierSpec.totalBudgetMs,
+      });
+    }
+
+    emitProgress(ctx.progressBus, {
+      type: 'attempt-rejected',
+      tierId: tierSpec.id,
+      attemptNumber: ctx.attemptNumber,
+      candidate: candidate,
+      candidateIndex: tierSpec.candidatePool.indexOf(candidate),
+      reason: check.primaryFailure,
+      observedMetrics: metrics,
+      elapsedMs: performance.now() - ctx.startTime,
+      totalBudgetMs: tierSpec.totalBudgetMs,
+      bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+    });
+    if (ctx.selector.recordResult) ctx.selector.recordResult(candidate, false);
+
+    // Yield to event loop (UI responsiveness)
+    await tierSleep(0);
+  }
+}
+
+// ─── finishWithStrictBestEffort (User constraint I2) ─────────────────────────
+// Policy:
+//   1. expertBestStrictPolicy = 'best-strict-on-exhaustion' AND bestStrictSoFar 존재
+//      → bestStrictSoFar 반환 (strict + 최고 점수 보장)
+//   2. bestStrictSoFar 없음 AND fallback tier 존재 → 재귀 호출 (남은 시간)
+//   3. fallback도 없음 → 'failed' status
+
+async function finishWithStrictBestEffort(ctx, reason, originalOptions) {
+  const tier = ctx.tier;
+  // Policy 1: bestStrictSoFar 반환 (strict 보장)
+  if (ctx.bestStrictSoFar
+      && tier.completionCriteria.expertBestStrictPolicy === 'best-strict-on-exhaustion') {
+    emitProgress(ctx.progressBus, {
+      type: 'attempt-accepted',
+      tierId: tier.id,
+      attemptNumber: ctx.bestStrictSoFar.attemptNumber,
+      candidate: ctx.bestStrictSoFar.candidate,
+      candidateIndex: tier.candidatePool.indexOf(ctx.bestStrictSoFar.candidate),
+      puzzle: ctx.bestStrictSoFar.puzzle,
+      observedMetrics: ctx.bestStrictSoFar.metrics,
+      totalAttemptsTried: ctx.attemptNumber,
+      candidatesUsed: ctx.candidatesUsed.size,
+      bestEffort: true,
+      bestEffortReason: reason,
+      unmetCriteria: ctx.bestStrictSoFar.unmetCriteria,
+      elapsedMs: performance.now() - ctx.startTime,
+      totalBudgetMs: tier.totalBudgetMs,
+    });
+    return {
+      status: 'best-effort-strict',
+      puzzle: ctx.bestStrictSoFar.puzzle,
+      candidate: ctx.bestStrictSoFar.candidate,
+      metrics: ctx.bestStrictSoFar.metrics,
+      attempts: ctx.attemptNumber,
+      bestStrictSoFar: ctx.bestStrictSoFar,
+      unmetCriteria: ctx.bestStrictSoFar.unmetCriteria,
+      bestEffortReason: reason,
+      debugLog: ctx.debugLog,
+      seed: ctx.seed,
+    };
+  }
+  // Policy 2: fallback tier
+  if (tier.fallbackTierId) {
+    const fallbackTier = getTierById(tier.fallbackTierId);
+    if (fallbackTier) {
+      emitProgress(ctx.progressBus, {
+        type: 'tier-failed',
+        tierId: tier.id,
+        reason: reason,
+        bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.totalBudgetMs,
+        fallbackTried: { tierId: tier.fallbackTierId, result: 'attempting' },
+      });
+      const elapsed = performance.now() - ctx.startTime;
+      const remainingMs = Math.max(1500, tier.totalBudgetMs - elapsed);
+      // Recursive fallback with adjusted budget
+      const fallbackResult = await generateForTier(
+        Object.assign({}, fallbackTier, { totalBudgetMs: remainingMs }),
+        {
+          abortSignal: ctx.abortSignal,
+          seed: ctx.seed + 1,
+          progressBus: ctx.progressBus,
+        },
+      );
+      if (fallbackResult && (fallbackResult.status === 'accepted'
+                          || fallbackResult.status === 'best-effort-strict')) {
+        fallbackResult.fallbackApplied = { from: tier.id, to: tier.fallbackTierId };
+        return fallbackResult;
+      }
+    }
+  }
+  // Policy 3: pure failure
+  emitProgress(ctx.progressBus, {
+    type: 'tier-failed',
+    tierId: tier.id,
+    reason: reason,
+    totalAttempts: ctx.attemptNumber,
+    bestSoFar: snapshotBest(ctx.bestStrictSoFar),
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.totalBudgetMs,
+  });
+  return {
+    status: 'failed',
+    reason: reason,
+    bestStrictSoFar: ctx.bestStrictSoFar,
+    attempts: ctx.attemptNumber,
+    debugLog: ctx.debugLog,
+    seed: ctx.seed,
+  };
+}
+
+// ─── Window namespace exposure (TSD §6.5) ────────────────────────────────────
+
+if (typeof window !== 'undefined') {
+  window.__ZOOGRAMS_TIERS__ = {
+    getRegistry: () => Object.freeze(Object.assign({}, DIFFICULTY_TIER_REGISTRY_V14)),
+    getTier: getTierById,
+    listTiers: listAllTierIds,
+    generate: async function (tierId, options) {
+      const tier = getTierById(tierId);
+      if (!tier) throw new Error(`Unknown tier: ${tierId}`);
+      return await generateForTier(tier, options || {});
+    },
+    generateForTier: generateForTier,
+    createSelector: createSelector,
+    checkCompletion: checkCompletion,
+    isBetterStrictOnly: isBetterStrictOnly,
+    createProgressBus: createProgressBus,
+    extractMetricsFromPuzzle: extractMetricsFromPuzzle,
+    resolveTierIdFromPreset: resolveTierIdFromPreset,
+    composeTierLabel: composeTierLabel,
+    // V14 — invariant self-test (debug tool, run from console)
+    invariantSelfTest: function () {
+      const results = { passed: 0, failed: 0, errors: [] };
+      const tiers = Object.values(DIFFICULTY_TIER_REGISTRY_V14);
+      // I1: requireStrict=true for all tiers
+      const nonStrict = tiers.filter(t => !t.completionCriteria.requireStrict);
+      if (nonStrict.length > 0) {
+        results.failed++;
+        results.errors.push(`I1: ${nonStrict.length} tiers lack requireStrict=true: ${nonStrict.map(t => t.id)}`);
+      } else { results.passed++; }
+      // I2: expert tiers have requireBacktrack + best-strict policy
+      const experts = tiers.filter(t => t.uiPlacement.group === 'expert');
+      const badExperts = experts.filter(t =>
+        !t.completionCriteria.requireBacktrack
+        || t.completionCriteria.expertBestStrictPolicy !== 'best-strict-on-exhaustion');
+      if (badExperts.length > 0) {
+        results.failed++;
+        results.errors.push(`I2: ${badExperts.length} experts lack proper policy: ${badExperts.map(t => t.id)}`);
+      } else { results.passed++; }
+      // I3: all tiers have non-empty candidatePool
+      const empty = tiers.filter(t => !t.candidatePool || t.candidatePool.length === 0);
+      if (empty.length > 0) {
+        results.failed++;
+        results.errors.push(`I3: ${empty.length} tiers have empty candidatePool: ${empty.map(t => t.id)}`);
+      } else { results.passed++; }
+      // I4: fallbackTierId points to a valid tier (or null)
+      const badFallback = tiers.filter(t =>
+        t.fallbackTierId && !DIFFICULTY_TIER_REGISTRY_V14[t.fallbackTierId]);
+      if (badFallback.length > 0) {
+        results.failed++;
+        results.errors.push(`I4: ${badFallback.length} tiers have invalid fallback: ${badFallback.map(t => t.id)}`);
+      } else { results.passed++; }
+      // I5: uiPlacement coords unique
+      const coords = tiers.map(t => `${t.uiPlacement.row},${t.uiPlacement.col}`);
+      if (coords.length !== new Set(coords).size) {
+        results.failed++;
+        results.errors.push(`I5: duplicate uiPlacement coords`);
+      } else { results.passed++; }
+      console.log('[V14] Invariant self-test:', results);
+      return results;
+    },
+    // V14 — strict-only bestSoFar test (User constraint I2 enforcement)
+    testStrictOnlyBest: function () {
+      const looseMetrics = { uniqueness: 'loose', finalDiff: 999, maxCost: 99 };
+      const strictMetrics = { uniqueness: 'strict', finalDiff: 50, maxCost: 5 };
+      const criteria = { requireStrict: true, requireBacktrack: false, scoreMin: 0 };
+      // Loose should never be better, even with score 999
+      const r1 = isBetterStrictOnly(looseMetrics, null, criteria);
+      const r2 = isBetterStrictOnly(strictMetrics, { metrics: looseMetrics }, criteria);
+      const passed = (r1 === false) && (r2 === true);
+      console.log('[V14] Strict-only test:', { r1, r2, passed });
+      return passed;
+    },
+    version: 'tiers-v2.0',
+    buildDate: '2026-05-12',
+  };
+  // Debug namespace — auto-accumulating generation traces (User constraint 3)
+  window.__ZOOGRAMS_TIERS_DEBUG__ = {
+    recentGenerations: [],
+    lastBus: null,
+    maxStored: 10,
+    log(entry) {
+      this.recentGenerations.push(entry);
+      while (this.recentGenerations.length > this.maxStored) {
+        this.recentGenerations.shift();
+      }
+    },
+    clear() {
+      this.recentGenerations = [];
+      this.lastBus = null;
+    },
+  };
+}
+
+
+
+// =============================================================================
+// SECTION 2.7 — DIFFICULTY TIER SYSTEM v15.0 (UNIFIED FINAL)
+// =============================================================================
+// V15 = V13 generation pipeline + V14 candidate pool + 사용자 정의 점수 공식
+//
+// 사용자 정의 점수 공식 (V15 표준):
+//   점수 = zoograms 정체성 점수 + (v5 difficulty / 10)
+//
+//   정체성 점수 = v13_computeIdentityScore(v13Metric)  [0~100 스케일]
+//   v5 difficulty = computeTraceDifficulty_v5(diagnostics, trace)  [0~수백 스케일]
+//
+// Tier별 기준 (사용자 명시):
+//   sprout4   2초  유일해 + score < 30
+//   easy4     2초  유일해 + 30 ≤ score < 60
+//   easy5     2초  유일해 + 30 ≤ score < 60
+//   medium5   2초  유일해 + 60 ≤ score < 90
+//   medium6   2초  유일해 + 60 ≤ score < 90
+//   medium7   2초  유일해 + 60 ≤ score < 90
+//   hard6    10초  유일해 + score ≥ 90
+//   hard7    10초  유일해 + score ≥ 90
+//   expert6  15초  유일해 + score ≥ 90 + maxCost ≥ 9 (백트랙)
+//                   → 시간 초과 시 best-strict 반환
+//   expert7  25초  유일해 + score ≥ 90 + maxCost ≥ 9 (백트랙)
+//                   → 20초 컷 후 best-strict 반환
+//   Custom         사용자 customConfig 그대로 처리 (제약 없음)
+//
+// 핵심 invariants:
+//   I0. *모든 tier*는 strict 유일해 보장 (loose는 어떤 점수든 후보 거부)
+//   I1. score 범위 외 puzzle은 accept 안 됨 (best-strict-on-exhaustion 정책)
+//   I2. expert tier 시간 초과: bestStrictSoFar (strict + 최고 점수) 반환
+//   I3. 단일 main loop가 모든 tier 처리. engine은 *optional dispatch*
+//   I4. V13/V14 코드 0줄 변경. V15는 그 위에 wrapping layer
+// =============================================================================
+
+const V15_TIER_SYSTEM_VERSION = 'v15.0';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 점수 공식 (단일 진실의 원천)
+// 사용자 정의: score = identityScore + (v5Difficulty / 10)
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_computeScore(identityScore, v5Difficulty) {
+  return (identityScore || 0) + (v5Difficulty || 0) / 10;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 점수 추출 — puzzle 객체에서 score / identityScore / v5Difficulty / maxCost
+// 우선순위:
+//   1. puzzle 객체에 이미 attach된 metric 사용 (generation 시점에 계산됨)
+//   2. 없으면 traceSolve_v2 재실행 + computeV13Metric + 두 점수 계산
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_extractMetrics(puzzle, opts) {
+  if (!puzzle) return null;
+  opts = opts || {};
+
+  // ─── 1. 기존 attach된 metric 우선 사용 ───────────────────────────────────
+  let identityScore = null;
+  let v5Difficulty = null;
+  let maxCost = null;
+  let traceLength = 0;
+
+  // v9에 maxCost 부착 (V14.1 Fix 3 결과)
+  if (puzzle.v9) {
+    if (typeof puzzle.v9.maxCost === 'number') maxCost = puzzle.v9.maxCost;
+    if (typeof puzzle.v9.traceLength === 'number') traceLength = puzzle.v9.traceLength;
+  }
+
+  // 기존 V5 difficulty
+  if (typeof puzzle.traceDifficulty_v5 === 'number') {
+    v5Difficulty = puzzle.traceDifficulty_v5;
+  }
+
+  // 기존 identityScore (V13 path가 attach)
+  if (puzzle._v15Metric && typeof puzzle._v15Metric.identityScore === 'number') {
+    identityScore = puzzle._v15Metric.identityScore;
+  } else if (puzzle._v13Metric && typeof v13_computeIdentityScore === 'function') {
+    try { identityScore = v13_computeIdentityScore(puzzle._v13Metric); } catch (e) {}
+  }
+
+  // ─── 2. 누락된 값이 있으면 trace 재실행 ────────────────────────────────
+  const needsTrace = (identityScore === null || v5Difficulty === null || maxCost === null);
+  if (needsTrace && typeof traceSolve_v2 === 'function') {
+    try {
+      const traceResult = traceSolve_v2(puzzle, {
+        timeLimitMs: opts.traceTimeoutMs || 1000,
+        maxLookaheadDepth: 1,
+        enableMultiStepLookahead: false,
+        enableLevel4: true,
+      });
+      if (traceResult && traceResult.status === 'solved' && traceResult.trace) {
+        const diagnostics = traceResult.diagnostics || {};
+        const trace = traceResult.trace;
+        traceLength = trace.length;
+
+        // v5 difficulty
+        if (v5Difficulty === null && typeof computeTraceDifficulty_v5 === 'function') {
+          try {
+            v5Difficulty = computeTraceDifficulty_v5(diagnostics, trace);
+          } catch (e) { v5Difficulty = 0; }
+        }
+
+        // maxCost
+        if (maxCost === null && typeof diagnostics.maxCost === 'number') {
+          maxCost = diagnostics.maxCost;
+        }
+
+        // identityScore (need v13 metric first)
+        if (identityScore === null && typeof computeV13Metric === 'function'
+            && typeof v13_computeIdentityScore === 'function') {
+          try {
+            const v13Metric = computeV13Metric(trace);
+            identityScore = v13_computeIdentityScore(v13Metric);
+            // Cache on puzzle for later
+            puzzle._v15Metric = { identityScore, v13Metric };
+          } catch (e) { identityScore = 0; }
+        }
+      }
+    } catch (e) {
+      // Trace failed — defaults applied below
+    }
+  }
+
+  // Defaults
+  identityScore = identityScore !== null ? identityScore : 0;
+  v5Difficulty = v5Difficulty !== null ? v5Difficulty : 0;
+  maxCost = maxCost !== null ? maxCost : 0;
+
+  // ─── 3. Uniqueness check ────────────────────────────────────────────────
+  let uniqueness;
+  let solutionCount;
+  if (puzzle.uniqueness === 'strict' || puzzle.uniqueness === 'loose') {
+    uniqueness = puzzle.uniqueness;
+    solutionCount = uniqueness === 'strict' ? 1 : 2;
+  } else if (typeof puzzle.solutionCount === 'number') {
+    solutionCount = puzzle.solutionCount;
+    uniqueness = solutionCount === 1 ? 'strict' : (solutionCount >= 2 ? 'loose' : null);
+  } else {
+    uniqueness = 'strict'; // V14/V13 generators emit strict by default
+    solutionCount = 1;
+  }
+
+  // ─── 4. Score 합성 ──────────────────────────────────────────────────────
+  const score = v15_computeScore(identityScore, v5Difficulty);
+
+  return {
+    score,
+    finalDiff: score,       // V14 UI 호환 alias (TierLoadingContent expects finalDiff)
+    identityScore,
+    v5Difficulty,
+    maxCost,
+    traceLength,
+    hasBacktrack: maxCost >= 9,
+    uniqueness,
+    solutionCount,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 → V14 Compat Tier Adapter
+// V14 TierLoadingContent expects V14 tier shape (totalBudgetMs, completionCriteria,
+// candidatePool 등). V15 tier 객체를 V14 shape으로 변환해 dispatch 시점에 전달.
+// V14 UI code 0줄 변경. V15 main loop는 *원본 V15 tier* 그대로 사용.
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_toV14CompatTier(v15Tier) {
+  if (!v15Tier) return null;
+  const eng = v15Tier.engineOptions || {};
+  return {
+    id: v15Tier.id,
+    label: (v15Tier.glyph || '') + ' ' + (v15Tier.sizeLabel || ''),
+    difficultyKey: v15Tier.difficultyKey,
+    sizeLabel: v15Tier.sizeLabel,
+    glyph: v15Tier.glyph,
+    gridSize: v15Tier.gridSize,
+    // ★ V14 핵심 필드 매핑
+    totalBudgetMs: v15Tier.timeLimitMs || 5000,
+    maxAttempts: v15Tier.maxAttempts || 100,
+    completionCriteria: {
+      requireStrict: v15Tier.requireStrict !== false,
+      requireBacktrack: !!v15Tier.requireBacktrack,
+      backtrackMinCost: v15Tier.backtrackMinCost || 9,
+      scoreMin: (v15Tier.scoreRange && v15Tier.scoreRange.min !== null && v15Tier.scoreRange.min !== undefined)
+              ? v15Tier.scoreRange.min : 0,
+      scoreMax: (v15Tier.scoreRange && v15Tier.scoreRange.max !== null && v15Tier.scoreRange.max !== undefined)
+              ? v15Tier.scoreRange.max : null,
+      bestStrictFallback: !!v15Tier.bestStrictFallback,
+      bestStrictPolicy: 'strict-only',
+    },
+    // candidatePool top-level 노출 (TierDebugPanel용)
+    candidatePool: (eng.candidatePool && eng.candidatePool.length > 0)
+                 ? eng.candidatePool
+                 : [{ k: 0, forbid: 0, fixed: 0, rule: 0 }],   // empty placeholder
+    ruleDimensions: eng.ruleDimensions || ['habitat', 'diet'],
+    countCoverage: v15Tier.countCoverage,
+    uiPlacement: v15Tier.uiPlacement,
+    fallbackTierId: v15Tier.fallbackTierId,
+    // V15 원본 보존
+    _v15Tier: v15Tier,
+    _v15CompatMarker: true,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Candidate Normalizer
+// V15 engine adapter가 반환하는 candidate 객체 형태가 engine에 따라 다름:
+//   - cdg-v4-strict: { k, forbid, fixed, rule }
+//   - v13:           { engine: 'v13', cfg: {...} }
+//   - master-v2:     { engine: 'master-v2', cfg: {...} }
+//   - custom:        { engine: 'custom', cfg: {...} }
+// V14 TierDebugPanel은 candidate.k/forbid/fixed/rule 접근하므로 normalize 필요.
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_normalizeCandidate(candidate) {
+  if (!candidate) return { k: 0, forbid: 0, fixed: 0, rule: 0 };
+  // Already in cdg form
+  if (typeof candidate.k === 'number') return candidate;
+  // V13/master/custom form — extract from cfg if present
+  const result = {
+    k: 0, forbid: 0, fixed: 0, rule: 0,
+    engine: candidate.engine || 'unknown',
+  };
+  if (candidate.cfg) {
+    const cfg = candidate.cfg;
+    if (typeof cfg.k === 'number') result.k = cfg.k;
+    if (typeof cfg.forbiddenCount === 'object' && cfg.forbiddenCount.length > 0)
+      result.forbid = cfg.forbiddenCount[0];
+    if (typeof cfg.fixedTileCount === 'object' && cfg.fixedTileCount.length > 0)
+      result.fixed = cfg.fixedTileCount[0];
+    if (typeof cfg.ruleCount === 'object' && cfg.ruleCount.length > 0)
+      result.rule = cfg.ruleCount[0];
+    result.cfgLabel = cfg.level || cfg.engineStrategy || 'cfg';
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Strict 보장 검증 (사용자 핵심 제약 I0)
+// loose puzzle은 어떤 점수든 reject. enumerateSolutions로 재검증 가능 (heavy).
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_verifyStrict(puzzle, opts) {
+  if (!puzzle) return false;
+  opts = opts || {};
+  // Fast path: puzzle에 uniqueness 정보 있음
+  if (puzzle.uniqueness === 'strict') return true;
+  if (puzzle.uniqueness === 'loose') return false;
+  if (puzzle.solutionCount === 1) return true;
+  if (typeof puzzle.solutionCount === 'number' && puzzle.solutionCount >= 2) return false;
+  // Slow path: enumerateSolutions로 재검증 (옵션)
+  if (opts.strictReverify && typeof enumerateSolutions === 'function'
+      && typeof ANIMALS !== 'undefined') {
+    try {
+      const verify = enumerateSolutions(puzzle, ANIMALS, 2,
+        opts.strictReverifyTimeoutMs || 1500);
+      return verify && verify.solutions && verify.solutions.length === 1;
+    } catch (e) {
+      // Fall through to default
+    }
+  }
+  // Default: V13/V14 generators emit strict by contract
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Score Range Check
+// range = { min: 30, max: 60 } → 30 ≤ score < 60  (min inclusive, max exclusive)
+// range = { min: 90, max: null } → score ≥ 90
+// range = { min: null, max: 30 } → score < 30
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_checkScoreRange(score, range) {
+  if (!range) return true;
+  if (range.min !== null && range.min !== undefined && score < range.min) return false;
+  if (range.max !== null && range.max !== undefined && score >= range.max) return false;
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Best-Strict Comparator (사용자 제약 I2 — 시간 초과 시 strict 최고점 반환)
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_isBetterStrictBest(newM, currentBest, tier) {
+  // HARD: loose는 어떤 경우에도 후보 아님
+  if (!newM || newM.uniqueness !== 'strict') return false;
+  if (!currentBest) return true;
+
+  // Backtrack 우선 (expert tier)
+  if (tier && tier.requireBacktrack) {
+    const newBt = newM.hasBacktrack;
+    const oldBt = currentBest.metrics.hasBacktrack;
+    if (newBt !== oldBt) return newBt;
+  }
+
+  // 점수 범위 내 우선
+  if (tier && tier.scoreRange) {
+    const newInRange = v15_checkScoreRange(newM.score, tier.scoreRange);
+    const oldInRange = v15_checkScoreRange(currentBest.metrics.score, tier.scoreRange);
+    if (newInRange !== oldInRange) return newInRange;
+  }
+
+  // 같은 상태에서는 점수 자체로 비교
+  return (newM.score || 0) > (currentBest.metrics.score || 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Completion Check (atomic predicates)
+// 사용자 모든 조건 통합 검증
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_checkCompletion(metrics, tier) {
+  const reasons = [];
+
+  // 1. STRICT (모든 tier)
+  if (tier.requireStrict !== false) {
+    if (!metrics || metrics.uniqueness !== 'strict') {
+      reasons.push({ code: 'not-strict', detail: `uniqueness=${metrics?.uniqueness}` });
+    }
+  }
+  // 2. SCORE RANGE
+  if (tier.scoreRange) {
+    if (!v15_checkScoreRange(metrics.score, tier.scoreRange)) {
+      const r = tier.scoreRange;
+      const rangeStr = (r.min !== null && r.min !== undefined ? `≥${r.min}` : '')
+                     + (r.min !== null && r.max !== null ? ' & ' : '')
+                     + (r.max !== null && r.max !== undefined ? `<${r.max}` : '');
+      reasons.push({
+        code: 'score-out-of-range',
+        detail: `score ${metrics.score.toFixed(1)} not in ${rangeStr}`,
+        observed: metrics.score,
+        required: tier.scoreRange,
+      });
+    }
+  }
+  // 3. BACKTRACK (expert)
+  if (tier.requireBacktrack) {
+    const minCost = tier.backtrackMinCost || 9;
+    if ((metrics.maxCost || 0) < minCost) {
+      reasons.push({
+        code: 'no-backtrack',
+        detail: `maxCost ${metrics.maxCost} < ${minCost}`,
+        observed: metrics.maxCost,
+        required: minCost,
+      });
+    }
+  }
+
+  return {
+    passed: reasons.length === 0,
+    unmet: reasons.map(r => r.code),
+    primaryFailure: reasons[0] || null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Tier Registry — 사용자 명시 사양 정확 반영
+// ─────────────────────────────────────────────────────────────────────────────
+const V15_TIER_REGISTRY = {
+
+  // ═════ Column 1 (4×4) ═════════════════════════════════════════════════════
+  sprout4: {
+    id: 'sprout4',
+    difficultyKey: 'tier.diff.sprout',
+    sizeLabel: '4×4',
+    glyph: '🌱',
+    gridSize: 4,
+    countCoverage: [8, 8],
+    // 사용자 spec: 2초 + score < 30 (range 위반 시 reject)
+    timeLimitMs: 2000,
+    scoreRange: { min: null, max: 30 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,   // 2초 안에 못 찾으면 strict 중 최고점 반환
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 600,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 4, forbid: 2, fixed: 4, rule: 3 },
+        { k: 4, forbid: 2, fixed: 4, rule: 1 },
+        { k: 4, forbid: 0, fixed: 4, rule: 1 },
+        { k: 5, forbid: 2, fixed: 4, rule: 3 },
+        { k: 4, forbid: 0, fixed: 4, rule: 3 },
+        { k: 4, forbid: 2, fixed: 3, rule: 3 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: null,
+    uiPlacement: { row: 1, col: 1, group: 'standard' },
+  },
+
+  easy4: {
+    id: 'easy4',
+    difficultyKey: 'tier.diff.easy',
+    sizeLabel: '4×4',
+    glyph: '🌾',
+    gridSize: 4,
+    countCoverage: [8, 8],
+    timeLimitMs: 2000,
+    scoreRange: { min: 30, max: 60 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 500,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 4, forbid: 2, fixed: 4, rule: 1 },
+        { k: 5, forbid: 2, fixed: 4, rule: 3 },
+        { k: 4, forbid: 0, fixed: 4, rule: 1 },
+        { k: 4, forbid: 2, fixed: 3, rule: 1 },
+        { k: 5, forbid: 0, fixed: 4, rule: 3 },
+        { k: 5, forbid: 2, fixed: 3, rule: 3 },
+        { k: 4, forbid: 2, fixed: 3, rule: 3 },
+        { k: 4, forbid: 0, fixed: 3, rule: 1 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'sprout4',
+    uiPlacement: { row: 2, col: 1, group: 'standard' },
+  },
+
+  // ═════ Column 2 (5×5) ═════════════════════════════════════════════════════
+  easy5: {
+    id: 'easy5',
+    difficultyKey: 'tier.diff.basic',
+    sizeLabel: '5×5',
+    glyph: '🌿',
+    gridSize: 5,
+    countCoverage: [10, 10],
+    timeLimitMs: 2000,
+    scoreRange: { min: 30, max: 60 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 500,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 5, forbid: 3, fixed: 5, rule: 2 },
+        { k: 5, forbid: 1, fixed: 5, rule: 2 },
+        { k: 5, forbid: 3, fixed: 4, rule: 2 },
+        { k: 6, forbid: 3, fixed: 5, rule: 4 },
+        { k: 5, forbid: 1, fixed: 4, rule: 2 },
+        { k: 6, forbid: 3, fixed: 5, rule: 2 },
+        { k: 5, forbid: 3, fixed: 4, rule: 4 },
+        { k: 6, forbid: 3, fixed: 4, rule: 4 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'easy4',
+    uiPlacement: { row: 1, col: 2, group: 'standard' },
+  },
+
+  medium5: {
+    id: 'medium5',
+    difficultyKey: 'tier.diff.normal',
+    sizeLabel: '5×5',
+    glyph: '🪴',
+    gridSize: 5,
+    countCoverage: [10, 10],
+    timeLimitMs: 2000,
+    scoreRange: { min: 60, max: 90 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 600,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 6, forbid: 3, fixed: 4, rule: 4 },
+        { k: 6, forbid: 1, fixed: 4, rule: 4 },
+        { k: 6, forbid: 1, fixed: 5, rule: 2 },
+        { k: 6, forbid: 3, fixed: 5, rule: 2 },
+        { k: 6, forbid: 3, fixed: 4, rule: 2 },
+        { k: 6, forbid: 1, fixed: 4, rule: 2 },
+        { k: 5, forbid: 1, fixed: 4, rule: 2 },
+        { k: 6, forbid: 1, fixed: 5, rule: 4 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'easy5',
+    uiPlacement: { row: 2, col: 2, group: 'standard' },
+  },
+
+  // ═════ Column 3 (6×6) ═════════════════════════════════════════════════════
+  medium6: {
+    id: 'medium6',
+    difficultyKey: 'tier.diff.intermediate',
+    sizeLabel: '6×6',
+    glyph: '🌳',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    timeLimitMs: 2000,
+    scoreRange: { min: 60, max: 90 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 700,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 8, forbid: 6, fixed: 6, rule: 5 },
+        { k: 10, forbid: 8, fixed: 8, rule: 5 },
+        { k: 8, forbid: 6, fixed: 8, rule: 3 },
+        { k: 8, forbid: 4, fixed: 6, rule: 5 },
+        { k: 8, forbid: 2, fixed: 6, rule: 5 },
+        { k: 8, forbid: 8, fixed: 6, rule: 3 },
+        { k: 8, forbid: 6, fixed: 6, rule: 3 },
+        { k: 8, forbid: 4, fixed: 8, rule: 3 },
+        { k: 8, forbid: 8, fixed: 8, rule: 3 },
+        { k: 8, forbid: 2, fixed: 8, rule: 3 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'easy5',
+    uiPlacement: { row: 1, col: 3, group: 'standard' },
+  },
+
+  hard6: {
+    id: 'hard6',
+    difficultyKey: 'tier.diff.hard',
+    sizeLabel: '6×6',
+    glyph: '🏔',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    timeLimitMs: 15000,
+    scoreRange: { min: 90, max: null },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 30000, absoluteMaxAttempts: 100000,
+    perAttemptBudgetMs: 1500,
+    engineOptions: {
+      // V15.2 작업 5: rotation — cdg-v4-strict(2회) + v13(Hard, 1회) 순환
+      // cdg는 빠른 다양성, v13은 quality gate (axiomBreadthV12Min=6)로 90+ 강화
+      engineStrategy: 'rotation',
+      engineRotation: [
+        { strategy: 'cdg-v4-strict', weight: 2 },
+        { strategy: 'v13', weight: 1,
+          v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } } },
+      ],
+      candidatePool: [
+        { k: 8, forbid: 6, fixed: 6, rule: 3 },
+        { k: 8, forbid: 8, fixed: 4, rule: 5 },
+        { k: 10, forbid: 2, fixed: 8, rule: 5 },
+        { k: 8, forbid: 6, fixed: 4, rule: 5 },
+        { k: 8, forbid: 2, fixed: 4, rule: 5 },
+      ],
+      v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } },
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'medium6',
+    uiPlacement: { row: 2, col: 3, group: 'standard' },
+  },
+
+  expert6: {
+    id: 'expert6',
+    difficultyKey: 'tier.diff.expert',
+    sizeLabel: '6×6',
+    glyph: '💎',
+    gridSize: 6,
+    countCoverage: [12, 12],
+    timeLimitMs: 25000,
+    scoreRange: { min: 90, max: null },
+    requireStrict: true,
+    requireBacktrack: true,
+    backtrackMinCost: 9,
+    bestStrictFallback: true,       // ★ 시간 초과 시 strict 최고점 반환
+    maxAttempts: 50000, absoluteMaxAttempts: 200000,
+    perAttemptBudgetMs: 2200,
+    engineOptions: {
+      // V15.2 작업 5: rotation — cdg(2) + v13(1) + master-v2(1)
+      // master-v2가 backtrack-friendly config을 sampling하므로 백트랙 요구 ↑
+      engineStrategy: 'rotation',
+      engineRotation: [
+        { strategy: 'cdg-v4-strict', weight: 2 },
+        { strategy: 'v13', weight: 1,
+          v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } } },
+        { strategy: 'master-v2', weight: 1,
+          masterV2Engine: { level: 'Master6V2' } },
+      ],
+      candidatePool: [
+        { k: 8, forbid: 8, fixed: 4, rule: 5 },
+        { k: 8, forbid: 2, fixed: 6, rule: 3 },
+        { k: 8, forbid: 4, fixed: 6, rule: 3 },
+        { k: 8, forbid: 6, fixed: 4, rule: 5 },
+        { k: 11, forbid: 2, fixed: 8, rule: 5 },
+      ],
+      v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } },
+      masterV2Engine: { level: 'Master6V2' },
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'hard6',
+    uiPlacement: { row: 3, col: 3, group: 'expert' },
+  },
+
+  // ═════ Column 4 (7×7) ═════════════════════════════════════════════════════
+  medium7: {
+    id: 'medium7',
+    difficultyKey: 'tier.diff.intermediate',
+    sizeLabel: '7×7',
+    glyph: '🗻',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    timeLimitMs: 2000,
+    scoreRange: { min: 60, max: 90 },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 10000, absoluteMaxAttempts: 50000,
+    perAttemptBudgetMs: 800,
+    engineOptions: {
+      engineStrategy: 'cdg-v4-strict',
+      candidatePool: [
+        { k: 10, forbid: 9, fixed: 9, rule: 4 },
+        { k: 9, forbid: 9, fixed: 9, rule: 5 },
+        { k: 9, forbid: 9, fixed: 7, rule: 4 },
+        { k: 10, forbid: 9, fixed: 9, rule: 5 },
+        { k: 9, forbid: 9, fixed: 9, rule: 4 },
+        { k: 9, forbid: 3, fixed: 9, rule: 4 },
+        { k: 9, forbid: 6, fixed: 7, rule: 5 },
+        { k: 10, forbid: 6, fixed: 9, rule: 5 },
+        { k: 10, forbid: 3, fixed: 9, rule: 4 },
+        { k: 9, forbid: 3, fixed: 7, rule: 5 },
+      ],
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'medium6',
+    uiPlacement: { row: 1, col: 4, group: 'standard' },
+  },
+
+  hard7: {
+    id: 'hard7',
+    difficultyKey: 'tier.diff.hard',
+    sizeLabel: '7×7',
+    glyph: '⛰',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    timeLimitMs: 20000,
+    scoreRange: { min: 90, max: null },
+    requireStrict: true,
+    requireBacktrack: false,
+    bestStrictFallback: true,
+    maxAttempts: 30000, absoluteMaxAttempts: 100000,
+    perAttemptBudgetMs: 1800,
+    engineOptions: {
+      // V15.2 작업 5: rotation — cdg(2) + v13(1)
+      engineStrategy: 'rotation',
+      engineRotation: [
+        { strategy: 'cdg-v4-strict', weight: 2 },
+        { strategy: 'v13', weight: 1,
+          v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } } },
+      ],
+      candidatePool: [
+        { k: 9, forbid: 3, fixed: 7, rule: 4 },
+        { k: 10, forbid: 9, fixed: 7, rule: 7 },
+        { k: 10, forbid: 6, fixed: 7, rule: 7 },
+        { k: 10, forbid: 9, fixed: 7, rule: 5 },
+        { k: 10, forbid: 9, fixed: 7, rule: 4 },
+        { k: 10, forbid: 3, fixed: 7, rule: 4 },
+        { k: 12, forbid: 6, fixed: 9, rule: 4 },
+        { k: 10, forbid: 3, fixed: 5, rule: 5 },
+        { k: 12, forbid: 9, fixed: 9, rule: 4 },
+      ],
+      v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } },
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'medium7',
+    uiPlacement: { row: 2, col: 4, group: 'standard' },
+  },
+
+  expert7: {
+    id: 'expert7',
+    difficultyKey: 'tier.diff.expert',
+    sizeLabel: '7×7',
+    glyph: '💎',
+    gridSize: 7,
+    countCoverage: [14, 14],
+    timeLimitMs: 30000,
+    scoreRange: { min: 90, max: null },
+    requireStrict: true,
+    requireBacktrack: true,
+    backtrackMinCost: 9,
+    bestStrictFallback: true,       // ★ V15.3: 30초 generation 후 strict 최고점 반환
+    bestStrictFallbackCutoffMs: 30000,  // V15.3: cutoff = timeLimit (30초 다 활용)
+    maxAttempts: 50000, absoluteMaxAttempts: 200000,
+    perAttemptBudgetMs: 2300,
+    engineOptions: {
+      // V15.2 작업 5: rotation — cdg(2) + v13(1) + master-v2(1)
+      // master-v2가 backtrack-friendly config을 sampling하므로 백트랙 요구 ↑
+      engineStrategy: 'rotation',
+      engineRotation: [
+        { strategy: 'cdg-v4-strict', weight: 2 },
+        { strategy: 'v13', weight: 1,
+          v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } } },
+        { strategy: 'master-v2', weight: 1,
+          masterV2Engine: { level: 'Master7V2' } },
+      ],
+      candidatePool: [
+        { k: 9, forbid: 3, fixed: 7, rule: 4 },
+      ],
+      v13Engine: { level: 'Hard', opts: { axiomBreadthV12Min: 6 } },
+      masterV2Engine: { level: 'Master7V2' },
+      ruleDimensions: ['habitat', 'diet'],
+    },
+    fallbackTierId: 'hard7',
+    uiPlacement: { row: 3, col: 4, group: 'expert' },
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_getTier(tierId) {
+  if (!tierId) return null;
+  return V15_TIER_REGISTRY[tierId] || null;
+}
+
+function v15_listTiers() {
+  return Object.keys(V15_TIER_REGISTRY);
+}
+
+function v15_resolveTierIdFromPreset(presetId) {
+  if (!presetId) return null;
+  // V15 tier id를 직접 사용한 경우
+  if (V15_TIER_REGISTRY[presetId]) return presetId;
+  // V14의 PRESET_TO_TIER_V14 매핑 재사용
+  if (typeof resolveTierIdFromPreset === 'function') {
+    const v14Mapped = resolveTierIdFromPreset(presetId);
+    if (v14Mapped && V15_TIER_REGISTRY[v14Mapped]) return v14Mapped;
+  }
+  return null;
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// V15 ENGINE ADAPTERS — 단일 main loop가 호출하는 generation backends
+// ═════════════════════════════════════════════════════════════════════════════
+
+// V15 ProgressBus 재사용 (V14 createProgressBus 함수)
+// V15는 V14의 ProgressBus 그대로 활용 — 중복 구현 안 함
+
+// V15 PRNG (V14 createSeededRng 재사용)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Engine 1: CDG-V4-STRICT (V14 candidate pool 방식)
+// 사용 시점: 작은 grid + cdg-v4-strict 명시 / candidatePool만 spec됨
+// ─────────────────────────────────────────────────────────────────────────────
+async function v15_generateViaCdgV4Strict(tier, ctx) {
+  const eng = tier.engineOptions || {};
+  const pool = eng.candidatePool || [];
+  if (pool.length === 0) {
+    return { puzzle: null, candidate: null, engine: 'cdg-v4-strict',
+             error: 'empty-candidate-pool' };
+  }
+  // V15.1 FIX (B2): Diversity 강화 — round-robin + 무작위 mix
+  //
+  // 기존 버그: 순수 random pool[Math.floor(rng() * pool.length)]
+  //   → infeasible candidate가 반복 선택되며 maxAttempts 빨리 소비
+  //
+  // FIX: 첫 N attempts는 round-robin (모든 candidate 한 번씩 시도),
+  //   그 이후엔 무작위 (재시도 위해). 또한 후속 round에서는 candidateIndex를
+  //   shuffle해서 동일 candidate 연속 회피.
+  let candidateIndex;
+  if (ctx.attemptNumber <= pool.length) {
+    // Round-robin phase: 모든 candidate를 *순차적*으로 한 번씩
+    candidateIndex = (ctx.attemptNumber - 1) % pool.length;
+  } else {
+    // Random phase: 무작위 선택. 단 직전 candidate와 다른 것 우선.
+    candidateIndex = Math.floor(ctx.rng() * pool.length);
+    if (ctx.lastCandidateIndex === candidateIndex && pool.length > 1) {
+      candidateIndex = (candidateIndex + 1) % pool.length;
+    }
+  }
+  ctx.lastCandidateIndex = candidateIndex;
+  const candidate = pool[candidateIndex];
+  const customConfig = {
+    n: tier.gridSize,
+    k: candidate.k,
+    forbiddenCount: [candidate.forbid, candidate.forbid],
+    fixedTileCount: [candidate.fixed, candidate.fixed],
+    ruleCount: [candidate.rule, candidate.rule],
+    countCoverage: tier.countCoverage || [tier.gridSize * 2, tier.gridSize * 2],
+    ruleDimensions: candidate.ruleDimensions || eng.ruleDimensions
+                  || ['habitat', 'diet'],
+    animalPoolRestriction: 'any',
+    maxSolutions: 1,                          // STRICT 강제
+    totalBudgetMs: tier.perAttemptBudgetMs || 1500,
+    generationStrategy: 'cdg-v4-strict',
+    _v15Source: { tierId: tier.id, attempt: ctx.attemptNumber },
+  };
+  emitProgress(ctx.progressBus, {
+    type: 'candidate-selected',
+    tierId: tier.id,
+    attemptNumber: ctx.attemptNumber,
+    candidate, engine: 'cdg-v4-strict',
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+  let puzzle = null;
+  try {
+    puzzle = await generatePuzzleAsyncV2('Custom',
+      { engine: 'cdg-v4-strict', customConfig, validateWithSolver: true },
+      (subEvent) => {
+        if (!subEvent) return;
+        if (ctx.abortSignal && ctx.abortSignal.aborted) return;
+        emitProgress(ctx.progressBus, {
+          type: 'attempt-progress',
+          tierId: tier.id,
+          attemptNumber: ctx.attemptNumber,
+          phase: 'generating',
+          subPhase: subEvent.phase || 'generating',
+          candidate, engine: 'cdg-v4-strict',
+          elapsedMs: performance.now() - ctx.startTime,
+          totalBudgetMs: tier.timeLimitMs,
+        });
+      }
+    );
+  } catch (e) {
+    return { puzzle: null, candidate, engine: 'cdg-v4-strict',
+             error: e.message || String(e) };
+  }
+  return { puzzle, candidate, engine: 'cdg-v4-strict' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Engine 2: V13 ENGINE (v13_generateWithGate via generatePuzzleV13)
+// 사용 시점: tier.engineOptions.engineStrategy === 'v13' OR auto + v13Engine spec
+// ─────────────────────────────────────────────────────────────────────────────
+async function v15_generateViaV13(tier, ctx) {
+  const eng = tier.engineOptions || {};
+  const v13cfg = eng.v13Engine || { level: 'Medium' };
+  const v13Level = v13cfg.level || 'Medium';
+  emitProgress(ctx.progressBus, {
+    type: 'candidate-selected',
+    tierId: tier.id,
+    attemptNumber: ctx.attemptNumber,
+    candidate: { engine: 'v13', cfg: v13cfg },
+    engine: 'v13',
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+  let puzzle = null;
+  let v13Result = null;
+  try {
+    // generatePuzzleV13 signature: (level, onProgress, opts)
+    const v13Promise = generatePuzzleV13(
+      v13Level,
+      (event) => {
+        if (!event) return;
+        if (ctx.abortSignal && ctx.abortSignal.aborted) return;
+        emitProgress(ctx.progressBus, {
+          type: 'attempt-progress',
+          tierId: tier.id,
+          attemptNumber: ctx.attemptNumber,
+          phase: 'v13-generating',
+          subPhase: event.status,
+          v13Score: event.score,
+          v13Tier: event.tier,
+          engine: 'v13',
+          elapsedMs: performance.now() - ctx.startTime,
+          totalBudgetMs: tier.timeLimitMs,
+        });
+      },
+      {
+        gridSize: tier.gridSize,
+        abortSignal: ctx.abortSignal,
+        // V15가 strict + backtrack을 자체 검증할 것이므로 V13 extraVerify는 light
+        extraVerify: null,
+        // 사용자 v13cfg.opts (qualityTier 등)을 그대로 전달
+        ...(v13cfg.opts || {}),
+        // Budget override (V15 tier의 perAttempt 기준)
+        totalBudgetMs: Math.min(
+          tier.perAttemptBudgetMs * 2,
+          tier.timeLimitMs - (performance.now() - ctx.startTime)
+        ),
+      }
+    );
+    v13Result = await v13Promise;
+    // generatePuzzleV13는 직접 puzzle을 반환하거나 {puzzle, status}를 반환
+    if (v13Result && typeof v13Result === 'object') {
+      if (v13Result.puzzle !== undefined) {
+        puzzle = v13Result.puzzle;
+      } else if (v13Result.solution !== undefined || v13Result.tokens !== undefined) {
+        // 직접 puzzle 객체 반환된 경우
+        puzzle = v13Result;
+      }
+    }
+  } catch (e) {
+    return { puzzle: null, candidate: { engine: 'v13', cfg: v13cfg },
+             engine: 'v13', error: e.message || String(e) };
+  }
+  return { puzzle, candidate: { engine: 'v13', cfg: v13cfg, v13Status: v13Result?.status },
+           engine: 'v13' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Engine 3: MASTER V2 (generatePuzzleAsyncV2 with Master6V2 / Master7V2)
+// 사용 시점: expert tier 또는 사용자가 명시
+// ─────────────────────────────────────────────────────────────────────────────
+async function v15_generateViaMasterV2(tier, ctx) {
+  const eng = tier.engineOptions || {};
+  const mv2cfg = eng.masterV2Engine || { level: 'Master6V2' };
+  const masterLevel = mv2cfg.level || 'Master6V2';
+  emitProgress(ctx.progressBus, {
+    type: 'candidate-selected',
+    tierId: tier.id,
+    attemptNumber: ctx.attemptNumber,
+    candidate: { engine: 'master-v2', cfg: mv2cfg },
+    engine: 'master-v2',
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+  let puzzle = null;
+  try {
+    puzzle = await generatePuzzleAsyncV2(masterLevel,
+      {
+        engine: mv2cfg.engine || 'cdg-v6-sota',
+        validateWithSolver: true,
+        ...(mv2cfg.opts || {}),
+      },
+      (subEvent) => {
+        if (!subEvent) return;
+        if (ctx.abortSignal && ctx.abortSignal.aborted) return;
+        emitProgress(ctx.progressBus, {
+          type: 'attempt-progress',
+          tierId: tier.id,
+          attemptNumber: ctx.attemptNumber,
+          phase: 'master-v2-generating',
+          subPhase: subEvent.phase || 'sampling',
+          engine: 'master-v2',
+          elapsedMs: performance.now() - ctx.startTime,
+          totalBudgetMs: tier.timeLimitMs,
+        });
+      }
+    );
+  } catch (e) {
+    return { puzzle: null, candidate: { engine: 'master-v2', cfg: mv2cfg },
+             engine: 'master-v2', error: e.message || String(e) };
+  }
+  return { puzzle, candidate: { engine: 'master-v2', cfg: mv2cfg },
+           engine: 'master-v2' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Engine 4: CUSTOM (사용자 customConfig 직접 전달)
+// 사용 시점: 사용자 Custom dialog에서 'Custom' 선택 시
+// ─────────────────────────────────────────────────────────────────────────────
+async function v15_generateViaCustom(tier, ctx) {
+  const eng = tier.engineOptions || {};
+  const customCfg = eng.customConfig
+                 || (ctx.options && ctx.options.customConfig)
+                 || null;
+  if (!customCfg) {
+    return { puzzle: null, candidate: null, engine: 'custom',
+             error: 'no-custom-config' };
+  }
+  emitProgress(ctx.progressBus, {
+    type: 'candidate-selected',
+    tierId: tier.id,
+    attemptNumber: ctx.attemptNumber,
+    candidate: { engine: 'custom', cfg: customCfg },
+    engine: 'custom',
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+  let puzzle = null;
+  try {
+    puzzle = await generatePuzzleAsyncV2('Custom',
+      { engine: customCfg.generationStrategy || 'cdg-v4-strict',
+        customConfig: customCfg,
+        validateWithSolver: true },
+      (subEvent) => {
+        if (!subEvent) return;
+        if (ctx.abortSignal && ctx.abortSignal.aborted) return;
+        emitProgress(ctx.progressBus, {
+          type: 'attempt-progress',
+          tierId: tier.id,
+          attemptNumber: ctx.attemptNumber,
+          phase: 'custom-generating',
+          subPhase: subEvent.phase || 'generating',
+          engine: 'custom',
+          elapsedMs: performance.now() - ctx.startTime,
+          totalBudgetMs: tier.timeLimitMs,
+        });
+      }
+    );
+  } catch (e) {
+    return { puzzle: null, candidate: { engine: 'custom', cfg: customCfg },
+             engine: 'custom', error: e.message || String(e) };
+  }
+  return { puzzle, candidate: { engine: 'custom', cfg: customCfg },
+           engine: 'custom' };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Engine Dispatcher
+// tier.engineOptions.engineStrategy에 따라 적절한 adapter 호출
+// ─────────────────────────────────────────────────────────────────────────────
+const V15_ENGINES = {
+  'cdg-v4-strict': v15_generateViaCdgV4Strict,
+  'v13':           v15_generateViaV13,
+  'master-v2':     v15_generateViaMasterV2,
+  'custom':        v15_generateViaCustom,
+};
+
+async function v15_dispatchEngine(tier, ctx) {
+  const eng = tier.engineOptions || {};
+  let strategy = eng.engineStrategy || 'auto';
+  let tierForCall = tier;
+
+  // auto: tier 특성으로 최선 engine 선택
+  if (strategy === 'auto') {
+    if (eng.customConfig) strategy = 'custom';
+    else if (eng.masterV2Engine) strategy = 'master-v2';
+    else if (eng.v13Engine) strategy = 'v13';
+    else if (eng.candidatePool && eng.candidatePool.length > 0) strategy = 'cdg-v4-strict';
+    else strategy = 'cdg-v4-strict';
+  }
+
+  // V15.2 작업 5: rotation strategy — multi-engine 활용으로 높은 점수 puzzle 생성률 ↑
+  //
+  // 'rotation' strategy: tier.engineOptions.engineRotation 배열의 entry들을
+  // attempt 순서로 순환. 각 entry는 { strategy, weight, v13Engine?, masterV2Engine? } 형식.
+  //
+  // 효과: hard/expert tier에서 cdg-v4-strict, V13, master-v2를 *모두 활용*하여
+  // 각 engine의 강점을 합산. cdg-v4-strict의 빠른 generation + V13의 quality gate +
+  // master-v2의 sampling diversity를 시간 안에 *모두 시도*.
+  if (strategy === 'rotation' && Array.isArray(eng.engineRotation)
+      && eng.engineRotation.length > 0) {
+    const rotation = eng.engineRotation;
+    // Weighted round-robin: weight 합산 후 attempt mod로 선택
+    const totalWeight = rotation.reduce((s, e) => s + (e.weight || 1), 0);
+    const idx = (ctx.attemptNumber - 1) % totalWeight;
+    let cumulative = 0;
+    let selectedEntry = rotation[0];
+    for (const entry of rotation) {
+      cumulative += (entry.weight || 1);
+      if (idx < cumulative) {
+        selectedEntry = entry;
+        break;
+      }
+    }
+    // Inner strategy + tier 합성
+    strategy = selectedEntry.strategy || 'cdg-v4-strict';
+    // 선택된 entry의 옵션을 tier engineOptions에 *덮어쓰기*
+    tierForCall = Object.assign({}, tier, {
+      engineOptions: Object.assign({}, eng, selectedEntry, {
+        engineStrategy: strategy,
+      }),
+    });
+    // progressBus에 rotation info 전달
+    if (ctx.lastRotationStrategy !== strategy) {
+      ctx.lastRotationStrategy = strategy;
+    }
+  }
+
+  const engineFn = V15_ENGINES[strategy] || V15_ENGINES['cdg-v4-strict'];
+  const result = await engineFn(tierForCall, ctx);
+  // ★ V14 UI 호환 — candidate를 {k, forbid, fixed, rule} shape으로 normalize
+  if (result && result.candidate) {
+    result.candidate = v15_normalizeCandidate(result.candidate);
+    // Rotation 정보를 candidate에 보존 (debug용)
+    if (eng.engineStrategy === 'rotation') {
+      result.candidate._rotationStrategy = strategy;
+    }
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 Async sleep helper
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 snapshotBest helper
+// ─────────────────────────────────────────────────────────────────────────────
+function v15_snapshotBest(bestStrictSoFar) {
+  if (!bestStrictSoFar) return null;
+  return {
+    attemptNumber: bestStrictSoFar.attemptNumber,
+    candidate: bestStrictSoFar.candidate,
+    metrics: bestStrictSoFar.metrics,
+    engine: bestStrictSoFar.engine,
+  };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// V15 MAIN LOOP — generateForTier_v15
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function v15_generateForTier(tierIdOrSpec, options) {
+  options = options || {};
+  // Tier resolution (id string or spec object)
+  let tier;
+  if (typeof tierIdOrSpec === 'string') {
+    tier = V15_TIER_REGISTRY[tierIdOrSpec];
+    if (!tier) throw new Error(`Unknown V15 tier: ${tierIdOrSpec}`);
+  } else if (tierIdOrSpec && typeof tierIdOrSpec === 'object') {
+    tier = tierIdOrSpec;   // custom spec
+  } else {
+    throw new Error('v15_generateForTier: tier required');
+  }
+
+  const seed = (typeof options.seed === 'number' && Number.isFinite(options.seed))
+    ? options.seed : Math.floor(Math.random() * 0x7fffffff);
+
+  const ctx = {
+    tier: tier,
+    options: options,
+    abortSignal: options.abortSignal || null,
+    seed: seed,
+    progressBus: options.progressBus || null,
+    startTime: performance.now(),
+    attemptNumber: 0,
+    bestStrictSoFar: null,           // ★ STRICT만 후보 (사용자 제약 I0)
+    debugLog: [],
+    rng: (typeof createSeededRng === 'function')
+      ? createSeededRng(seed)
+      : (() => Math.random()),
+    // V15.1 — candidate diversity tracking
+    lastCandidateIndex: -1,
+    consecutiveFails: 0,
+    lastImprovementAttempt: 0,
+  };
+
+  emitProgress(ctx.progressBus, {
+    type: 'tier-started',
+    tierId: tier.id,
+    tierSpec: tier,
+    timeLimitMs: tier.timeLimitMs,
+    scoreRange: tier.scoreRange,
+    requireBacktrack: !!tier.requireBacktrack,
+    engineStrategy: (tier.engineOptions && tier.engineOptions.engineStrategy)
+                  || 'auto',
+    seed: seed,
+    elapsedMs: 0,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+
+  // ─── Main attempt loop ───────────────────────────────────────────────────
+  while (true) {
+    // 1. Abort 체크
+    if (ctx.abortSignal && ctx.abortSignal.aborted) {
+      emitProgress(ctx.progressBus, {
+        type: 'tier-cancelled',
+        tierId: tier.id,
+        attemptNumber: ctx.attemptNumber,
+        reason: 'user-cancel',
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+        bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+      });
+      return { status: 'cancelled', attempts: ctx.attemptNumber,
+               bestStrictSoFar: ctx.bestStrictSoFar,
+               seed: ctx.seed };
+    }
+
+    // 2. Time / attempt budget 체크
+    //
+    // V15.1 FIX (B1): 시간 기반 종료가 우선. maxAttempts는 *시간 다 소진*된
+    // 경우의 hard ceiling 역할만 함. 사용자 spec: "시간을 다 사용한 후에 fallback"
+    //
+    // 기존 버그: maxAttempts=30, perAttempt=2200ms, 실제 fail이 100ms에 끝나면
+    //  30 attempts * 100ms = 3초만에 종료 → 12초 budget 미사용 → 낮은 점수 반환
+    //
+    // FIX: 시간이 충분히 남았다면 (>= minRetryThreshold) maxAttempts 무시.
+    // 시간 다 쓸 때까지 계속 시도. 무한 루프 방지를 위한 absolute ceiling만 적용.
+    const elapsed = performance.now() - ctx.startTime;
+    const cutoffMs = tier.bestStrictFallbackCutoffMs || tier.timeLimitMs;
+    const remainingMs = cutoffMs - elapsed;
+    const minRetryThresholdMs = 80;       // 최소 80ms 남아있어야 의미있는 시도
+    const hardAttemptCap = tier.absoluteMaxAttempts || 100000;   // 무한 루프 방지
+
+    if (elapsed >= cutoffMs) {
+      return await v15_finishWithBestStrictFallback(ctx, 'time-cutoff');
+    }
+    if (elapsed >= tier.timeLimitMs) {
+      return await v15_finishWithBestStrictFallback(ctx, 'time-exhausted');
+    }
+    if (remainingMs < minRetryThresholdMs) {
+      return await v15_finishWithBestStrictFallback(ctx, 'time-near-exhaustion');
+    }
+    if (ctx.attemptNumber >= hardAttemptCap) {
+      return await v15_finishWithBestStrictFallback(ctx, 'absolute-max-attempts');
+    }
+    // ★ tier.maxAttempts는 soft limit으로 강등 — 시간 남았으면 무시
+    //   (사용자 spec: 메트릭 만족 조건 엄수 = 시간 다 활용해 더 좋은 puzzle 찾기)
+
+    ctx.attemptNumber++;
+
+    // 3. Engine dispatch (cdg-v4-strict / v13 / master-v2 / custom)
+    let result;
+    try {
+      result = await v15_dispatchEngine(tier, ctx);
+    } catch (e) {
+      ctx.debugLog.push({ attempt: ctx.attemptNumber, error: e.message || String(e) });
+      result = { puzzle: null, error: e.message || String(e) };
+    }
+
+    if (!result || !result.puzzle) {
+      emitProgress(ctx.progressBus, {
+        type: 'attempt-rejected',
+        tierId: tier.id,
+        attemptNumber: ctx.attemptNumber,
+        reason: { code: 'no-puzzle', detail: result?.error || 'generator returned null' },
+        engine: result?.engine,
+        candidate: result?.candidate,
+        observedMetrics: null,
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+        bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+      });
+      // V15.1 FIX (B3): 5ms backoff — CPU 과부하 방지 + React render 기회
+      await v15_sleep(5);
+      continue;
+    }
+
+    // 4. STRICT 검증 (사용자 제약 I0 — 무조건)
+    const isStrict = v15_verifyStrict(result.puzzle, {
+      strictReverify: tier.strictReverify || false,
+      strictReverifyTimeoutMs: tier.strictReverifyTimeoutMs || 1500,
+    });
+    if (!isStrict) {
+      emitProgress(ctx.progressBus, {
+        type: 'attempt-rejected',
+        tierId: tier.id,
+        attemptNumber: ctx.attemptNumber,
+        reason: { code: 'not-strict', detail: 'puzzle not unique' },
+        engine: result.engine,
+        candidate: result.candidate,
+        observedMetrics: null,
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+        bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+      });
+      await v15_sleep(3);
+      continue;
+    }
+
+    // 5. Score 추출 (= identityScore + v5/10)
+    const metrics = v15_extractMetrics(result.puzzle, {
+      traceTimeoutMs: Math.min(1000, tier.perAttemptBudgetMs * 0.3),
+    });
+
+    // 6. Completion check (score range + backtrack + strict)
+    const check = v15_checkCompletion(metrics, tier);
+
+    if (check.passed) {
+      emitProgress(ctx.progressBus, {
+        type: 'attempt-accepted',
+        tierId: tier.id,
+        attemptNumber: ctx.attemptNumber,
+        candidate: result.candidate,
+        engine: result.engine,
+        puzzle: result.puzzle,
+        observedMetrics: metrics,
+        totalAttemptsTried: ctx.attemptNumber,
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+      });
+      return {
+        status: 'accepted',
+        puzzle: result.puzzle,
+        candidate: result.candidate,
+        engine: result.engine,
+        metrics: metrics,
+        attempts: ctx.attemptNumber,
+        bestStrictSoFar: ctx.bestStrictSoFar,
+        debugLog: ctx.debugLog,
+        seed: ctx.seed,
+      };
+    }
+
+    // 7. bestStrictSoFar 갱신 (STRICT 확인된 puzzle만 후보)
+    if (v15_isBetterStrictBest(metrics, ctx.bestStrictSoFar, tier)) {
+      ctx.bestStrictSoFar = {
+        attemptNumber: ctx.attemptNumber,
+        candidate: result.candidate,
+        engine: result.engine,
+        metrics: metrics,
+        puzzle: result.puzzle,
+        unmetCriteria: check.unmet,
+      };
+      emitProgress(ctx.progressBus, {
+        type: 'best-strict-updated',
+        tierId: tier.id,
+        attemptNumber: ctx.attemptNumber,
+        bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+      });
+    }
+
+    emitProgress(ctx.progressBus, {
+      type: 'attempt-rejected',
+      tierId: tier.id,
+      attemptNumber: ctx.attemptNumber,
+      reason: check.primaryFailure,
+      engine: result.engine,
+      candidate: result.candidate,
+      observedMetrics: metrics,
+      elapsedMs: performance.now() - ctx.startTime,
+      totalBudgetMs: tier.timeLimitMs,
+      bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+    });
+    // V15.1 FIX (B3c): minimal backoff — UI render 기회 + CPU 양보
+    await v15_sleep(3);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// V15 finishWithBestStrictFallback
+// 사용자 제약 I2: 시간 초과 시 bestStrictSoFar 반환 (strict 보장)
+// ─────────────────────────────────────────────────────────────────────────────
+async function v15_finishWithBestStrictFallback(ctx, reason) {
+  const tier = ctx.tier;
+
+  // 1. bestStrictFallback 활성 + bestStrictSoFar 존재 → 즉시 반환
+  if (tier.bestStrictFallback && ctx.bestStrictSoFar) {
+    emitProgress(ctx.progressBus, {
+      type: 'attempt-accepted',
+      tierId: tier.id,
+      attemptNumber: ctx.bestStrictSoFar.attemptNumber,
+      candidate: ctx.bestStrictSoFar.candidate,
+      engine: ctx.bestStrictSoFar.engine,
+      puzzle: ctx.bestStrictSoFar.puzzle,
+      observedMetrics: ctx.bestStrictSoFar.metrics,
+      totalAttemptsTried: ctx.attemptNumber,
+      bestEffort: true,
+      bestEffortReason: reason,
+      unmetCriteria: ctx.bestStrictSoFar.unmetCriteria,
+      elapsedMs: performance.now() - ctx.startTime,
+      totalBudgetMs: tier.timeLimitMs,
+    });
+    return {
+      status: 'best-effort-strict',
+      puzzle: ctx.bestStrictSoFar.puzzle,
+      candidate: ctx.bestStrictSoFar.candidate,
+      engine: ctx.bestStrictSoFar.engine,
+      metrics: ctx.bestStrictSoFar.metrics,
+      attempts: ctx.attemptNumber,
+      bestStrictSoFar: ctx.bestStrictSoFar,
+      unmetCriteria: ctx.bestStrictSoFar.unmetCriteria,
+      bestEffortReason: reason,
+      debugLog: ctx.debugLog,
+      seed: ctx.seed,
+    };
+  }
+
+  // 2. Fallback tier 존재 → 재귀 시도 (남은 시간)
+  if (tier.fallbackTierId) {
+    const fallback = V15_TIER_REGISTRY[tier.fallbackTierId];
+    if (fallback) {
+      emitProgress(ctx.progressBus, {
+        type: 'tier-failed',
+        tierId: tier.id,
+        reason: reason,
+        bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+        fallbackTried: { tierId: tier.fallbackTierId },
+        elapsedMs: performance.now() - ctx.startTime,
+        totalBudgetMs: tier.timeLimitMs,
+      });
+      const elapsed = performance.now() - ctx.startTime;
+      const remaining = Math.max(1000, tier.timeLimitMs - elapsed);
+      const fallbackResult = await v15_generateForTier(
+        Object.assign({}, fallback, { timeLimitMs: remaining }),
+        {
+          abortSignal: ctx.abortSignal,
+          seed: ctx.seed + 1,
+          progressBus: ctx.progressBus,
+        }
+      );
+      if (fallbackResult && (fallbackResult.status === 'accepted'
+                          || fallbackResult.status === 'best-effort-strict')) {
+        fallbackResult.fallbackApplied = { from: tier.id, to: tier.fallbackTierId };
+        return fallbackResult;
+      }
+    }
+  }
+
+  // 3. 진짜 실패
+  emitProgress(ctx.progressBus, {
+    type: 'tier-failed',
+    tierId: tier.id,
+    reason: reason,
+    totalAttempts: ctx.attemptNumber,
+    bestSoFar: v15_snapshotBest(ctx.bestStrictSoFar),
+    elapsedMs: performance.now() - ctx.startTime,
+    totalBudgetMs: tier.timeLimitMs,
+  });
+  return {
+    status: 'failed',
+    reason: reason,
+    attempts: ctx.attemptNumber,
+    bestStrictSoFar: ctx.bestStrictSoFar,
+    debugLog: ctx.debugLog,
+    seed: ctx.seed,
+  };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// V15 PUBLIC API (window.__ZOOGRAMS_TIERS_V15__)
+// ═════════════════════════════════════════════════════════════════════════════
+
+if (typeof window !== 'undefined') {
+  window.__ZOOGRAMS_TIERS_V15__ = {
+    version: V15_TIER_SYSTEM_VERSION,
+    buildDate: '2026-05-13',
+
+    // Registry access
+    getRegistry: () => Object.freeze(Object.assign({}, V15_TIER_REGISTRY)),
+    getTier: v15_getTier,
+    listTiers: v15_listTiers,
+    resolveTierIdFromPreset: v15_resolveTierIdFromPreset,
+
+    // Generation entry points
+    generate: async function (tierId, options) {
+      const tier = v15_getTier(tierId);
+      if (!tier) throw new Error(`Unknown V15 tier: ${tierId}`);
+      return await v15_generateForTier(tier, options || {});
+    },
+    generateForTier: v15_generateForTier,
+    generateCustom: async function (customConfig, options) {
+      // Custom path — synthetic tier with engineStrategy: 'custom'
+      const tier = {
+        id: 'custom',
+        gridSize: customConfig.n || 6,
+        countCoverage: customConfig.countCoverage || [12, 12],
+        timeLimitMs: customConfig.totalBudgetMs || 15000,
+        scoreRange: null,             // Custom: 점수 게이트 없음
+        requireStrict: true,           // 항상 strict
+        requireBacktrack: false,
+        bestStrictFallback: true,
+        maxAttempts: 1,                // Custom은 단일 시도
+        perAttemptBudgetMs: customConfig.totalBudgetMs || 15000,
+        engineOptions: {
+          engineStrategy: 'custom',
+          customConfig: customConfig,
+        },
+      };
+      return await v15_generateForTier(tier, options || {});
+    },
+
+    // Score formula (사용자 정의)
+    computeScore: v15_computeScore,
+    extractMetrics: v15_extractMetrics,
+    checkScoreRange: v15_checkScoreRange,
+    isBetterStrictBest: v15_isBetterStrictBest,
+    checkCompletion: v15_checkCompletion,
+    verifyStrict: v15_verifyStrict,
+
+    // Engines (직접 호출용)
+    engines: V15_ENGINES,
+
+    // V14 호환성 (자가 검증 도구)
+    invariantSelfTest: function () {
+      const errors = [];
+      const tiers = Object.values(V15_TIER_REGISTRY);
+      // I0: 모든 tier requireStrict=true
+      const nonStrict = tiers.filter(t => t.requireStrict === false);
+      if (nonStrict.length > 0) errors.push(`I0: ${nonStrict.map(t => t.id)} have requireStrict=false`);
+      // I1: 모든 tier에 scoreRange 정의
+      const noRange = tiers.filter(t => !t.scoreRange);
+      if (noRange.length > 0) errors.push(`I1: ${noRange.map(t => t.id)} have no scoreRange`);
+      // I2: expert tier requireBacktrack
+      const experts = tiers.filter(t => t.uiPlacement && t.uiPlacement.group === 'expert');
+      const badExperts = experts.filter(t => !t.requireBacktrack);
+      if (badExperts.length > 0) errors.push(`I2: experts ${badExperts.map(t => t.id)} miss requireBacktrack`);
+      // I3: candidatePool 또는 engine spec
+      const noEngine = tiers.filter(t => {
+        const eng = t.engineOptions || {};
+        return !eng.candidatePool && !eng.v13Engine && !eng.masterV2Engine && !eng.customConfig;
+      });
+      if (noEngine.length > 0) errors.push(`I3: ${noEngine.map(t => t.id)} have no engine config`);
+      const passed = errors.length === 0;
+      return { passed, errors, totalTiers: tiers.length };
+    },
+
+    // Score formula 자가 검증
+    testScoreFormula: function () {
+      const r1 = v15_computeScore(50, 200);   // 50 + 20 = 70
+      const r2 = v15_computeScore(30, 100);   // 30 + 10 = 40
+      const r3 = v15_computeScore(90, 300);   // 90 + 30 = 120
+      const passed = (r1 === 70 && r2 === 40 && r3 === 120);
+      return { passed, samples: [r1, r2, r3] };
+    },
+  };
+
+  // Debug namespace — V14 debug 와 호환
+  window.__ZOOGRAMS_TIERS_V15_DEBUG__ = {
+    recentGenerations: [],
+    lastBus: null,
+    maxStored: 10,
+    log(entry) {
+      this.recentGenerations.push(entry);
+      while (this.recentGenerations.length > this.maxStored) {
+        this.recentGenerations.shift();
+      }
+    },
+    clear() {
+      this.recentGenerations = [];
+      this.lastBus = null;
+    },
+  };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// V15 SYSTEM ACTIVATION FLAG
+// ═════════════════════════════════════════════════════════════════════════════
+// Toggle: 'v14' (legacy) | 'v15' (production)
+// handleActivatePreset 안에서 본 flag로 분기됨
+const TIER_SYSTEM_VERSION = 'v15';
+
+
 
 // =============================================================================
 // SECTION 3 — 4-STAGE GENERATION PIPELINE
@@ -21117,6 +24126,11 @@ async function generatePuzzleAsyncV2(level, options, onProgress) {
               structuralArchetype: v9.structuralArchetype,
               affectiveArchetype: v9.affectiveArchetype,
               breakdown: v9.breakdown,
+              // V14.1 — Attach maxCost from trace.diagnostics so tier system
+              // can verify backtrack requirement (cost 9 = backtrack-fallback).
+              maxCost: (trace.diagnostics && typeof trace.diagnostics.maxCost === 'number')
+                ? trace.diagnostics.maxCost : 0,
+              traceLength: (trace.diagnostics && trace.diagnostics.length) || 0,
             };
             // Grid-adaptive validation flag (NEW)
             // 사용자: "5x5는 쉬운 난이도 전용", "7x7 초반 막힘 = 하기 싫음"
@@ -23459,10 +26473,24 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
   const renderPresetBtn = (preset, opts = {}) => {
     if (!preset) return <div key={opts.key || Math.random()} aria-hidden style={{ ...(opts.style || {}) }} />;
     // V13 SOTA (May 2026 — final tuning):
-    //   • Active matching via activePresetId (state.presetId) — level holds
-    //     internal names ('Master6V2'/'Custom') but presets use ids ('expert6')
-    //   • Unified visual treatment — removed prior master-tier gold/violet
-    //     tinting so all buttons share consistent active/inactive styling
+    //   • Active matching via activePresetId (state.presetId)
+    //   • Unified visual treatment
+    // V14 (May 2026): if preset maps to a §TSD tier, use 9-language tier label
+    //   (tier.diff.* + tier.label.format with CJK reverse order).
+    //   Falls back to preset.label (Korean hardcoded) for unmapped presets.
+    let displayLabel = preset.label;
+    let isExpertTier = false;
+    if (typeof resolveTierIdFromPreset === 'function'
+        && typeof composeTierLabel === 'function'
+        && typeof DIFFICULTY_TIER_REGISTRY_V14 !== 'undefined') {
+      const tierId = resolveTierIdFromPreset(preset.id);
+      const tier = tierId ? DIFFICULTY_TIER_REGISTRY_V14[tierId] : null;
+      if (tier) {
+        const tierLabel = composeTierLabel(tier, t);
+        if (tierLabel) displayLabel = tierLabel;
+        isExpertTier = tier.uiPlacement && tier.uiPlacement.group === 'expert';
+      }
+    }
     const isActive = activePresetId === preset.id;
     return (
       <button
@@ -23470,12 +26498,14 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
         disabled={disabled}
         onClick={() => onActivatePreset && onActivatePreset(preset)}
         className="font-body preset-btn"
-        title={preset.label}
+        title={displayLabel}
+        aria-pressed={isActive}
+        data-tier-id={preset.id}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           padding: '7px 6px',
           border: '1px solid',
-          borderColor: isActive ? 'var(--ink-primary)' : 'var(--border-medium)',
+          borderColor: isActive ? 'var(--ink-primary)' : (isExpertTier ? 'var(--accent-gold)' : 'var(--border-medium)'),
           borderRadius: 4,
           background: isActive ? 'var(--ink-primary)' : 'var(--bg-card)',
           color: isActive ? 'var(--bg-paper)' : 'var(--ink-secondary)',
@@ -23484,13 +26514,12 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
           lineHeight: 1, whiteSpace: 'nowrap',
           minWidth: 0, overflow: 'hidden',
           transition: 'all 180ms cubic-bezier(0.4, 0, 0.2, 1)',
-          // Subtle inner highlight when active for crisp selection feedback
           boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.10)' : 'none',
           ...(opts.style || {}),
         }}
       >
         {preset.glyph && <span style={{ fontSize: 13, flexShrink: 0 }} aria-hidden>{preset.glyph}</span>}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{preset.label}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{displayLabel}</span>
       </button>
     );
   };
@@ -27060,9 +30089,323 @@ function InvalidSeedBanner({ onDismiss }) {
   );
 }
 
-function LoadingOverlay({ show, level, progress, presetLabel }) {
+
+// =============================================================================
+// V14 — TIER LOADING CONTENT (React component for ProgressBus mode)
+// =============================================================================
+// 기존 LoadingOverlay 시각 디자인을 *그대로 차용*하되, 내부적으로 ProgressBus를
+// 구독하여 *실제 시간 기반 progress bar*와 *bestStrictSoFar 실시간 표시*를 제공.
+//
+// Props:
+//   • progressBus  — V14 ProgressBus (필수)
+//   • tierSpec     — DIFFICULTY_TIER_REGISTRY_V14[tierId] (필수)
+//   • abortController — AbortController (옵션, cancel button enable)
+//   • debugMode    — boolean (옵션, 디버그 패널 표시)
+//   • presetLabel  — string (옵션, 기존 LoadingOverlay 호환 라벨)
+// =============================================================================
+
+function TierLoadingContent({ progressBus, tierSpec, abortController, debugMode, presetLabel, showSlowWarning }) {
   const t = useT();
-  // V12.19: 1.5초 이내 생성 안 되면 "시간이 걸릴 수 있다" 안내 메시지 노출
+  const [tierState, setTierState] = React.useState({
+    currentEvent: null,
+    eventHistory: [],
+    bestStrictSoFar: null,
+    canceling: false,
+    accepted: false,
+  });
+
+  // Subscribe to progressBus
+  React.useEffect(() => {
+    if (!progressBus) return;
+    const sub = progressBus.subscribe((event) => {
+      setTierState(prev => {
+        const next = {
+          ...prev,
+          currentEvent: event,
+          eventHistory: [...prev.eventHistory, event].slice(-50),
+        };
+        // Update bestStrictSoFar from event payload
+        if (event.bestSoFar) {
+          next.bestStrictSoFar = event.bestSoFar;
+        }
+        if (event.type === 'best-strict-updated' && event.bestSoFar) {
+          next.bestStrictSoFar = event.bestSoFar;
+        }
+        if (event.type === 'attempt-accepted') {
+          next.accepted = true;
+          // Also use observedMetrics as bestSoFar when accepted directly
+          if (event.observedMetrics && !next.bestStrictSoFar) {
+            next.bestStrictSoFar = {
+              attemptNumber: event.attemptNumber,
+              candidate: event.candidate,
+              metrics: event.observedMetrics,
+            };
+          }
+        }
+        if (event.type === 'tier-cancelled') {
+          next.canceling = false;
+        }
+        return next;
+      });
+    });
+    return () => sub.unsubscribe();
+  }, [progressBus]);
+
+  const handleCancel = React.useCallback(() => {
+    if (abortController && !tierState.canceling) {
+      setTierState(prev => ({ ...prev, canceling: true }));
+      try { abortController.abort(); } catch (_) { /* ignore */ }
+    }
+  }, [abortController, tierState.canceling]);
+
+  // Compute display values
+  const event = tierState.currentEvent;
+  const lang = (typeof t === 'function' && t.__lang) ? t.__lang : null;
+  const tierLabel = composeTierLabel(tierSpec, t) || presetLabel || tierSpec.id;
+
+  // Real-time progress (elapsedMs / totalBudgetMs)
+  const elapsedMs = event ? (event.elapsedMs || 0) : 0;
+  const totalMs = tierSpec.totalBudgetMs;
+  const elapsedSec = (elapsedMs / 1000).toFixed(1);
+  const totalSec = (totalMs / 1000).toFixed(0);
+  const pct = Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100)));
+
+  // Phase label
+  let phaseKey = 'tierLoad.phase.starting';
+  if (event) {
+    if (event.type === 'attempt-accepted') phaseKey = 'tierLoad.phase.verifying';
+    else if (event.type === 'tier-cancelled') phaseKey = 'tierLoad.cancelling';
+    else if (event.type === 'tier-failed') phaseKey = 'tierLoad.failed';
+    else if (event.phase === 'solving') phaseKey = 'tierLoad.phase.solving';
+    else if (event.phase === 'verifying') phaseKey = 'tierLoad.phase.verifying';
+    else phaseKey = 'tierLoad.phase.generating';
+  }
+
+  // Attempt info
+  const attemptN = event && event.attemptNumber ? event.attemptNumber : 0;
+  const attemptText = t('tierLoad.attempt', { n: attemptN || 1, max: tierSpec.maxAttempts });
+  const timingText = t('tierLoad.timing', { elapsed: elapsedSec, budget: totalSec });
+
+  // Best-strict-so-far text
+  let bestSoFarText = null;
+  if (tierState.bestStrictSoFar && tierState.bestStrictSoFar.metrics) {
+    const score = Math.round(tierState.bestStrictSoFar.metrics.finalDiff || 0);
+    const target = tierSpec.completionCriteria.scoreMin;
+    bestSoFarText = t('tierLoad.bestSoFar', { score });
+    if (target > 0) bestSoFarText += ' ' + t('tierLoad.bestSoFarTarget', { target });
+  }
+
+  return (
+    <div style={{
+      textAlign: 'center',
+      maxWidth: 460,
+      padding: '0 24px',
+      minHeight: 480,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      width: '100%',
+    }} className="font-display">
+      {/* Header — preserve existing LoadingOverlay visual */}
+      <div style={{
+        fontSize: 12, color: 'var(--ink-tertiary)',
+        letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10,
+      }} className="font-body">
+        {t('tierLoad.title', { label: tierLabel })}
+      </div>
+
+      {/* Tier glyph */}
+      <div style={{ fontSize: 48, marginBottom: 8, lineHeight: 1 }}>
+        {tierSpec.glyph}
+      </div>
+
+      {/* Tier label */}
+      <div style={{
+        fontSize: 22, fontWeight: 500, marginBottom: 18,
+        color: 'var(--ink-primary)',
+      }}>
+        {tierLabel}
+      </div>
+
+      {/* Real-time progress bar (User constraint 3) */}
+      <div style={{
+        width: '100%', maxWidth: 360,
+        height: 6, background: 'var(--bg-card)',
+        borderRadius: 999, overflow: 'hidden',
+        marginBottom: 12,
+      }}>
+        <div style={{
+          height: '100%', background: 'var(--accent-gold)',
+          width: pct + '%', transition: 'width 200ms ease-out',
+        }} />
+      </div>
+
+      {/* Attempt + timing line */}
+      <div style={{
+        fontSize: 13, color: 'var(--ink-secondary)',
+        letterSpacing: '0.04em', marginBottom: 6,
+      }} className="font-body">
+        {attemptText} · {timingText}
+      </div>
+
+      {/* Phase label */}
+      <div style={{
+        fontSize: 12, color: 'var(--ink-tertiary)',
+        letterSpacing: '0.02em', marginBottom: 14,
+      }} className="font-body">
+        {t(phaseKey)}
+      </div>
+
+      {/* V15.2 작업 4: 3초 이후 slowWarning — 복잡한 퍼즐 안내 */}
+      {showSlowWarning && (
+        <div
+          className="font-body"
+          style={{
+            padding: '8px 14px',
+            background: 'rgba(180,83,9,0.06)',
+            border: '1px solid rgba(180,83,9,0.18)',
+            borderRadius: 4,
+            color: 'var(--ink-secondary)',
+            fontSize: 12,
+            letterSpacing: '0.02em',
+            lineHeight: 1.5,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            animation: 'fadeInUp 240ms',
+            maxWidth: 360,
+            marginBottom: 12,
+          }}
+        >
+          <span aria-hidden style={{ flexShrink: 0 }}>⏳</span>
+          <span>{t('loading.slowWarning')}</span>
+        </div>
+      )}
+
+      {/* Best-strict-so-far (CRITICAL — user constraint I2 UI exposure) */}
+      {bestSoFarText && (
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-soft)',
+          borderRadius: 6,
+          padding: '8px 12px',
+          marginBottom: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+          width: '100%', maxWidth: 360,
+        }} className="font-body">
+          <div style={{ fontSize: 12, color: 'var(--ink-secondary)' }}>
+            {bestSoFarText}
+          </div>
+          <div style={{
+            fontSize: 10, color: 'var(--accent-gold)',
+            letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600,
+          }}>
+            ✓ {t('tierLoad.bestStrictBadge')}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel button (User constraint 3 — immediate response) */}
+      {abortController && (
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={tierState.canceling || tierState.accepted}
+          className="font-body"
+          style={{
+            marginTop: 8,
+            padding: '6px 16px',
+            background: 'transparent',
+            border: '1px solid var(--border-medium)',
+            borderRadius: 6,
+            color: tierState.canceling ? 'var(--ink-tertiary)' : 'var(--ink-secondary)',
+            cursor: tierState.canceling ? 'wait' : 'pointer',
+            fontSize: 12,
+            opacity: tierState.canceling ? 0.6 : 1,
+          }}
+        >
+          {tierState.canceling ? t('tierLoad.cancelling') : t('tierLoad.cancel')}
+        </button>
+      )}
+
+      {/* Debug panel (only when debugMode=true) */}
+      {debugMode && (
+        <TierDebugPanel
+          event={event}
+          history={tierState.eventHistory}
+          tierSpec={tierSpec}
+          bestStrictSoFar={tierState.bestStrictSoFar}
+          t={t}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Tier Debug Panel ────────────────────────────────────────────────────────
+function TierDebugPanel({ event, history, tierSpec, bestStrictSoFar, t }) {
+  if (!event) return null;
+  const candidate = event.candidate || (bestStrictSoFar && bestStrictSoFar.candidate);
+  const candIdx = event.candidateIndex != null ? event.candidateIndex : -1;
+  const poolSize = tierSpec.candidatePool.length;
+  const seedText = event.seed != null ? t('tierLoad.debug.seed', { seed: event.seed }) : null;
+  return (
+    <details style={{
+      marginTop: 16, width: '100%', maxWidth: 380,
+      fontSize: 10, color: 'var(--ink-tertiary)',
+      textAlign: 'left',
+    }} className="font-body" open>
+      <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: 6 }}>
+        {t('tierLoad.debug.toggle')}
+      </summary>
+      <div style={{ padding: '4px 0', borderTop: '1px solid var(--border-soft)' }}>
+        {candidate && (
+          <div style={{ marginBottom: 4 }}>
+            {t('tierLoad.debug.candidate', {
+              idx: candIdx + 1, total: poolSize,
+              k: candidate.k, f: candidate.forbid, fx: candidate.fixed, r: candidate.rule,
+            })}
+          </div>
+        )}
+        {seedText && <div style={{ marginBottom: 4 }}>{seedText}</div>}
+        {event.attemptNumber != null && (
+          <div style={{ marginBottom: 4 }}>
+            {t('tierLoad.debug.attempts', {
+              n: event.attemptNumber,
+              c: event.candidatesUsed || 1,
+            })}
+          </div>
+        )}
+        {/* Last 8 events */}
+        <div style={{ marginTop: 6, fontSize: 9, opacity: 0.7 }}>
+          {history.slice(-8).map((ev, i) => (
+            <div key={i} style={{ display: 'flex', gap: 6 }}>
+              <span style={{ minWidth: 40 }}>
+                {((ev.elapsedMs || 0) / 1000).toFixed(2)}s
+              </span>
+              <span>{ev.type}</span>
+              {ev.observedMetrics && (
+                <span style={{ opacity: 0.6 }}>
+                  · {Math.round(ev.observedMetrics.finalDiff || 0)}pt
+                  {ev.observedMetrics.uniqueness === 'strict' ? ' ✓' : ' ✗'}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+
+function LoadingOverlay({ show, level, progress, presetLabel, progressBus, tierSpec, abortController, debugMode }) {
+  const t = useT();
+  // V15.2 작업 4: 3초 이내 생성 안 되면 "복잡한 퍼즐" 안내 메시지 노출 (1500ms → 3000ms)
   const [showSlowWarning, setShowSlowWarning] = React.useState(false);
   React.useEffect(() => {
     if (!show) {
@@ -27070,11 +30413,34 @@ function LoadingOverlay({ show, level, progress, presetLabel }) {
       return;
     }
     setShowSlowWarning(false);  // show 시작 시점 reset
-    const timer = setTimeout(() => setShowSlowWarning(true), 1500);
+    const timer = setTimeout(() => setShowSlowWarning(true), 3000);
     return () => clearTimeout(timer);
   }, [show]);
 
   if (!show) return null;
+
+  // ═══ V14 — Tier Mode Routing ═══════════════════════════════════════════
+  // If progressBus + tierSpec are provided, render TierLoadingContent
+  // (new UI with real-time progress bar + bestStrictSoFar exposure).
+  // Otherwise fall through to legacy rendering (preserved verbatim).
+  if (progressBus && tierSpec) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, background: 'rgba(250,247,240,0.92)', backdropFilter: 'blur(3px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40, animation: 'fadeInUp 200ms',
+      }}>
+        <TierLoadingContent
+          progressBus={progressBus}
+          tierSpec={tierSpec}
+          abortController={abortController}
+          debugMode={debugMode}
+          presetLabel={presetLabel}
+         showSlowWarning={showSlowWarning} />
+      </div>
+    );
+  }
+  // ═══ END V14 routing ═══════════════════════════════════════════════════
+
   const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
 
   // Defensive defaults — generator의 phase별 payload가 일관되지 않을 수 있으므로
@@ -29675,6 +33041,32 @@ function reducerCore(state, action) {
     }
     case 'HINT_DISMISS_POPOVER': {
       return { ...state, hintExhaustedShown: false, hintAllCorrectShown: false };
+    }
+    case 'STOP_GENERATING': {
+      // V14: user cancellation or fatal error — exit generating state
+      return {
+        ...state,
+        isGenerating: false,
+        generationProgress: null,
+      };
+    }
+    case 'SET_TIER_PROGRESS': {
+      // V14: tier system progress bus + abort controller + tier spec
+      return {
+        ...state,
+        tierProgressBus: action.progressBus,
+        tierSpec: action.tierSpec,
+        tierAbortController: action.abortController,
+        tierDebugMode: action.debugMode || false,
+      };
+    }
+    case 'CLEAR_TIER_PROGRESS': {
+      return {
+        ...state,
+        tierProgressBus: null,
+        tierSpec: null,
+        tierAbortController: null,
+      };
     }
     case 'START_GENERATING':
       return { ...state, isGenerating: true, level: action.level ?? state.level, generationProgress: null };
@@ -33389,6 +36781,34 @@ function ZoogramsApp() {
     // non-preset level (legacy mode buttons). Otherwise an old preset label
     // would persist on the loading dialog of the new generation.
     dispatch({ type: 'SET_PRESET_LABEL', label: null, presetId: null });
+
+    // V14: if legacy level maps to a tier (e.g. 'Sprout4' → sprout4), try
+    // tier system path first. Find the matching NEW_PRESETS entry and
+    // route via handleActivatePreset. Falls back to legacy generate() if
+    // no tier mapping exists.
+    if (typeof USE_TIER_SYSTEM_V14 !== 'undefined' && USE_TIER_SYSTEM_V14
+        && typeof resolveTierIdFromPreset === 'function'
+        && typeof DIFFICULTY_TIER_REGISTRY_V14 !== 'undefined') {
+      const tierId = resolveTierIdFromPreset(lv);
+      if (tierId && DIFFICULTY_TIER_REGISTRY_V14[tierId]) {
+        // Find matching preset for label/glyph (or synthesize from tier)
+        const tier = DIFFICULTY_TIER_REGISTRY_V14[tierId];
+        const matchingPreset = NEW_PRESETS.find(p =>
+          resolveTierIdFromPreset(p.id) === tierId);
+        // Use matched preset directly; if no match, build a minimal preset
+        // (label fallback uses tier id+size since `t` is unavailable here)
+        const syntheticPreset = matchingPreset || {
+          id: tierId,
+          label: (tier.glyph || '') + ' ' + tier.sizeLabel,
+          glyph: tier.glyph,
+          gridSize: tier.gridSize,
+        };
+        if (handleActivatePresetRef.current) {
+          handleActivatePresetRef.current(syntheticPreset);
+          return;
+        }
+      }
+    }
     generate(lv);
   }, [state.level, state.isGenerating, generate]);
 
@@ -33404,6 +36824,207 @@ function ZoogramsApp() {
   // loading dialog shows "전문가 6×6" rather than "Master6V2", etc.
   const handleActivatePreset = useCallback(async (preset, opts) => {
     if (!preset || state.isGenerating) return;
+
+    // ═══ V15 — Unified Tier System Routing ═════════════════════════════════
+    // V15 is the FINAL production tier system. It unifies V13 engine + V14
+    // candidate pool + user-defined score formula (identityScore + v5/10).
+    //
+    // TIER_SYSTEM_VERSION === 'v15' → V15 path (production)
+    // TIER_SYSTEM_VERSION === 'v14' → V14 path (legacy, preserved for rollback)
+    //
+    // Both paths preserve V13/V14 backend engines. V15 is an ORCHESTRATION
+    // LAYER that selects the right engine per tier.
+    //
+    // Daily presets: bypass tier system (existing daily PRNG path preserved).
+    if (typeof TIER_SYSTEM_VERSION !== 'undefined' && TIER_SYSTEM_VERSION === 'v15'
+        && !opts?.isDaily) {
+      const v15TierId = (typeof v15_resolveTierIdFromPreset === 'function')
+        ? v15_resolveTierIdFromPreset(preset.id)
+        : null;
+      const v15Tier = v15TierId ? V15_TIER_REGISTRY[v15TierId] : null;
+      if (v15Tier) {
+        dispatch({ type: 'SET_PRESET_LABEL', label: preset.label, presetId: preset.id });
+        dispatch({ type: 'START_GENERATING', level: preset.id });
+        const bus = createProgressBus();
+        const ac = new AbortController();
+        if (window.__ZOOGRAMS_TIERS_V15_DEBUG__) {
+          window.__ZOOGRAMS_TIERS_V15_DEBUG__.lastBus = bus;
+        }
+        const urlDebug = (typeof window !== 'undefined' && window.location && window.location.search)
+          ? /[?&]debug=tier/.test(window.location.search) : false;
+        // ★ V14 UI 호환 — V15 tier를 V14 shape으로 변환해 dispatch
+        // V14 TierLoadingContent는 totalBudgetMs / completionCriteria.scoreMin / candidatePool 의존
+        const v14CompatTier = v15_toV14CompatTier(v15Tier);
+        dispatch({
+          type: 'SET_TIER_PROGRESS',
+          progressBus: bus,
+          tierSpec: v14CompatTier,
+          abortController: ac,
+          debugMode: urlDebug,
+        });
+        await new Promise(r => setTimeout(r, 16));
+        let v15Result;
+        try {
+          v15Result = await v15_generateForTier(v15Tier, {
+            progressBus: bus,
+            abortSignal: ac.signal,
+            seed: (opts && typeof opts.seed === 'number') ? opts.seed : null,
+          });
+        } catch (e) {
+          console.error('[V15] generation threw:', e);
+          v15Result = { status: 'failed', reason: 'exception', error: String(e) };
+        }
+        if (window.__ZOOGRAMS_TIERS_V15_DEBUG__) {
+          try {
+            window.__ZOOGRAMS_TIERS_V15_DEBUG__.log({
+              timestamp: Date.now(),
+              presetId: preset.id,
+              tierId: v15TierId,
+              status: v15Result.status,
+              attempts: v15Result.attempts || 0,
+              score: v15Result.metrics?.score,
+              identityScore: v15Result.metrics?.identityScore,
+              v5Difficulty: v15Result.metrics?.v5Difficulty,
+              maxCost: v15Result.metrics?.maxCost,
+              engine: v15Result.engine,
+              fallbackApplied: v15Result.fallbackApplied || null,
+              bestEffortReason: v15Result.bestEffortReason,
+              seed: v15Result.seed,
+              eventCount: bus._recentEvents.length,
+            });
+          } catch (_) { /* ignore */ }
+        }
+        await new Promise(r => setTimeout(r, 200));
+        dispatch({ type: 'CLEAR_TIER_PROGRESS' });
+        if (v15Result.status === 'accepted' || v15Result.status === 'best-effort-strict') {
+          dispatch({
+            type: 'V13_PUZZLE_GENERATED',
+            puzzle: v15Result.puzzle,
+            level: preset.id,
+          });
+          if (v15Result.status === 'best-effort-strict' && typeof console !== 'undefined') {
+            console.log('[V15] Tier ' + v15Tier.id + ': best-effort-strict returned',
+                        { score: v15Result.metrics.score,
+                          identity: v15Result.metrics.identityScore,
+                          v5: v15Result.metrics.v5Difficulty,
+                          backtrack: v15Result.metrics.maxCost,
+                          attempts: v15Result.attempts,
+                          unmet: v15Result.unmetCriteria,
+                          engine: v15Result.engine });
+          }
+        } else if (v15Result.status === 'cancelled') {
+          dispatch({ type: 'STOP_GENERATING' });
+        } else {
+          console.warn('[V15] Tier ' + v15Tier.id + ' failed, falling back to legacy preset path');
+          dispatch({ type: 'STOP_GENERATING' });
+        }
+        if (v15Result.status !== 'failed') return;
+      }
+    }
+    // ═══ END V15 Routing ════════════════════════════════════════════════════
+
+    // ═══ V14 — Tier System Routing (legacy, preserved for rollback) ════════
+    // If preset maps to a §TSD tier AND USE_TIER_SYSTEM_V14 is enabled,
+    // route through generateForTier (data-driven candidate pool + strict-only
+    // bestSoFar + real-time ProgressBus). Otherwise fall through to legacy.
+    //
+    // Daily presets: bypass tier system (existing daily PRNG path preserved).
+    if (USE_TIER_SYSTEM_V14 && !opts?.isDaily) {
+      const tierId = (typeof resolveTierIdFromPreset === 'function')
+        ? resolveTierIdFromPreset(preset.id)
+        : null;
+      const tier = tierId ? DIFFICULTY_TIER_REGISTRY_V14[tierId] : null;
+      if (tier) {
+        // Set preset label/id for downstream UI
+        dispatch({ type: 'SET_PRESET_LABEL', label: preset.label, presetId: preset.id });
+        dispatch({ type: 'START_GENERATING', level: preset.id });
+
+        // Set up tier progress bus + abort controller
+        const bus = createProgressBus();
+        const ac = new AbortController();
+        if (window.__ZOOGRAMS_TIERS_DEBUG__) {
+          window.__ZOOGRAMS_TIERS_DEBUG__.lastBus = bus;
+        }
+        const urlDebug = (typeof window !== 'undefined' && window.location && window.location.search)
+          ? /[?&]debug=tier/.test(window.location.search)
+          : false;
+        dispatch({
+          type: 'SET_TIER_PROGRESS',
+          progressBus: bus,
+          tierSpec: tier,
+          abortController: ac,
+          debugMode: urlDebug,
+        });
+
+        // Yield to React so overlay can mount with tier UI before generation starts
+        await new Promise(r => setTimeout(r, 16));
+
+        let result;
+        try {
+          result = await generateForTier(tier, {
+            progressBus: bus,
+            abortSignal: ac.signal,
+            seed: (opts && typeof opts.seed === 'number') ? opts.seed : null,
+          });
+        } catch (e) {
+          console.error('[V14] Tier generation threw:', e);
+          result = { status: 'failed', reason: 'exception', error: String(e) };
+        }
+
+        // Persist debug snapshot
+        if (window.__ZOOGRAMS_TIERS_DEBUG__) {
+          try {
+            window.__ZOOGRAMS_TIERS_DEBUG__.log({
+              timestamp: Date.now(),
+              presetId: preset.id,
+              tierId: tierId,
+              status: result.status,
+              attempts: result.attempts || 0,
+              elapsedMs: bus._recentEvents.length > 0
+                ? bus._recentEvents[bus._recentEvents.length - 1].elapsedMs
+                : 0,
+              bestStrictMetrics: result.bestStrictSoFar
+                ? result.bestStrictSoFar.metrics
+                : null,
+              fallbackApplied: result.fallbackApplied || null,
+              eventCount: bus._recentEvents.length,
+              seed: result.seed,
+            });
+          } catch (_) { /* ignore */ }
+        }
+
+        // Tier progress cleanup (delay slightly so user sees the final state)
+        await new Promise(r => setTimeout(r, 200));
+        dispatch({ type: 'CLEAR_TIER_PROGRESS' });
+
+        if (result.status === 'accepted' || result.status === 'best-effort-strict') {
+          // Strict puzzle guaranteed (User constraint I1 & I2)
+          dispatch({
+            type: 'V13_PUZZLE_GENERATED',
+            puzzle: result.puzzle,
+            level: preset.id,
+          });
+          if (result.status === 'best-effort-strict' && typeof console !== 'undefined') {
+            console.log('[V14] Tier ' + tier.id + ': best-effort-strict returned',
+                        { score: result.metrics.finalDiff,
+                          backtrack: result.metrics.maxCost,
+                          attempts: result.attempts,
+                          unmet: result.unmetCriteria });
+          }
+        } else if (result.status === 'cancelled') {
+          // User cancelled — clear generating state
+          dispatch({ type: 'STOP_GENERATING' });
+        } else {
+          // status === 'failed' — try legacy fallback as last resort
+          console.warn('[V14] Tier ' + tier.id + ' failed completely, falling back to legacy preset path');
+          dispatch({ type: 'STOP_GENERATING' });
+          // Fall through to legacy path below
+        }
+        if (result.status !== 'failed') return;
+      }
+    }
+    // ═══ END V14 Tier System Routing ═══════════════════════════════════════
+
     if (opts && opts.isDaily) {
       // Daily puzzle: placeholder (will be wired to external seed files)
       console.log('[Daily] preset clicked — not yet implemented:', preset.id);
@@ -34037,7 +37658,16 @@ function ZoogramsApp() {
           </>
         )}
       </div>
-      <LoadingOverlay show={state.isGenerating} level={state.level} progress={state.generationProgress} presetLabel={state.presetLabel} />
+      <LoadingOverlay
+        show={state.isGenerating}
+        level={state.level}
+        progress={state.generationProgress}
+        presetLabel={state.presetLabel}
+        progressBus={state.tierProgressBus || null}
+        tierSpec={state.tierSpec || null}
+        abortController={state.tierAbortController || null}
+        debugMode={state.tierDebugMode || false}
+      />
 
       {/* V12.54: 잘못된/악의적 시드 진입 시 사용자 안내 banner */}
       {invalidSeedShown && (
