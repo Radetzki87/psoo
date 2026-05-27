@@ -12286,10 +12286,112 @@ if (typeof window !== 'undefined') {
 const V15_TIER_SYSTEM_VERSION = 'v15.0';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// V15 점수 공식 (단일 진실의 원천)
-// 사용자 정의: score = identityScore + (v5Difficulty / 10)
+// V15 점수 공식 — Formula A (7요소 가중 모델, 0-100 스케일)
+//
+// 21-sample ground truth 분석에서 도출:
+//   - 옛 공식 (identityScore + v5/10) ↔ 사용자 점수: r = 0.012 (사실상 무관)
+//   - 새 공식 A                       ↔ 사용자 점수: r = 0.426 (35× 향상)
+//
+// 7요소 가중 합 (만점 100):
+//   25 × lengthGuard          — trace ≥ 40 step 필수 ("짧으면 무조건 제외")
+//   20 × earlyAdvancedRatio   — 전반 50%의 cost≥3 비율 ("전반부터 추론 압박")
+//   15 × chainStepsRatio      — cost≥3 연속 segment / trace ("연쇄 리듬")
+//   15 × signaturePatternRatio — papCount + zPatternCount (signature 패턴)
+//   10 × diversity×heavyPosScore — uniqueTypes × cost≥5 평균 위치 ≥ 0.6 여부
+//   15 × rulesBonus           — puzzle.lineRules ≥ 5 (LOW puzzle 모두 rules=3)
+//  -100 × backtrackCostRatio  — 백트랙(cost≥9) cost 비중 페널티
+//   → clamp(0, 100)
 // ─────────────────────────────────────────────────────────────────────────────
-function v15_computeScore(identityScore, v5Difficulty) {
+
+// V15.7 — 새 공식 A 헬퍼: trace + v13Metric + puzzle 필요
+function v15_computeFormulaA(trace, v13Metric, puzzle) {
+  if (!trace || trace.length === 0) return 0;
+  const traceLen = trace.length;
+
+  // 1. 길이 가드 (25점) — trace 40 step 미만은 비례 감점
+  const lengthGuard = Math.min(1, traceLen / 40);
+
+  // 2. 전반 50%의 cost≥3 비율 (20점)
+  const halfIdx = Math.floor(traceLen / 2);
+  let earlyAdv = 0;
+  if (halfIdx > 0) {
+    let count = 0;
+    for (let i = 0; i < halfIdx; i++) {
+      if ((trace[i].cost || 0) >= 3) count++;
+    }
+    earlyAdv = count / halfIdx;
+  }
+
+  // 3. advancedChains step ratio — cost≥3 연속 segment 안 총 step / trace (15점)
+  let chainSteps = 0;
+  let currentChain = 0;
+  for (const s of trace) {
+    if ((s.cost || 0) >= 3) {
+      currentChain++;
+    } else {
+      if (currentChain > 0) chainSteps += currentChain;
+      currentChain = 0;
+    }
+  }
+  if (currentChain > 0) chainSteps += currentChain;
+  const chainR = chainSteps / traceLen;
+
+  // 4. signature 패턴 (15점) — papCount + zPatternCount
+  const papCount = (v13Metric && typeof v13Metric.papCount === 'number') ? v13Metric.papCount : 0;
+  const zCount = (v13Metric && typeof v13Metric.zPatternCount === 'number') ? v13Metric.zPatternCount : 0;
+  const sigR = Math.min(1, (papCount + zCount) / 10);
+
+  // 5. 다양성 × 위치 (10점) — uniqueTypes × heavyCostMeanPosition (cost≥5)
+  const uniqueTypes = (v13Metric && v13Metric.patternMultiset)
+    ? Object.keys(v13Metric.patternMultiset).length
+    : 0;
+  const uPatternR = uniqueTypes / 10;
+  // heavyCostMeanPosition — cost≥5 step의 평균 위치 ratio
+  let heavyIdxSum = 0, heavyCount = 0;
+  for (let i = 0; i < traceLen; i++) {
+    if ((trace[i].cost || 0) >= 5) {
+      heavyIdxSum += i;
+      heavyCount++;
+    }
+  }
+  const heavyPos = heavyCount > 0 ? (heavyIdxSum / heavyCount / traceLen) : null;
+  // 위치가 후반(≥60%)이거나 없으면 1.0, 그 아니면 0.7로 페널티
+  const heavyPosScore = (heavyPos === null || heavyPos >= 0.6) ? 1.0 : 0.7;
+
+  // 6. puzzle 구조 (15점) — lineRules ≥ 5 보너스
+  const rulesCount = (puzzle && puzzle.lineRules && puzzle.lineRules.length) || 0;
+  const rulesBonus = rulesCount >= 5 ? 1.0 : 0.7;
+
+  // 7. 백트랙 cost 페널티 (× -100)
+  let backtrackCount = 0;
+  let totalCost = 0;
+  for (const s of trace) {
+    const c = s.cost || 0;
+    totalCost += c;
+    if (c >= 9) backtrackCount++;
+  }
+  const btPenalty = totalCost > 0 ? (9 * backtrackCount) / totalCost : 0;
+
+  // 합산 → clamp(0, 100)
+  let score = 0;
+  score += 25 * lengthGuard;
+  score += 20 * earlyAdv;
+  score += 15 * chainR;
+  score += 15 * sigR;
+  score += 10 * Math.min(1, uPatternR) * heavyPosScore;
+  score += 15 * rulesBonus;
+  score -= 100 * btPenalty;
+  return Math.max(0, Math.min(100, score));
+}
+
+// V15.7 — score 계산 진입점.
+//   opts = { trace, v13Metric, puzzle } 가 있으면 새 공식 A 적용 (정확).
+//   없으면 옛 공식 fallback (호환성 보장 — 단 정확하지 않음).
+function v15_computeScore(identityScore, v5Difficulty, opts) {
+  if (opts && opts.trace && opts.trace.length > 0 && opts.puzzle) {
+    return v15_computeFormulaA(opts.trace, opts.v13Metric || null, opts.puzzle);
+  }
+  // Fallback: 옛 공식 (V15.7 이전 호환). 정확한 새 공식은 opts 전달 필요.
   return (identityScore || 0) + (v5Difficulty || 0) / 10;
 }
 
@@ -12360,8 +12462,8 @@ function v15_extractMetrics(puzzle, opts) {
           try {
             const v13Metric = computeV13Metric(trace);
             identityScore = v13_computeIdentityScore(v13Metric);
-            // Cache on puzzle for later
-            puzzle._v15Metric = { identityScore, v13Metric };
+            // V15.7: Cache trace AND v13Metric (둘 다 새 공식 A 계산에 필요)
+            puzzle._v15Metric = { identityScore, v13Metric, trace };
           } catch (e) { identityScore = 0; }
         }
       }
@@ -12389,12 +12491,48 @@ function v15_extractMetrics(puzzle, opts) {
     solutionCount = 1;
   }
 
-  // ─── 4. Score 합성 ──────────────────────────────────────────────────────
-  const score = v15_computeScore(identityScore, v5Difficulty);
+  // ─── 4. Score 합성 (V15.7 — 새 공식 A) ──────────────────────────────────
+  // 새 공식 A 적용을 위해 trace + v13Metric 필요. 캐시 우선, 없으면 trace 재실행.
+  let traceForFormula = null;
+  let v13MetricForFormula = null;
+  if (puzzle._v15Metric && puzzle._v15Metric.v13Metric && puzzle._v15Metric.trace) {
+    // 이미 위에서 trace 실행해 캐시된 경우
+    traceForFormula = puzzle._v15Metric.trace;
+    v13MetricForFormula = puzzle._v15Metric.v13Metric;
+  } else if (typeof traceSolve_v2 === 'function') {
+    // 캐시 없으면 다시 trace 실행 (한 번만)
+    try {
+      const tr2 = traceSolve_v2(puzzle, {
+        timeLimitMs: opts.traceTimeoutMs || 1000,
+        maxLookaheadDepth: 1,
+        enableMultiStepLookahead: false,
+        enableLevel4: true,
+      });
+      if (tr2 && tr2.status === 'solved' && tr2.trace) {
+        traceForFormula = tr2.trace;
+        if (typeof computeV13Metric === 'function') {
+          try { v13MetricForFormula = computeV13Metric(tr2.trace); } catch (e) {}
+        }
+        // Cache for next call
+        puzzle._v15Metric = puzzle._v15Metric || {};
+        puzzle._v15Metric.trace = traceForFormula;
+        puzzle._v15Metric.v13Metric = v13MetricForFormula;
+      }
+    } catch (e) { /* fallback to old formula */ }
+  }
+  const score = v15_computeScore(identityScore, v5Difficulty, {
+    trace: traceForFormula,
+    v13Metric: v13MetricForFormula,
+    puzzle: puzzle,
+  });
+  // V15.8: 옛 공식 점수도 항상 계산 (UI에서 비교 표시용)
+  // 옛 공식 = identityScore + v5Difficulty / 10 (trace 의존 X — 항상 계산 가능)
+  const legacyScore = (identityScore || 0) + (v5Difficulty || 0) / 10;
 
   return {
     score,
     finalDiff: score,       // V14 UI 호환 alias (TierLoadingContent expects finalDiff)
+    legacyScore,            // V15.8: 옛 공식 결과 (UI 비교 표시용)
     identityScore,
     v5Difficulty,
     maxCost,
@@ -12630,7 +12768,7 @@ const V15_TIER_REGISTRY = {
     countCoverage: [8, 8],
     // 사용자 spec: 2초 + score < 30 (range 위반 시 reject)
     timeLimitMs: 2000,
-    scoreRange: { min: null, max: 30 },
+    scoreRange: { min: null, max: 20 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,   // 2초 안에 못 찾으면 strict 중 최고점 반환
@@ -12660,7 +12798,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 4,
     countCoverage: [8, 8],
     timeLimitMs: 2000,
-    scoreRange: { min: 30, max: 60 },
+    scoreRange: { min: 20, max: 35 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12693,7 +12831,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 5,
     countCoverage: [10, 10],
     timeLimitMs: 2000,
-    scoreRange: { min: 30, max: 60 },
+    scoreRange: { min: 20, max: 30 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12725,7 +12863,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 5,
     countCoverage: [10, 10],
     timeLimitMs: 2000,
-    scoreRange: { min: 60, max: 90 },
+    scoreRange: { min: 30, max: 50 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12758,7 +12896,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 6,
     countCoverage: [12, 12],
     timeLimitMs: 2000,
-    scoreRange: { min: 60, max: 90 },
+    scoreRange: { min: 30, max: 55 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12792,7 +12930,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 6,
     countCoverage: [12, 12],
     timeLimitMs: 15000,
-    scoreRange: { min: 90, max: null },
+    scoreRange: { min: 55, max: null },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12829,11 +12967,11 @@ const V15_TIER_REGISTRY = {
     gridSize: 6,
     countCoverage: [12, 12],
     timeLimitMs: 25000,
-    scoreRange: { min: 90, max: null },
+    scoreRange: { min: 70, max: null },
     requireStrict: true,
     requireBacktrack: true,
     backtrackMinCost: 9,
-    backtrackWaiverScore: 130,      // ★ V15.4: score >= 130이면 backtrack 면제
+    backtrackWaiverScore: 80,      // ★ V15.4: score >= 130이면 backtrack 면제
     bestStrictFallback: true,       // ★ 시간 초과 시 strict 최고점 반환
     maxAttempts: 50000, absoluteMaxAttempts: 200000,
     perAttemptBudgetMs: 2200,
@@ -12872,7 +13010,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 7,
     countCoverage: [14, 14],
     timeLimitMs: 2000,
-    scoreRange: { min: 60, max: 90 },
+    scoreRange: { min: 30, max: 55 },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12906,7 +13044,7 @@ const V15_TIER_REGISTRY = {
     gridSize: 7,
     countCoverage: [14, 14],
     timeLimitMs: 20000,
-    scoreRange: { min: 90, max: null },
+    scoreRange: { min: 55, max: null },
     requireStrict: true,
     requireBacktrack: false,
     bestStrictFallback: true,
@@ -12946,11 +13084,11 @@ const V15_TIER_REGISTRY = {
     gridSize: 7,
     countCoverage: [14, 14],
     timeLimitMs: 30000,
-    scoreRange: { min: 90, max: null },
+    scoreRange: { min: 70, max: null },
     requireStrict: true,
     requireBacktrack: true,
     backtrackMinCost: 9,
-    backtrackWaiverScore: 120,      // ★ V15.4: score >= 120이면 backtrack 면제
+    backtrackWaiverScore: 80,      // ★ V15.4: score >= 120이면 backtrack 면제
     bestStrictFallback: true,       // ★ V15.3: 30초 generation 후 strict 최고점 반환
     bestStrictFallbackCutoffMs: 30000,  // V15.3: cutoff = timeLimit (30초 다 활용)
     maxAttempts: 50000, absoluteMaxAttempts: 200000,
@@ -27890,11 +28028,12 @@ function UniquenessBadge({ uniqueness, solutionCount }) {
 //   - 시드 로드 puzzle: 점수 표시 ✓ (비동기 계산 후 등장)
 // ─────────────────────────────────────────────────────────────────────────────
 function PuzzleScoreBadge({ puzzle }) {
+  // V15.8: 두 점수 모두 캐시 — 옛 공식(_v15LegacyScore) + 새 공식(_v15ScoreV7)
   const [metrics, setMetrics] = React.useState(() => {
-    // Initial state: 캐시 있으면 즉시 표시
-    if (puzzle && typeof puzzle._v15Score === 'number') {
+    if (puzzle && typeof puzzle._v15ScoreV7 === 'number') {
       return {
-        score: puzzle._v15Score,
+        score: puzzle._v15ScoreV7,
+        legacyScore: puzzle._v15LegacyScore != null ? puzzle._v15LegacyScore : null,
         identityScore: puzzle._v15IdentityScore || 0,
         v5Difficulty: puzzle._v15Difficulty || 0,
       };
@@ -27904,16 +28043,15 @@ function PuzzleScoreBadge({ puzzle }) {
 
   React.useEffect(() => {
     if (!puzzle) { setMetrics(null); return; }
-    // Cache 적중 확인 (다른 puzzle로 prop 변경됐을 수 있음)
-    if (typeof puzzle._v15Score === 'number') {
+    if (typeof puzzle._v15ScoreV7 === 'number') {
       setMetrics({
-        score: puzzle._v15Score,
+        score: puzzle._v15ScoreV7,
+        legacyScore: puzzle._v15LegacyScore != null ? puzzle._v15LegacyScore : null,
         identityScore: puzzle._v15IdentityScore || 0,
         v5Difficulty: puzzle._v15Difficulty || 0,
       });
       return;
     }
-    // 비동기 계산 — render block 방지
     let cancelled = false;
     const timer = setTimeout(() => {
       if (cancelled) return;
@@ -27924,12 +28062,14 @@ function PuzzleScoreBadge({ puzzle }) {
         }
         const m = v15_extractMetrics(puzzle, { traceTimeoutMs: 2000 });
         if (cancelled || !m || typeof m.score !== 'number') return;
-        // Cache on puzzle for future renders (avoid re-computation)
-        puzzle._v15Score = m.score;
+        // V15.8: 두 점수 모두 캐시
+        puzzle._v15ScoreV7 = m.score;
+        puzzle._v15LegacyScore = m.legacyScore;
         puzzle._v15IdentityScore = m.identityScore;
         puzzle._v15Difficulty = m.v5Difficulty;
         setMetrics({
           score: m.score,
+          legacyScore: m.legacyScore,
           identityScore: m.identityScore,
           v5Difficulty: m.v5Difficulty,
         });
@@ -27943,37 +28083,69 @@ function PuzzleScoreBadge({ puzzle }) {
   if (!metrics || typeof metrics.score !== 'number' || !Number.isFinite(metrics.score)) {
     return null;
   }
-  // 색상 결정 (score 임계값 기반)
+
+  // ─── 새 공식(Formula A, 0~100 스케일) 색상 결정 ─────────────────────
   let color, bg;
-  if (metrics.score >= 120) {
-    color = '#7C3AED';      // 매우 높음 — 보라
+  // V15.10: Formula A 경험적 분포 기반 임계값 (n=64 측정)
+  //   ≥70 보라 (expert tier 영역; Excellent ground truth 평균 72)
+  //   ≥55 호박색 (hard tier 영역; Good ground truth 평균 62)
+  //   ≥42 파랑 (medium tier 영역; Q25=39.8, Mid ground truth 평균 45)
+  //   ≥30 녹색 (easy tier 영역; sprout-easy 경계)
+  //   <30 회색 (sprout 영역)
+  if (metrics.score >= 70) {
+    color = '#7C3AED';      // 보라 — expert (≥70)
     bg = 'rgba(124,58,237,0.08)';
-  } else if (metrics.score >= 90) {
-    color = '#B45309';      // 높음 — 호박색
+  } else if (metrics.score >= 55) {
+    color = '#B45309';      // 호박색 — hard (≥55)
     bg = 'rgba(180,83,9,0.08)';
-  } else if (metrics.score >= 60) {
-    color = '#1D4ED8';      // 중간 — 파랑
-    bg = 'rgba(29,78,216,0.08)';
   } else if (metrics.score >= 30) {
-    color = '#047857';      // 낮음 — 녹색
+    color = '#1D4ED8';      // 파랑 — medium (≥30)
+    bg = 'rgba(29,78,216,0.08)';
+  } else if (metrics.score >= 20) {
+    color = '#047857';      // 녹색 — easy (≥20)
     bg = 'rgba(4,120,87,0.08)';
   } else {
-    color = 'var(--ink-tertiary)';
+    color = 'var(--ink-tertiary)';   // 회색 — sprout (<20)
     bg = 'var(--bg-subtle)';
   }
-  const tooltipText = `Zoograms 점수: ${metrics.score.toFixed(1)}\n  정체성: ${metrics.identityScore.toFixed(1)}\n  V5 난이도: ${metrics.v5Difficulty.toFixed(1)} (÷10 = ${(metrics.v5Difficulty / 10).toFixed(1)})`;
+
+  const newScoreTooltip = `Zoograms 점수 (Formula A, 0-100): ${metrics.score.toFixed(1)}\n  • 21-sample ground truth와 r=0.426\n  • 7요소 가중: 길이/추론분포/연쇄/시그너처/다양성/구조/-백트랙`;
+  const legacyTooltip = metrics.legacyScore !== null
+    ? `구 V15 점수 (identityScore + v5/10): ${metrics.legacyScore.toFixed(1)}\n  • identityScore: ${metrics.identityScore.toFixed(1)}\n  • v5Difficulty: ${metrics.v5Difficulty.toFixed(1)} (÷10 = ${(metrics.v5Difficulty/10).toFixed(1)})\n  • 21-sample 분석에서 사용자 점수와 r=0.012`
+    : '';
+
+  // V15.8: 두 badge를 인라인 그룹으로 표시
   return (
-    <div title={tooltipText} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 8px',
-      border: `1px solid ${color}`, background: bg, color: color,
-      borderRadius: 2, fontSize: 10,
-      letterSpacing: '0.06em', textTransform: 'uppercase',
-      fontWeight: 600,
-    }} className="font-body">
-      <span style={{ fontSize: 11 }}>★</span>
-      <span>{metrics.score.toFixed(1)}</span>
-    </div>
+    <React.Fragment>
+      {/* 옛 공식 점수 — 회색 outline, "구" 라벨 */}
+      {metrics.legacyScore !== null && (
+        <div title={legacyTooltip} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 8px',
+          border: '1px dashed var(--ink-tertiary)',
+          background: 'var(--bg-subtle)',
+          color: 'var(--ink-tertiary)',
+          borderRadius: 2, fontSize: 10,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          fontWeight: 500,
+        }} className="font-body">
+          <span style={{ fontSize: 9, opacity: 0.7 }}>구</span>
+          <span>{metrics.legacyScore.toFixed(1)}</span>
+        </div>
+      )}
+      {/* 새 공식 점수 — 색상 outline + ★ */}
+      <div title={newScoreTooltip} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '3px 8px',
+        border: `1px solid ${color}`, background: bg, color: color,
+        borderRadius: 2, fontSize: 10,
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+        fontWeight: 600,
+      }} className="font-body">
+        <span style={{ fontSize: 11 }}>★</span>
+        <span>{metrics.score.toFixed(1)}</span>
+      </div>
+    </React.Fragment>
   );
 }
 
@@ -34729,6 +34901,43 @@ function SolverLogModal({ open, result, puzzle, onClose }) {
     ? computeV13Metric(trace)
     : null;
 
+  // ═══ V15.12 — 14 핵심 지표 (Indicator Panel용 계산) ══════════════════════
+  // 21 Ground Truth 분석에서 도출된 사용자 점수 예측 핵심 지표들.
+  // 이 패널은 Formula A의 *내부 계산값*들도 외부 노출 — chain 통계 등.
+  let chainCount = 0, maxChainLength = 0, chainTotalSteps = 0, currentChainLen = 0;
+  let backtrackCount = 0;
+  for (const s of trace) {
+    const c = s.cost || 0;
+    if (c >= 3) currentChainLen++;
+    else {
+      if (currentChainLen > 0) {
+        chainCount++;
+        chainTotalSteps += currentChainLen;
+        if (currentChainLen > maxChainLength) maxChainLength = currentChainLen;
+      }
+      currentChainLen = 0;
+    }
+    if (c >= 9) backtrackCount++;
+  }
+  if (currentChainLen > 0) {
+    chainCount++;
+    chainTotalSteps += currentChainLen;
+    if (currentChainLen > maxChainLength) maxChainLength = currentChainLen;
+  }
+  const chainStepsRatio = totalSteps > 0 ? chainTotalSteps / totalSteps : 0;
+  const backtrackCostRatio = totalCost > 0 ? (9 * backtrackCount) / totalCost : 0;
+  // earlyAdvancedRatio — 전반 50%의 cost≥3 비율
+  const halfIdx = Math.floor(totalSteps / 2);
+  let earlyAdvCount = 0;
+  for (let i = 0; i < halfIdx; i++) if ((trace[i].cost || 0) >= 3) earlyAdvCount++;
+  const earlyAdvancedRatio = halfIdx > 0 ? earlyAdvCount / halfIdx : 0;
+  // heavyCostMeanPosition — cost≥5 step의 평균 위치 ratio
+  let heavyIdxSum = 0, heavyCnt = 0;
+  for (let i = 0; i < totalSteps; i++) if ((trace[i].cost || 0) >= 5) { heavyIdxSum += i; heavyCnt++; }
+  const heavyCostMeanPosition = heavyCnt > 0 ? (heavyIdxSum / heavyCnt / totalSteps) : null;
+  // pap + zPattern (V13Metric에서)
+  const papPlusZ = v13Metric ? ((v13Metric.papCount || 0) + (v13Metric.zPatternCount || 0)) : 0;
+
   // ═══ V13 SOTA — Identity Score & Tier ════════════════════════════════
   // Composite single-number reflection of overall identity, calibrated 0-100.
   // Tier maps score to {master/expert/proficient/developing/learning/minimal}
@@ -34853,115 +35062,108 @@ function SolverLogModal({ open, result, puzzle, onClose }) {
   };
 
   // Build TSV row — header + data, tab-separated, 2 lines.
-  // Includes ALL puzzle metadata + every metric + per-pattern fire counts.
-  // Designed for paste into spreadsheet for cross-seed analysis.
+  // V15.6: 사용자 지정 23개 헤더 — 정확한 순서로 출력.
+  //   grid_size, puzzle_seed, k, forbid, fixed, rule, maxCost, hasBacktrack,
+  //   finalDiff, v5Difficulty, identityScore, holdingLoad, advancedRatio,
+  //   axiomBreadthV12, independentCoverage, reasoningRichness, zPatternCount,
+  //   papCount, traceLength, totalCost, uniquePatternTypes, patternDiversity,
+  //   평균도메인크기
   const buildTSVRow = () => {
-    // Seed identifier (deterministic puzzle hash)
-    const seedId = (puzzle && puzzle.puzzleId) ? puzzle.puzzleId
-                 : (puzzle && typeof computePuzzleIdentifier !== 'undefined')
-                   ? computePuzzleIdentifier(puzzle) : '';
+    const tokens = (puzzle && puzzle.tokens) || [];
 
-    // Structural metadata from puzzle
-    const n = (puzzle && puzzle.n) || 0;
-    const totalTokens = (puzzle && puzzle.tokens) ? puzzle.tokens.length : 0;
-    const totalPlacements = totalTokens;  // 총배치수 = total tokens
-    const fixedTileCount = (puzzle && puzzle.fixedCells) ? puzzle.fixedCells.length : 0;
-    const ruleCount = (puzzle && puzzle.lineRules) ? puzzle.lineRules.length : 0;
-    const countHintCount = (puzzle && puzzle.countHints) ? puzzle.countHints.length : 0;
-    const forbiddenCount = (puzzle && puzzle.forbiddenCells) ? puzzle.forbiddenCells.length : 0;
-    const levelLabel = (puzzle && puzzle.level) ? puzzle.level : '';
-    const totalPairs = Math.floor(totalTokens / 2);
+    // 1. grid_size
+    const gridSizeVal = (puzzle && puzzle.n) || 0;
+    // 2. puzzle_seed — deterministic puzzle hash
+    const seedVal = (puzzle && puzzle.puzzleId) ? puzzle.puzzleId
+                  : (puzzle && typeof computePuzzleIdentifier !== 'undefined')
+                    ? computePuzzleIdentifier(puzzle) : '';
+    // 3. k — 동물 종 수 (= 쌍 수 = tokens / 2)
+    const kVal = (puzzle && puzzle.pairs && puzzle.pairs.length)
+               ? puzzle.pairs.length
+               : Math.floor(tokens.length / 2);
+    // 4. forbid — 잠금셀 수
+    const forbidVal = (puzzle && puzzle.forbiddenCells) ? puzzle.forbiddenCells.length : 0;
+    // 5. fixed — 고정타일 수
+    const fixedVal = (puzzle && puzzle.fixedCells) ? puzzle.fixedCells.length : 0;
+    // 6. rule — 규약(라인 룰) 수
+    const ruleVal = (puzzle && puzzle.lineRules) ? puzzle.lineRules.length : 0;
+    // 7. maxCost — trace 최대 cost (백트랙 = cost 9)
+    const maxCostVal = maxCost;
+    // 8. hasBacktrack — cost 9(백트랙-폴백) 사용 여부
+    const hasBacktrackVal = (maxCost >= 9) ? 'true' : 'false';
+    // 9~11. V15 점수 — finalDiff = identityScore + v5Difficulty / 10
+    const identityScoreVal = (v13IdentityScore != null) ? v13IdentityScore : 0;
+    const v5DiffVal = (typeof difficultyV5 === 'number') ? difficultyV5 : 0;
+    // V15.7: 새 공식 A는 trace+v13Metric+puzzle 필요. SolverLogModal scope에 모두 있음.
+    const finalDiffVal = (typeof v15_computeScore === 'function')
+      ? v15_computeScore(identityScoreVal, v5DiffVal, {
+          trace: trace,
+          v13Metric: v13Metric,
+          puzzle: puzzle,
+        })
+      : (identityScoreVal + v5DiffVal / 10);
+    // 12. holdingLoad — 후보군 부하 (평균 도메인 크기와 동일 소스: v7.avgDomain)
+    const holdingLoadVal = (v7 && v7.avgDomain != null) ? v7.avgDomain : 0;
+    // 13. advancedRatio — cost≥3 단계 비율
+    const advancedRatioVal = (typeof advancedRatio === 'number') ? advancedRatio : 0;
+    // 14~18. V13 metric 세부
+    const m13 = v13Metric || {};
+    const axiomBreadthV12Val = (m13.axiomBreadthV12 != null)
+      ? m13.axiomBreadthV12 : axiomBreadth;
+    const independentCoverageVal = (m13.independentCoverage != null)
+      ? m13.independentCoverage : 0;
+    const reasoningRichnessVal = (m13.reasoningRichness != null)
+      ? m13.reasoningRichness : 0;
+    const zPatternCountVal = (m13.zPatternCount != null) ? m13.zPatternCount : 0;
+    const papCountVal = (m13.papCount != null) ? m13.papCount : 0;
+    // 19. traceLength — 솔버 추론 단계 수
+    const traceLengthVal = trace.length;
+    // 20. totalCost — 전체 cost 합
+    const totalCostVal = totalCost;
+    // 21. uniquePatternTypes — 고유 패턴 종류 수
+    const uniquePatternTypesVal = uniquePatternTypes;
+    // 22. patternDiversity — 패턴 다양성 (puzzle 저장값 우선, 없으면 trace 기반 diversity)
+    const patternDiversityVal = (puzzle && typeof puzzle.patternDiversity === 'number')
+      ? puzzle.patternDiversity : diversity;
+    // 23. 평균도메인크기 — solver log "평균 도메인" MetricCell 항목 = v7.maxDomain
+    //     holdingLoad(#12, v7.avgDomain)와는 다른 별도 항목
+    const avgDomainVal = (v7 && v7.maxDomain != null) ? v7.maxDomain : 0;
 
-    // Pattern frequency map (all 23 known patterns)
-    const patternCounts = {};
-    for (const [type, cnt] of sortedPatterns) {
-      patternCounts[type] = cnt;
-    }
-    // Enumerate ALL pattern types from PATTERN_CATEGORY (so missing patterns show 0)
-    const allPatternTypes = (typeof PATTERN_CATEGORY !== 'undefined')
-      ? Object.keys(PATTERN_CATEGORY) : Object.keys(patternCounts);
+    // 헬퍼: 숫자는 적정 소수 자리로, 정수는 그대로
+    const fmt = (v, decimals) => {
+      if (typeof v !== 'number' || !Number.isFinite(v)) return String(v != null ? v : '');
+      if (Number.isInteger(v)) return String(v);
+      return v.toFixed(decimals != null ? decimals : 2);
+    };
 
-    // Pattern category aggregates (sum per category)
-    const categoryTotals = {};
-    for (const type of allPatternTypes) {
-      const cat = (typeof PATTERN_CATEGORY !== 'undefined' && PATTERN_CATEGORY[type])
-        ? PATTERN_CATEGORY[type] : 'lineCount';
-      if (!categoryTotals[cat]) categoryTotals[cat] = 0;
-      categoryTotals[cat] += (patternCounts[type] || 0);
-    }
-    const categoryOrder = (typeof CATEGORY_ORDER !== 'undefined')
-      ? CATEGORY_ORDER : ['decision','lineCount','gender','multiPair','lineAxis','hypothesis','backtrack'];
+    // 사용자 지정 23개 헤더 — 정확한 순서
+    const cols = [
+      ['grid_size',           gridSizeVal],
+      ['puzzle_seed',         seedVal],
+      ['k',                   kVal],
+      ['forbid',              forbidVal],
+      ['fixed',               fixedVal],
+      ['rule',                ruleVal],
+      ['maxCost',             maxCostVal],
+      ['hasBacktrack',        hasBacktrackVal],
+      ['finalDiff',           fmt(finalDiffVal, 2)],
+      ['v5Difficulty',        fmt(v5DiffVal, 2)],
+      ['identityScore',       fmt(identityScoreVal, 2)],
+      ['holdingLoad',         fmt(holdingLoadVal, 2)],
+      ['advancedRatio',       fmt(advancedRatioVal, 4)],
+      ['axiomBreadthV12',     axiomBreadthV12Val],
+      ['independentCoverage', independentCoverageVal],
+      ['reasoningRichness',   fmt(reasoningRichnessVal, 4)],
+      ['zPatternCount',       zPatternCountVal],
+      ['papCount',            papCountVal],
+      ['traceLength',         traceLengthVal],
+      ['totalCost',           totalCostVal],
+      ['uniquePatternTypes',  uniquePatternTypesVal],
+      ['patternDiversity',    fmt(patternDiversityVal, 4)],
+      ['평균도메인크기',       fmt(avgDomainVal, 2)],
+    ];
 
-    // Build columns
-    const cols = [];
-
-    // ── Identity ──
-    cols.push(['seedId', seedId]);
-    cols.push(['level', levelLabel]);
-    cols.push(['n', n]);
-    cols.push(['gridSize', n + 'x' + n]);
-
-    // ── Puzzle structure (사용자 요청 항목) ──
-    cols.push(['totalPlacements', totalPlacements]);   // 총배치수
-    cols.push(['totalPairs', totalPairs]);
-    cols.push(['fixedTileCount', fixedTileCount]);     // 고정타일수
-    cols.push(['ruleCount', ruleCount]);                // 규약수 (lineRules)
-    cols.push(['countHintCount', countHintCount]);      // 개별라인힌트수
-    cols.push(['forbiddenCount', forbiddenCount]);      // 잠금셀수
-
-    // ── Solver status ──
-    cols.push(['status', status]);
-    cols.push(['statusLabel', statusLabel]);
-
-    // ── V9 triple-axis primary metrics ──
-    cols.push(['difficulty', difficultyV7.toFixed(2)]);          // 난이도
-    cols.push(['difficultyTier', diffTier_v7.name]);
-    cols.push(['quality', qualityV7.toFixed(2)]);                // 퀄리티
-    cols.push(['qualityTier', qualTier_v7.name]);
-    cols.push(['timeSec', timeV9.toFixed(1)]);
-    cols.push(['timeTier', timeTier_v7.name]);
-    cols.push(['structuralArchetype', structuralArch]);          // 아키타입
-    cols.push(['affectiveArchetype', affectiveArch]);
-
-    // ── Trace stats ──
-    cols.push(['steps', steps.length]);                          // 단계
-    cols.push(['totalCost', totalCost]);
-    cols.push(['reasoningDepth', reasoningDepth]);               // 추론 깊이 (= maxCost)
-    cols.push(['axiomBreadth', axiomBreadth]);                   // 공리 폭
-    cols.push(['diversity', (diversity * 100).toFixed(1)]);      // 추론 다양성 (%)
-    cols.push(['advancedRatio', (advancedRatio * 100).toFixed(1)]); // %
-
-    // ── V9 quality sub-axes (full breakdown) ──
-    cols.push(['flow', (v7.flow != null ? v7.flow : 0).toFixed(3)]);
-    cols.push(['onboardingQ', (v7.onboardingQ != null ? v7.onboardingQ : 0).toFixed(3)]);
-    cols.push(['climaxQ', (v7.climaxQ != null ? v7.climaxQ : 0).toFixed(3)]);
-    cols.push(['ruleEquityQ', (v7.ruleEquityQ != null ? v7.ruleEquityQ : 0).toFixed(3)]);
-    cols.push(['placementFreedomQ', (v7.placementFreedomQ != null ? v7.placementFreedomQ : 0).toFixed(3)]);
-    cols.push(['sizeAppropriatenessQ', (v7.sizeAppropriatenessQ != null ? v7.sizeAppropriatenessQ : 0).toFixed(3)]);
-    cols.push(['translationFactor', (v7.translationFactor != null ? v7.translationFactor : 1).toFixed(3)]);
-    cols.push(['satisfaction', (v7.satisfaction != null ? v7.satisfaction : (v7.buildupQ != null ? v7.buildupQ : 0)).toFixed(3)]);
-
-    // ── V9 trace-shape metrics ──
-    cols.push(['avgDomain', (v7.avgDomain != null ? v7.avgDomain : 0).toFixed(2)]);
-    cols.push(['maxDomain', v7.maxDomain != null ? v7.maxDomain : 0]);
-    cols.push(['reductionVelocity', ((v7.reductionVelocity != null ? v7.reductionVelocity : 0) * 100).toFixed(1)]);
-    cols.push(['dominantPct', ((v7.dominantPct != null ? v7.dominantPct : 0) * 100).toFixed(1)]);
-    cols.push(['firstDecideAt', v7.firstDecideAt != null ? (v7.firstDecideAt + 1) : 0]);
-    cols.push(['maxGap', v7.maxGap != null ? v7.maxGap : 0]);
-    cols.push(['terminalCascade', v7.lateDecisions != null ? v7.lateDecisions : 0]);
-
-    // ── Per-category pattern totals ──
-    for (const cat of categoryOrder) {
-      cols.push(['cat_' + cat, categoryTotals[cat] || 0]);
-    }
-
-    // ── Per-pattern fire counts (ALL 23 patterns, alphabetical) ──
-    const sortedPatternTypes = [...allPatternTypes].sort();
-    for (const type of sortedPatternTypes) {
-      cols.push(['pat_' + type, patternCounts[type] || 0]);
-    }
-
-    // Tab-separated 2-line output
+    // 탭 구분 2행 출력 (헤더 행 + 데이터 행)
     const headers = cols.map(c => c[0]).join('\t');
     const values = cols.map(c => String(c[1] != null ? c[1] : '')).join('\t');
     return headers + '\n' + values;
@@ -35388,6 +35590,159 @@ function SolverLogModal({ open, result, puzzle, onClose }) {
         }} className="font-body">
           {status === 'solved' ? '✓ ' : '⚠ '}{statusLabel}
         </div>
+
+        {/* ─── V15.12 — 14 핵심 지표 패널 (Ground Truth 평균 대비) ──────────
+            21 GT 분석에서 도출된 핵심 지표들. 각 지표마다 현재값/HIGH평균/LOW평균
+            을 표시하고, 현재값이 HIGH 측인지 LOW 측인지 시각적으로 구분. */}
+        {totalSteps > 0 && (() => {
+          // HIGH (≥85점) / MID (50-80) / LOW (≤30) 평균 — 21 GT 측정값
+          const GT_REFS = {
+            traceLength:           { high: 45.1, mid: 48.0, low: 42.6, fmt: (v) => v.toFixed(0), higherBetter: true },
+            chainCount:            { high:  5.4, mid:  5.5, low:  4.4, fmt: (v) => v.toFixed(0), higherBetter: true },
+            maxChainLength:        { high: 10.1, mid: 16.5, low: 10.8, fmt: (v) => v.toFixed(0), higherBetter: null },
+            chainTotalSteps:       { high: 24.5, mid: 29.0, low: 20.2, fmt: (v) => v.toFixed(0), higherBetter: true },
+            chainStepsRatio:       { high: 0.53, mid: 0.59, low: 0.44, fmt: (v) => v.toFixed(3), higherBetter: true },
+            backtrackCostRatio:    { high: 0.054, mid: 0.058, low: 0.084, fmt: (v) => v.toFixed(3), higherBetter: false },
+            earlyAdvancedRatio:    { high: 0.66, mid: 0.69, low: 0.43, fmt: (v) => v.toFixed(3), higherBetter: true },
+            uniquePatternTypes:    { high: 7.9, mid: 7.6, low: 7.8, fmt: (v) => v.toFixed(0), higherBetter: true },
+            papPlusZ:              { high: 4.4, mid: 2.0, low: 2.4, fmt: (v) => v.toFixed(0), higherBetter: true },
+            heavyCostMeanPosition: { high: 0.63, mid: 0.71, low: 0.76, fmt: (v) => v === null ? '없음' : v.toFixed(3), higherBetter: true },
+            maxCost:               { high: 7.75, mid: 8.4, low: 9.0, fmt: (v) => v.toFixed(1), higherBetter: false },
+            crescendo:             { high: -0.57, mid: -0.41, low: 0.16, fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2), higherBetter: false },
+            reasoningRichness:     { high: 0.71, mid: 0.70, low: 0.73, fmt: (v) => v.toFixed(3), higherBetter: null },
+            v5Difficulty:          { high: 585.2, mid: 646.6, low: 609.0, fmt: (v) => v.toFixed(0), higherBetter: null },
+          };
+          // 본 puzzle의 14 지표 값
+          const reasoningRichnessVal = v13Metric && typeof v13Metric.reasoningRichness === 'number' ? v13Metric.reasoningRichness : 0;
+          const crescendoVal = (shape && typeof shape.crescendo === 'number') ? shape.crescendo : 0;
+          const indicators = [
+            { key: 'traceLength',           label: 'traceLength',                  val: totalSteps,            ref: GT_REFS.traceLength,           desc: 'Trace 총 길이 (짧으면 사용자 불만)' },
+            { key: 'chainCount',            label: 'chainCount',                   val: chainCount,            ref: GT_REFS.chainCount,            desc: 'cost≥3 연속 segment 개수' },
+            { key: 'maxChainLength',        label: 'maxChainLength',               val: maxChainLength,        ref: GT_REFS.maxChainLength,        desc: '최장 advanced chain step 수' },
+            { key: 'chainTotalSteps',       label: 'chainTotalSteps',              val: chainTotalSteps,       ref: GT_REFS.chainTotalSteps,       desc: '모든 chain step 합' },
+            { key: 'chainStepsRatio',       label: 'chainStepsRatio',              val: chainStepsRatio,       ref: GT_REFS.chainStepsRatio,       desc: 'chain step / trace ("연쇄 리듬")' },
+            { key: 'backtrackCostRatio',    label: 'backtrackCostRatio',           val: backtrackCostRatio,    ref: GT_REFS.backtrackCostRatio,    desc: '9×BT/totalCost ("가설 의존")' },
+            { key: 'earlyAdvancedRatio',    label: 'earlyAdvancedRatio',           val: earlyAdvancedRatio,    ref: GT_REFS.earlyAdvancedRatio,    desc: '전반 50% cost≥3 비율' },
+            { key: 'uniquePatternTypes',    label: 'uniquePatternTypes',           val: uniquePatternTypes,    ref: GT_REFS.uniquePatternTypes,    desc: '사용된 패턴 종 수' },
+            { key: 'papPlusZ',              label: 'papCount + zPatternCount',     val: papPlusZ,              ref: GT_REFS.papPlusZ,              desc: 'signature 패턴 (PAdj+Z) 합' },
+            { key: 'heavyCostMeanPosition', label: 'heavyCostMeanPosition',        val: heavyCostMeanPosition, ref: GT_REFS.heavyCostMeanPosition, desc: 'cost≥5 step 평균 위치 ratio' },
+            { key: 'maxCost',               label: 'maxCost',                      val: maxCost,               ref: GT_REFS.maxCost,               desc: '최대 cost (9 = 백트랙)' },
+            { key: 'crescendo',             label: 'crescendo',                    val: crescendoVal,          ref: GT_REFS.crescendo,             desc: '후반 - 전반 cost 차 (음수 = 전반 어려움)' },
+            { key: 'reasoningRichness',     label: 'reasoningRichness',            val: reasoningRichnessVal,  ref: GT_REFS.reasoningRichness,     desc: '추론 풍부도 (V13 지표)' },
+            { key: 'v5Difficulty',          label: 'v5Difficulty',                 val: difficultyV5,          ref: GT_REFS.v5Difficulty,          desc: 'V5 난이도 (참고용)' },
+          ];
+          // 각 지표 등급 판정 — HIGH 측 / MID 측 / LOW 측
+          const judge = (val, ref) => {
+            if (val === null || ref.higherBetter === null) return { color: 'var(--ink-tertiary)', label: '–', bg: 'var(--bg-subtle)' };
+            const h = ref.high, l = ref.low;
+            const isHigh = ref.higherBetter ? (val >= h) : (val <= h);
+            const isLow  = ref.higherBetter ? (val <= l) : (val >= l);
+            if (isHigh && (ref.higherBetter ? (val > Math.max(h, l)) : (val < Math.min(h, l)))) {
+              return { color: '#7C3AED', label: 'HIGH+', bg: 'rgba(124,58,237,0.08)' };
+            } else if (isHigh) {
+              return { color: '#B45309', label: 'HIGH측', bg: 'rgba(180,83,9,0.08)' };
+            } else if (isLow) {
+              return { color: '#9CA3AF', label: 'LOW측', bg: 'rgba(156,163,175,0.1)' };
+            } else {
+              return { color: '#1D4ED8', label: 'MID',  bg: 'rgba(29,78,216,0.08)' };
+            }
+          };
+          // Panel 접힘/펴짐 토글 — useState 외부 정의 못해 expandedSections 활용 ('indicators' 키)
+          const isExpanded = expandedSections.indicators !== false;
+          return (
+            <React.Fragment>
+              <button
+                onClick={() => toggleSection('indicators')}
+                className="font-body"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', padding: isMobile ? '10px 12px' : '8px 12px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 4, cursor: 'pointer',
+                  marginBottom: isExpanded ? 6 : 8,
+                  fontSize: isMobile ? 13 : 12,
+                  color: 'var(--ink-secondary)',
+                  textAlign: 'left',
+                  flexShrink: 0,
+                }}>
+                <span style={{ fontWeight: 500, letterSpacing: '0.04em' }}>
+                  📊 14 핵심 지표 (Ground Truth 평균 대비)
+                </span>
+                <span style={{ fontSize: 11, opacity: 0.7 }}>{isExpanded ? '▼ 접기' : '▶ 펴기'}</span>
+              </button>
+              {isExpanded && (
+                <div style={{
+                  marginBottom: 10,
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: 4,
+                  background: 'var(--bg-paper)',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+                    gap: 0,
+                  }}>
+                    {indicators.map((it, idx) => {
+                      const j = judge(it.val, it.ref);
+                      const valStr = it.val === null ? '없음' : it.ref.fmt(it.val);
+                      const refHighStr = it.ref.fmt(it.ref.high);
+                      const refLowStr = it.ref.fmt(it.ref.low);
+                      return (
+                        <div key={it.key} title={it.desc} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '6px 10px',
+                          borderBottom: idx < indicators.length - (isMobile ? 1 : 2) ? '1px solid var(--border-soft)' : 'none',
+                          borderRight: !isMobile && idx % 2 === 0 ? '1px solid var(--border-soft)' : 'none',
+                          fontSize: isMobile ? 11 : 10,
+                          gap: 6,
+                        }} className="font-body">
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <div style={{
+                              color: 'var(--ink-primary)', fontWeight: 500,
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            }}>{it.label}</div>
+                            <div style={{ color: 'var(--ink-tertiary)', fontSize: 9, marginTop: 1 }}>
+                              HIGH:{refHighStr}  LOW:{refLowStr}
+                            </div>
+                          </div>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                          }}>
+                            <span style={{
+                              fontWeight: 600, color: 'var(--ink-primary)',
+                              fontVariantNumeric: 'tabular-nums',
+                              minWidth: 45, textAlign: 'right',
+                            }}>{valStr}</span>
+                            <span style={{
+                              padding: '2px 5px', borderRadius: 2,
+                              background: j.bg, color: j.color,
+                              fontSize: 8.5, fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              minWidth: 42, textAlign: 'center',
+                            }}>{j.label}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{
+                    padding: '5px 10px',
+                    fontSize: 9,
+                    background: 'var(--bg-subtle)',
+                    color: 'var(--ink-tertiary)',
+                    borderTop: '1px solid var(--border-soft)',
+                  }} className="font-body">
+                    범례: HIGH+ = HIGH 평균보다 더 좋음 (보라) · HIGH측 = HIGH 평균 측 (호박) · MID = 중간 (파랑) · LOW측 = LOW 평균 측 (회색)
+                    {' / '}참조: 21 GT (HIGH=8 ≥85점, MID=8 50-80점, LOW=5 ≤30점)
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })()}
 
         {/* ─── V5+ SOTA Metric Dashboard ──────────────────────────────
             Multi-axis trace analysis. Tier badge prominently signals
