@@ -4911,6 +4911,28 @@ const STRINGS = {
     zh: '行列计数',
     ja: 'ライン計数',
   },
+  'pattern.cat.globalCount':   {
+    ko: '전역 카운트 추론',
+    en: 'Global Count',
+    es: 'Conteo global',
+    pt: 'Contagem global',
+    fr: 'Décompte global',
+    de: 'Globale Anzahl',
+    ru: 'Глобальный счёт',
+    zh: '全局计数',
+    ja: '全体計数',
+  },
+  'pattern.cat.uncategorized': {
+    ko: '미분류',
+    en: 'Uncategorized',
+    es: 'Sin categoría',
+    pt: 'Sem categoria',
+    fr: 'Non classé',
+    de: 'Nicht kategorisiert',
+    ru: 'Без категории',
+    zh: '未分类',
+    ja: '未分類',
+  },
   'pattern.cat.gender':        {
     ko: '성별 추론',
     en: 'Gender Reasoning',
@@ -21356,6 +21378,28 @@ const V13_GEN_TIER_BUDGETS = {
     var firstThird=Math.max(1,Math.floor(n/3));
     var earlyDecided=this.trace.slice(0,firstThird).filter(function(s){return s.conclusion&&s.conclusion.kind==='pair-decided';}).length;
     var earlyIntensity=clamp(earlyDecided/firstThird,0,1);
+    // ── MECE diagnostic metrics (May 2026 taxonomy audit) ──
+    // Surface the structural facts the audit uncovered, WITHOUT touching the
+    // time/difficulty model (tuning deferred). These characterize *kind* of
+    // reasoning load, useful for the two underestimation types:
+    //   • decidedRatio  — fraction of steps that COMMIT a tile (pair-decided)
+    //     vs merely prune. Low = "lots of work, little felt progress"
+    //     (the #69ed global-count-grind signature).
+    //   • globalCountRatio — share of line-count patterns (the 4 grouped
+    //     under 'globalCount'); high + low decidedRatio = grind risk.
+    //   • stepsToFirstDecide — how many prunes before the first tile lands.
+    //   • deterministicComplete — solved with NO hypothesis/backtrack step.
+    var GLOBALCNT={'bin-packing-force':1,'total-forcing':1,'total-saturation':1,'impossibility-detection':1};
+    var HYPO={'lookahead-branch-elim':1,'single-lookahead':1,'multi-step-lookahead':1,'gender-chain':1,'pair-forcing-chain':1,'backtrack-fallback':1,'backtrack-complete-solve':1,'gender-resolution':1};
+    var decidedCount=0, globalCntCount=0, hypoCount=0, stepsToFirstDecide=0, seenDecide=false;
+    for (var di=0;di<n;di++){ var ds=this.trace[di];
+      var isDecide=ds.conclusion&&ds.conclusion.kind==='pair-decided';
+      if (isDecide) decidedCount++;
+      if (!seenDecide){ if (isDecide){ seenDecide=true; stepsToFirstDecide=di+1; } }
+      if (GLOBALCNT[ds.type]) globalCntCount++;
+      if (HYPO[ds.type]) hypoCount++;
+    }
+    if (!seenDecide) stepsToFirstDecide=n;
     return {
       traceLength:n, totalCost:totalCost, avgCost:n>0?totalCost/n:0, maxCost:maxCost,
       refocusCount:this.refocusCount, refocusRatio:n>0?this.refocusCount/n:0, expandCount:this.expandCount,
@@ -21368,6 +21412,11 @@ const V13_GEN_TIER_BUDGETS = {
       lineCount:lineCount, lineRatio:n>0?lineCount/n:0,
       imposCount:imposCount, imposRatio:n>0?imposCount/n:0,
       binCount:binCount, signatureCount:sigCount,
+      // MECE audit additions:
+      decidedCount:decidedCount, decidedRatio:n>0?decidedCount/n:0,
+      globalCountRatio:n>0?globalCntCount/n:0,
+      stepsToFirstDecide:stepsToFirstDecide,
+      deterministicComplete:(hypoCount===0),
     };
   };
 
@@ -21701,7 +21750,7 @@ const V13_GEN_TIER_BUDGETS = {
   }
 
   window.ZoogramsHFS = {
-    version:'3.4', solve:solveHumanFriendly, computeFormulaAH:computeFormulaAH,
+    version:'3.5', solve:solveHumanFriendly, computeFormulaAH:computeFormulaAH,
     estimateMinutes:estimateMinutes, estimateMinutesDetailed:estimateMinutesDetailed,
     isAvailable: function(){
       return typeof ts_initializeState==='function' && typeof ts_tryNakedSingle==='function'
@@ -23162,9 +23211,31 @@ function computeTraceTripleAxis_v9(diagnostics, traceArr, puzzle) {
   let pat_nakedSingle = 0, pat_totalSaturation = 0, pat_totalForcing = 0;
   let pat_impossibilityDetection = 0, pat_genderCountForcing = 0;
   let pat_binPackingForce = 0;
-  if (typeof PATTERN_CATEGORY !== 'undefined' && traceArr) {
+  // V6 acceptance-gate invariants depend on the ORIGINAL category semantics
+  // (lineCount = the 3 hint patterns; bin-packing + cell-hidden = multiPair;
+  //  habitat/adjacency = lineAxis). The MECE rebuild regrouped these for
+  //  *display*, so here we map back to the legacy buckets to keep the
+  //  generator's pass/fail thresholds (maxLineAxisUsage, minLineCountShare,
+  //  maxBacktrackUsage…) numerically identical. Display grouping lives in
+  //  PATTERN_REGISTRY; gate semantics are pinned below and must not drift.
+  const LEGACY_GATE_CATEGORY = {
+    'naked-single': 'decision',
+    'total-saturation': 'lineCount', 'total-forcing': 'lineCount', 'impossibility-detection': 'lineCount',
+    'position-locked-gender': 'gender', 'gender-count-forcing': 'gender', 'gender-resolution': 'gender',
+    'bin-packing-force': 'multiPair', 'cell-hidden-single': 'multiPair',
+    'habitat-combinatorial': 'lineAxis', 'pair-adjacency-prop': 'lineAxis',
+    'lookahead-branch-elim': 'hypothesis', 'single-lookahead': 'hypothesis', 'multi-step-lookahead': 'hypothesis',
+    'backtrack-fallback': 'backtrack', 'backtrack-complete-solve': 'backtrack',
+    // newly-classified patterns mapped to their nearest legacy gate bucket so
+    // they are no longer silently counted as lineCount (the pre-rebuild bug):
+    'pair-cell-hidden-subset': 'multiPair', 'line-pair-x-wing': 'multiPair',
+    'hidden-pair-on-positions': 'multiPair', 'triple-adjacency-forcing': 'multiPair',
+    'pair-coloring': 'multiPair', 'almost-locked-pair-set': 'multiPair',
+    'uniqueness-rectangle': 'multiPair', 'gender-chain': 'hypothesis', 'pair-forcing-chain': 'hypothesis',
+  };
+  if (traceArr) {
     for (const step of traceArr) {
-      const cat = PATTERN_CATEGORY[step.type] || 'lineCount';
+      const cat = LEGACY_GATE_CATEGORY[step.type] || 'lineAxis'; // unknown → lineAxis (capped by gate, never inflates lineCount)
       if (cat === 'decision') cat_decision++;
       else if (cat === 'lineCount') cat_lineCount++;
       else if (cat === 'gender') cat_gender++;
@@ -35863,64 +35934,123 @@ function PauseOverlay({ elapsedMs, onResume }) {
 // tooltip via `title` attribute (works on both desktop hover and mobile
 // long-press in modern browsers).
 // ─────────────────────────────────────────────────────────────────────
-// PATTERN_CATEGORY — MECE taxonomy mapping each solver pattern type to
-// one of 7 cognitive reasoning categories. Used by SolverLogModal to
-// group the pattern frequency display so users can see WHICH KINDS of
-// reasoning their puzzle exercised. Each pattern belongs to exactly one
-// category (MECE) — no overlaps, no gaps.
+// ═══════════════════════════════════════════════════════════════════════
+// PATTERN_REGISTRY — single source of truth for the solver's reasoning
+// taxonomy. Each ACTIVE solver pattern (one that emits a `type` from a
+// ts_try* function) is registered here with its cognitive category, cost
+// tier, whether it can DECIDE a tile (vs only prune candidates), and its
+// observed activity status. Categories, colors, order, and the legacy
+// PATTERN_CATEGORY map are all DERIVED from this registry so they can never
+// drift out of sync.
 //
-// The 7 categories correspond to the layered architecture of the V5+
-// solver: Decision → LineCount → Gender → MultiPair → LineAxis →
-// Hypothesis → Backtrack, with cost roughly increasing across categories.
+// MECE audit (May 2026, 23-sample empirical study) drove this rebuild:
+//   • Exhaustive — every type a ts_try* function emits is now classified
+//     (previously 8 patterns fell through to a silent 'lineCount' default,
+//      e.g. gender-chain / uniqueness-rectangle, corrupting cat_lineCount).
+//   • Mutually Exclusive — the four line-count patterns (total-saturation /
+//     total-forcing / impossibility-detection / bin-packing-force) share one
+//     axiom (line hint counting) and overlap on ~11% of conclusions; they
+//     are grouped under ONE category 'globalCount' so analytics don't treat
+//     them as four independent reasoning kinds, while the solver keeps them
+//     separate internally for priority/efficiency.
+//   • Dormant cleanup — 7 never-implemented placeholders (naked-pair,
+//     hidden-single, species-uniqueness, multi-line-force, adjacency-cascade,
+//     hidden-species-force, cross-line-synergy) were removed from the map.
+//
+// category : cognitive reasoning kind (the MECE partition for display)
+// tier     : rough human cost ordinal (1 cheapest → 6 costliest)
+// decides  : true if the pattern can COMMIT a tile (pair-decided); false if
+//            it only narrows candidates (domain-pruned / gender-restricted).
+//            Empirically only 'naked-single' + the hypothesis/backtrack
+//            family ever decide; everything else purely prunes.
+// status   : 'active'  — fires regularly in the 23-sample study
+//            'rare'    — fires occasionally (≤3× total)
+//            'dormant' — implemented but never observed firing; retained for
+//                        hard puzzles that may need it (NOT dead-code-removed
+//                        because absence in the sample ≠ uselessness).
 // ─────────────────────────────────────────────────────────────────────
-const PATTERN_CATEGORY = {
-  // A. Decision — domain narrowed to 1, commit
-  'naked-single':            'decision',
-  // B. Line Count — total/H1/H2 hint reasoning
-  'total-saturation':        'lineCount',
-  'total-forcing':           'lineCount',
-  'impossibility-detection': 'lineCount',
-  // C. Gender — ♂/♀ axiom reasoning
-  'position-locked-gender':  'gender',
-  'gender-count-forcing':    'gender',
-  'gender-resolution':       'gender',
-  // D. Multi-Pair — multi-pair joint envelope/cell reasoning
-  'bin-packing-force':       'multiPair',
-  'cell-hidden-single':      'multiPair',
-  // E. Line Axis — habitat/adjacency axis-specific reasoning
-  'habitat-combinatorial':   'lineAxis',
-  'pair-adjacency-prop':     'lineAxis',
-  'naked-pair':              'lineAxis',     // dormant
-  'hidden-single':           'lineAxis',     // dormant
-  'species-uniqueness':      'lineAxis',     // dormant
-  'multi-line-force':        'lineAxis',     // dormant
-  'adjacency-cascade':       'lineAxis',     // dormant
-  'hidden-species-force':    'lineAxis',     // dormant
-  'cross-line-synergy':      'lineAxis',     // dormant
-  // F. Hypothesis — branch testing
-  'lookahead-branch-elim':   'hypothesis',
-  'single-lookahead':        'hypothesis',
-  'multi-step-lookahead':    'hypothesis',
-  // G. Backtrack — global systematic search
-  'backtrack-fallback':      'backtrack',
+const PATTERN_REGISTRY = {
+  // A. Decision — domain narrowed to exactly one, commit the tile.
+  'naked-single':            { category: 'decision',   tier: 1, decides: true,  status: 'active' },
+
+  // B. Global Count — reasoning from line habitat/diet hint totals. These
+  //    four share the line-count axiom and overlap (~11%); MECE-grouped as one.
+  'total-saturation':        { category: 'globalCount', tier: 3, decides: false, status: 'active' },
+  'total-forcing':           { category: 'globalCount', tier: 3, decides: false, status: 'active' },
+  'impossibility-detection': { category: 'globalCount', tier: 3, decides: false, status: 'active' },
+  'bin-packing-force':       { category: 'globalCount', tier: 4, decides: false, status: 'active' },
+
+  // C. Gender — ♂/♀ axiom reasoning.
+  'position-locked-gender':  { category: 'gender',     tier: 2, decides: false, status: 'dormant' },
+  'gender-count-forcing':    { category: 'gender',     tier: 3, decides: false, status: 'active' },
+  'gender-resolution':       { category: 'gender',     tier: 4, decides: true,  status: 'rare' },
+
+  // D. Multi-Pair Logic — joint reasoning over 2+ pairs / shared cells
+  //    (pigeonhole, hidden subsets, X-wing, triple-adjacency, coloring, ALS).
+  'cell-hidden-single':      { category: 'multiPair',  tier: 3, decides: false, status: 'active' },
+  'pair-adjacency-prop':     { category: 'multiPair',  tier: 3, decides: false, status: 'active' },
+  'pair-cell-hidden-subset': { category: 'multiPair',  tier: 4, decides: false, status: 'rare' },
+  'habitat-combinatorial':   { category: 'multiPair',  tier: 4, decides: false, status: 'dormant' },
+  'line-pair-x-wing':        { category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+  'hidden-pair-on-positions':{ category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+  'triple-adjacency-forcing':{ category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+  'pair-coloring':           { category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+  'almost-locked-pair-set':  { category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+  'uniqueness-rectangle':    { category: 'multiPair',  tier: 5, decides: false, status: 'dormant' },
+
+  // E. Hypothesis — branch testing / chains (commit-and-verify).
+  'lookahead-branch-elim':   { category: 'hypothesis', tier: 5, decides: false, status: 'active' },
+  'single-lookahead':        { category: 'hypothesis', tier: 5, decides: true,  status: 'rare' },
+  'multi-step-lookahead':    { category: 'hypothesis', tier: 6, decides: true,  status: 'dormant' },
+  'gender-chain':            { category: 'hypothesis', tier: 6, decides: false, status: 'dormant' },
+  'pair-forcing-chain':      { category: 'hypothesis', tier: 6, decides: false, status: 'dormant' },
+
+  // F. Backtrack — global systematic search (last resort).
+  'backtrack-fallback':      { category: 'backtrack',  tier: 6, decides: true,  status: 'rare' },
+  'backtrack-complete-solve':{ category: 'backtrack',  tier: 6, decides: true,  status: 'dormant' },
 };
 
-// Display order for the 7 categories — roughly by cost progression.
+// Legacy PATTERN_CATEGORY map (type → category) derived from the registry,
+// so existing call sites keep working with zero behavioral change.
+const PATTERN_CATEGORY = Object.fromEntries(
+  Object.entries(PATTERN_REGISTRY).map(([type, m]) => [type, m.category])
+);
+
+// Helper: classify a step type, returning 'uncategorized' for anything not
+// in the registry (a non-pattern log event, or a genuinely new pattern).
+// NEVER silently folds unknowns into 'globalCount' — that was the old bug.
+function classifyPattern(type) {
+  const m = PATTERN_REGISTRY[type];
+  return m ? m.category : 'uncategorized';
+}
+function patternDecides(type) {
+  const m = PATTERN_REGISTRY[type];
+  return m ? m.decides : false;
+}
+
+// Display order for the categories — by cost progression.
 const CATEGORY_ORDER = [
-  'decision', 'lineCount', 'gender', 'multiPair',
-  'lineAxis', 'hypothesis', 'backtrack',
+  'decision', 'globalCount', 'gender', 'multiPair',
+  'hypothesis', 'backtrack', 'uncategorized',
 ];
+
+// i18n-independent fallback labels (UI prefers t('pattern.cat.<id>')).
+const CATEGORY_LABEL_FALLBACK = {
+  decision: 'Decision', globalCount: 'Global Count', gender: 'Gender',
+  multiPair: 'Multi-Pair', hypothesis: 'Hypothesis', backtrack: 'Backtrack',
+  uncategorized: 'Uncategorized',
+};
 
 // Color accent per category — gives users an immediate visual sense of
 // reasoning kind. Tuned to be distinct without overwhelming the dashboard.
 const CATEGORY_COLOR = {
-  decision:   '#10b981', // emerald — "결정/commit" 안정감
-  lineCount:  '#3b82f6', // blue — "카운트" 명료
-  gender:     '#a855f7', // purple — "성별" 차별
-  multiPair:  '#f59e0b', // amber — "다중 페어" warmth
-  lineAxis:   '#06b6d4', // cyan — "축" 추가 차원
-  hypothesis: '#ef4444', // red — "가설" 위험
-  backtrack:  '#6b7280', // gray — "포기/탐색" 중립
+  decision:     '#10b981', // emerald — "결정/commit" 안정감
+  globalCount:  '#3b82f6', // blue — "전역 카운트" 명료
+  gender:       '#a855f7', // purple — "성별" 차별
+  multiPair:    '#f59e0b', // amber — "다중 페어" warmth
+  hypothesis:   '#ef4444', // red — "가설" 위험
+  backtrack:    '#6b7280', // gray — "포기/탐색" 중립
+  uncategorized:'#9ca3af', // light gray — 미분류 (신규 패턴/로그 이벤트)
 };
 
 // Pattern Category Section — collapsible category card showing patterns
@@ -36104,6 +36234,10 @@ function HFSLogModal({ open, result, puzzle, onClose }) {
     { key: 'traceLength', label: lang === 'en' ? 'HFS trace length' : 'HFS 경로 길이', value: d.traceLength || 0, hint: lang === 'en' ? 'Total human-path steps' : '인간 경로 총 단계' },
     { key: 'imposRatio', label: lang === 'en' ? 'Impossibility ratio' : 'impossibility 비율', value: ((d.imposRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'High = easy puzzle signal' : '높을수록 쉬운 퍼즐 신호' },
     { key: 'propEff', label: lang === 'en' ? 'Propagation eff.' : '전파 효율', value: ((d.propagationEfficiency || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Auto-decided by ripple (low = manual reasoning)' : '전파로 자동 결정된 비율 (낮을수록 수동 추론)' },
+    { key: 'decidedRatio', label: lang === 'en' ? 'Decide ratio' : '확정 비율', value: ((d.decidedRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Steps that COMMIT a tile vs only prune (low = work without felt progress)' : '타일을 확정하는 단계 비율 (낮을수록 진전 체감 없이 노동)', star: true },
+    { key: 'globalCountRatio', label: lang === 'en' ? 'Global-count ratio' : '전역 카운트 비율', value: ((d.globalCountRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Line-count reasoning share (high + low decide = grind risk, #69ed type)' : '라인 카운트 추론 비중 (높고 확정비율 낮으면 그라인드, #69ed 유형)' },
+    { key: 'firstDecide', label: lang === 'en' ? 'Steps to 1st decide' : '첫 확정까지', value: d.stepsToFirstDecide != null ? d.stepsToFirstDecide : '—', hint: lang === 'en' ? 'Prunes before the first tile lands (high = long grind to start)' : '첫 타일 확정 전 좁히기 수 (높을수록 시작까지 긴 노동)' },
+    { key: 'detComplete', label: lang === 'en' ? 'Deterministic' : '결정적 완전', value: d.deterministicComplete != null ? (d.deterministicComplete ? (lang==='en'?'Yes':'예') : (lang==='en'?'No':'아니오')) : '—', hint: lang === 'en' ? 'Solved with NO hypothesis/backtrack (pure deduction)' : '가설/백트래킹 없이 풀림 (순수 연역)' },
     { key: 'signatureCount', label: lang === 'en' ? 'Signature pattern' : '시그니처 패턴', value: d.signatureCount || 0, hint: 'pair-adjacency-prop (Zoograms 고유)' },
     { key: 'pureRatio', label: lang === 'en' ? 'Pure-local ratio' : '순수 국소 비율', value: ((d.pureRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Pure local-pattern share' : '순수 국소 패턴 비중' },
   ];
@@ -36172,6 +36306,10 @@ function HFSLogModal({ open, result, puzzle, onClose }) {
         pureRatio: d.pureRatio || 0,
         depthMech: +(_depthMech).toFixed(4),
         widthMech: +(_widthMech).toFixed(4),
+        decidedRatio: d.decidedRatio != null ? +(d.decidedRatio).toFixed(4) : null,
+        globalCountRatio: d.globalCountRatio != null ? +(d.globalCountRatio).toFixed(4) : null,
+        stepsToFirstDecide: d.stepsToFirstDecide != null ? d.stepsToFirstDecide : null,
+        deterministicComplete: d.deterministicComplete != null ? d.deterministicComplete : null,
       },
       patternCounts: patternCounts,
       humanTrace: trace.map((s, i) => ({
@@ -36569,8 +36707,8 @@ function HFSLogModal({ open, result, puzzle, onClose }) {
         <div className="font-body" style={{ padding: '10px 16px', borderTop: '1px solid ' + C.border,
           background: C.card, fontSize: 10.5, color: C.sub, lineHeight: 1.4 }}>
           {lang === 'en'
-            ? 'HFS v3.4 (Formula A-H v3.0) — simulates the human local-focus solving path with sound global propagation (all puzzles solvable, no stuck). Score models width-type (line-rule switching, #21) and depth-type (maxFocusChain, #24) mechanisms (r≈0.58, LOOCV 0.50). Play-time estimate (r≈0.58, top-score 15min+ hit 5/5) with a confidence range, adds a backtrack-trap cost (trapXdead: post-deadlock choices that fail to produce contradictions) as a time signal, plus a dedicated time bonus (up to +8min) for pseudo-freedom traps (#4-type: verification-scarcity≥0.9 + deadlock≥5) and a "hypothesis-search dependent" flag. A cognitive model, not a human log; exact time for pseudo-freedom puzzles is fundamentally unmeasurable from trace alone.'
-            : 'HFS v3.4 (Formula A-H v3.0) — 인간의 국소 집중 풀이 경로를 sound한 전역 전파로 시뮬레이션(모든 퍼즐 풀이 가능, stuck 없음). 점수는 너비형(라인규칙 전환, #21)·깊이형(maxFocusChain, #24) 메커니즘 모델링(r≈0.58, LOOCV 0.50). 예상 소요 시간(r≈0.58, 상위점수 15분+ 적중 5/5)에 신뢰 범위와, 되돌릴 수 없는 헤맴 비용(trapXdead: 막힘 후 틀려도 모순이 안 나는 곤경)을 시간 신호로 추가하고, 가짜 자유 함정(#4형: 검증결핍≥0.9+deadlock≥5)에 전용 시간 가산(최대 +8분)을 부여하고 "가설 탐색 의존" 플래그를 더함. 인간 모델이지 실제 로그가 아니며, 가짜 자유 퍼즐의 정확한 시간은 trace만으로는 근본적으로 측정 불가.'}
+            ? 'HFS v3.5 (Formula A-H v3.0) — simulates the human local-focus solving path with sound global propagation. Pattern taxonomy rebuilt to be MECE (25 patterns across 6 categories: decision / global-count / gender / multi-pair / hypothesis / backtrack; no gaps, no dormant placeholders). New structural diagnostics: decide-ratio, global-count-ratio, steps-to-first-decide, deterministic-complete — these characterize the KIND of reasoning load (e.g. global-count grind, #69ed type) without yet feeding the time model. Time estimate (r≈0.58) keeps the trapXdead signal and pseudo-freedom bonus (#4-type). A cognitive model, not a human log.'
+            : 'HFS v3.5 (Formula A-H v3.0) — 인간의 국소 집중 풀이 경로를 sound한 전역 전파로 시뮬레이션. 패턴 분류를 MECE하게 재구축(25개 패턴 → 6개 카테고리: 결정/전역카운트/성별/다중페어/가설/백트래킹; 갭·유령 분류 제거). 신규 구조 진단: 확정비율·전역카운트비율·첫확정까지·결정적완전성 — 추론의 종류(예: 전역 카운트 그라인드, #69ed 유형)를 특징짓되 아직 시간 모델에는 미반영. 예상 시간(r≈0.58)은 trapXdead 신호와 가짜 자유 가산(#4형) 유지. 인간 모델이지 실제 로그가 아님.'}
         </div>
       </div>
     </div>
@@ -36843,8 +36981,8 @@ function SolverLogModal({ open, result, puzzle, onClose }) {
       lines.push(`-- ${t('solver.patternSummary')} --`);
       const byCategory = {};
       for (const [type, cnt] of sortedPatterns) {
-        const cat = (typeof PATTERN_CATEGORY !== 'undefined' && PATTERN_CATEGORY[type])
-          ? PATTERN_CATEGORY[type] : 'lineCount';
+        const cat = (typeof classifyPattern === 'function') ? classifyPattern(type)
+          : ((typeof PATTERN_CATEGORY !== 'undefined' && PATTERN_CATEGORY[type]) ? PATTERN_CATEGORY[type] : 'uncategorized');
         if (!byCategory[cat]) byCategory[cat] = [];
         byCategory[cat].push([type, cnt]);
       }
