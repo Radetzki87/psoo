@@ -21713,9 +21713,18 @@ const V13_GEN_TIER_BUDGETS = {
       var st = ts_initializeState(puzzle); ts_pruneByUsedCells(st);
       var det=0;
       while (!ts_isSolved(st) && det<500){ var s=detStep(st); if(!s) break; s.apply(st); ts_pruneByUsedCells(st); det++; }
-      if (ts_isSolved(st)) return { trapIndex: 0, deadlockSize: 0, trapXdead: 0 };
+      if (ts_isSolved(st)) return { trapIndex: 0, deadlockSize: 0, trapXdead: 0, entanglement: 0 };
 
       var deadlockSize = st.activePairs.length;
+      // 얽힘 깊이: 결정적 소진 후 2+ 자유도로 남은 페어 수 (= 동시 가정이 필요한
+      //   상호의존 매듭의 폭). 단일 자유도 페어는 곧 확정되므로 매듭에 안 셈.
+      //   인간 작업기억(~4±1) 대비 이 값이 클수록 "동시에 들고 있어야 할 가정"이
+      //   많아 정신적 backtrack 비용이 급증 (#9af 분석의 핵심 구조).
+      var entanglement = 0;
+      for (var ei = 0; ei < st.activePairs.length; ei++) {
+        var ed = st.domains[st.activePairs[ei]];
+        if (ed && ed.positions && ed.positions.length >= 2) entanglement++;
+      }
 
       // 정답 경로 확보 (유일해): 결정적 + backtrack
       var solClone = ts_cloneState(st);
@@ -21755,8 +21764,8 @@ const V13_GEN_TIER_BUDGETS = {
         }
       }
       var trapIndex = fc>0 ? fnc/fc : 0;
-      return { trapIndex: trapIndex, deadlockSize: deadlockSize, trapXdead: trapIndex*deadlockSize };
-    } catch(e){ return { trapIndex: 0, deadlockSize: 0, trapXdead: 0 }; }
+      return { trapIndex: trapIndex, deadlockSize: deadlockSize, trapXdead: trapIndex*deadlockSize, entanglement: entanglement };
+    } catch(e){ return { trapIndex: 0, deadlockSize: 0, trapXdead: 0, entanglement: 0 }; }
   }
 
   function estimateMinutesDetailed(humanTrace, humanDiag, puzzle) {
@@ -21795,6 +21804,31 @@ const V13_GEN_TIER_BUDGETS = {
     }
     var minutes = Math.min(30, baseMinutes + pseudoFreedomBonus);
     minutes = Math.max(1, Math.round(minutes * 10) / 10);
+    // ── knotResolutionScore (V15.11) — 매듭 풀이 구조의 품질/난이도 기술 지표 ──
+    // [목적] 시간 예측이 아니라, 퍼즐이 "상호의존 매듭을 푸는 양질의 도전"인지를
+    //   0~100으로 기술한다. #9af78037 분석에서 도출: 고품질 고난도 퍼즐은
+    //   (a) 결정적 소진 후 매듭이 존재하고(deadlock>0),
+    //   (b) 그 매듭의 얽힘 폭(entanglement)이 인간 작업기억(~4)을 초과하며,
+    //   (c) 매듭이 결국 "논리로" 풀린다(trapIndex가 낮을수록 = 찍기 아닌 추론).
+    // [경고] 이것은 score를 예측하는 회귀 지표가 아니다. 22-sample 실측 결과
+    //   r(KRS, 과거 score)≈0.09로 사실상 무상관 — 솔버 trace의 매듭 구조는 인간의
+    //   품질/난이도 체감을 예측하지 못한다(빠른 저점수 #5/#9도 큰 매듭으로 보임;
+    //   6차 고찰의 "솔버 불변성" 벽). 따라서 KRS는 시간/품질 점수에 절대 합산하지
+    //   않고, "이 퍼즐의 매듭이 구조적으로 얼마나 복잡/공정한가"를 기술하는 진단
+    //   지표로만 노출한다. 인간 라벨(finalClass/fairness/stuckQuality) 충분 수집 후
+    //   상관을 재검증하기 전까지는 어떤 자동 판정에도 사용하지 않는다.
+    var ent = trap.entanglement || 0;
+    var krs = 0;
+    if (trap.deadlockSize > 0) {
+      // 매듭 폭: 작업기억 4 기준, 초과분을 강조(인간 난관의 비선형 급증)
+      var entStrength = clamp01((ent - 2) / 6);          // ent 2~8 → 0~1 (2 이하는 매듭 약함)
+      var deadStrength = clamp01((trap.deadlockSize - 2) / 7); // deadlock 2~9 → 0~1
+      // 공정성: trapIndex 높을수록(찍기 강요) 매듭의 "추론적 가치" 할인
+      var logicQuality = 1 - 0.5 * clamp01(trapIndexVal); // trap 0→1.0, trap 1→0.5
+      // 결합: 매듭 구조 강도(얽힘 0.6 + 크기 0.4) × 논리 품질, 0~100
+      krs = 100 * (0.6 * entStrength + 0.4 * deadStrength) * logicQuality;
+    }
+    krs = Math.round(krs);
     // 신뢰 구간 (log 잔차 기반, ≈68% 구간 = ±1 SD)
     var lo = Math.max(1, Math.round(minutes / Math.exp(TIME_LOG_RESIDUAL_SD)));
     var hi = Math.round(minutes * Math.exp(TIME_LOG_RESIDUAL_SD));
@@ -21805,7 +21839,8 @@ const V13_GEN_TIER_BUDGETS = {
       trapXdead: Math.round(trap.trapXdead*10)/10, deadlockSize: trap.deadlockSize,
       trapIndex: Math.round(trapIndexVal*100)/100,
       pseudoFreedomBonus: Math.round(pseudoFreedomBonus*10)/10,
-      pseudoFreedomRisk: trapFlag };
+      pseudoFreedomRisk: trapFlag,
+      entanglement: ent, knotResolutionScore: krs };
   }
 
   // 하위 호환: 숫자만 반환 (기존 호출부 유지)
@@ -34132,6 +34167,11 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
         pseudoFreedomBonus: (td && td.pseudoFreedomBonus != null) ? td.pseudoFreedomBonus : null,
         pseudoFreedomRisk: (td && td.pseudoFreedomRisk != null) ? td.pseudoFreedomRisk : null,
       },
+      knotStructure: {
+        // 매듭 풀이 구조 기술 지표 (시간/품질 예측 아님 — 구조 진단용; r≈0.09).
+        entanglement: (td && td.entanglement != null) ? td.entanglement : null,
+        knotResolutionScore: (td && td.knotResolutionScore != null) ? td.knotResolutionScore : null,
+      },
       metrics: {
         traceLength: d.traceLength || 0,
         maxFocusChain: d.maxFocusChain || 0,
@@ -34183,6 +34223,8 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
       ['estimatedMinutes', o.scores.estimatedMinutes], ['estLow', o.scores.estimatedLow], ['estHigh', o.scores.estimatedHigh],
       ['trapIndex', o.pseudoFreedom.trapIndex], ['trapXdead', o.pseudoFreedom.trapXdead],
       ['deadlockSize', o.pseudoFreedom.deadlockSize], ['pseudoFreedomBonus', o.pseudoFreedom.pseudoFreedomBonus],
+      ['entanglement', o.knotStructure ? o.knotStructure.entanglement : ''],
+      ['knotResolutionScore', o.knotStructure ? o.knotStructure.knotResolutionScore : ''],
       ['traceLength', o.metrics.traceLength], ['maxFocusChain', o.metrics.maxFocusChain],
       ['chainGini', o.metrics.chainGini.toFixed(3)], ['refocusCount', o.metrics.refocusCount],
       ['focusCount', o.metrics.focusCount], ['imposRatio', o.metrics.imposRatio.toFixed(3)],
@@ -34369,6 +34411,12 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
               )}
               {hfsEval.timeDetail && hfsEval.timeDetail.trapIndex != null && hfsEval.timeDetail.trapIndex > 0 && (
                 <span>{t('playlog.exportTrap') || 'trap'}: <span className="font-mono" style={{ color: 'var(--ink-primary)', fontWeight: 600 }}>{Math.round(hfsEval.timeDetail.trapIndex * 100)}%</span></span>
+              )}
+              {hfsEval.timeDetail && hfsEval.timeDetail.knotResolutionScore != null && hfsEval.timeDetail.knotResolutionScore > 0 && (
+                <span title={t('playlog.krsHint') || '매듭 구조 기술 지표 (품질/시간 예측 아님)'}>
+                  {t('playlog.exportKnot') || 'knot'}: <span className="font-mono" style={{ color: 'var(--ink-primary)', fontWeight: 600 }}>{hfsEval.timeDetail.knotResolutionScore}</span>
+                  {hfsEval.timeDetail.entanglement != null && <span style={{ color: 'var(--ink-tertiary)' }}> (얽힘 {hfsEval.timeDetail.entanglement})</span>}
+                </span>
               )}
             </div>
           )}
