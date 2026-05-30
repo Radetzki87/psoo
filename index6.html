@@ -6931,6 +6931,71 @@ const STRINGS = {
     ko: '시드', en: 'Seed', es: 'Semilla', pt: 'Semente', fr: 'Graine',
     de: 'Seed', ru: 'Сид', zh: '种子', ja: 'シード',
   },
+  'playlog.labelTitle':    {
+    ko: '평가 기입', en: 'Rate this puzzle', es: 'Evaluar', pt: 'Avaliar', fr: 'Évaluer',
+    de: 'Bewerten', ru: 'Оценить', zh: '评分', ja: '評価',
+  },
+  'playlog.labelDone':     {
+    ko: '기입됨', en: 'rated', es: 'evaluado', pt: 'avaliado', fr: 'évalué',
+    de: 'bewertet', ru: 'оценено', zh: '已评分', ja: '評価済',
+  },
+  'playlog.lblDifficulty': {
+    ko: '체감 난이도', en: 'Perceived difficulty', es: 'Dificultad percibida', pt: 'Dificuldade percebida', fr: 'Difficulté ressentie',
+    de: 'Empf. Schwierigkeit', ru: 'Воспринимаемая сложность', zh: '体感难度', ja: '体感難易度',
+  },
+  'playlog.lblFun':        {
+    ko: '재미', en: 'Fun', es: 'Diversión', pt: 'Diversão', fr: 'Plaisir',
+    de: 'Spaß', ru: 'Интерес', zh: '趣味', ja: '面白さ',
+  },
+  'playlog.lblFairness':   {
+    ko: '공정성', en: 'Fairness', es: 'Justicia', pt: 'Justiça', fr: 'Équité',
+    de: 'Fairness', ru: 'Честность', zh: '公平性', ja: '公平性',
+  },
+  'playlog.lblStuck':      {
+    ko: '막힘의 질', en: 'Stuck quality', es: 'Calidad del bloqueo', pt: 'Qualidade do bloqueio', fr: 'Qualité du blocage',
+    de: 'Blockade-Qualität', ru: 'Качество затыков', zh: '卡顿质量', ja: '詰まりの質',
+  },
+  'playlog.lblFinalClass': {
+    ko: '최종 클래스', en: 'Final class', es: 'Clase final', pt: 'Classe final', fr: 'Classe finale',
+    de: 'Endklasse', ru: 'Итоговый класс', zh: '最终等级', ja: '最終クラス',
+  },
+  'playlog.finalClassHint':{
+    ko: 'ⓘ 최종 클래스: 본인이 판별한 종합 등급 (난이도와 시간이 충분히 소모된 양질의 도전일수록 높음)',
+    en: 'ⓘ Final class: your overall verdict (higher when it was a substantial, time-worthy challenge)',
+    es: 'ⓘ Clase final: tu veredicto general (mayor cuando fue un reto sustancial)',
+    pt: 'ⓘ Classe final: seu veredito geral (maior quando foi um desafio substancial)',
+    fr: 'ⓘ Classe finale : votre verdict global (plus élevé si défi substantiel)',
+    de: 'ⓘ Endklasse: Ihr Gesamturteil (höher bei substanzieller Herausforderung)',
+    ru: 'ⓘ Итоговый класс: ваш общий вердикт (выше для существенного вызова)',
+    zh: 'ⓘ 最终等级：你的综合判定（难度与耗时充分的优质挑战得分更高）',
+    ja: 'ⓘ 最終クラス：総合判定（難易度と時間が十分な良質な挑戦ほど高い）',
+  },
+  'playlog.lblTag':        {
+    ko: '태그', en: 'Tag', es: 'Etiqueta', pt: 'Etiqueta', fr: 'Étiquette',
+    de: 'Tag', ru: 'Тег', zh: '标签', ja: 'タグ',
+  },
+  'playlog.tagHint':       {
+    ko: 'ⓘ 요주: 솔버 메트릭과 체감이 천차만별인 퍼즐 (예측 실패 사례로 표시)',
+    en: 'ⓘ Flag: puzzle where solver metrics and felt experience diverge wildly (marks prediction failures)',
+    es: 'ⓘ Marcar: el puzzle donde las métricas del solver y la experiencia divergen mucho',
+    pt: 'ⓘ Sinalizar: quebra-cabeça onde as métricas do solver e a experiência divergem muito',
+    fr: 'ⓘ Signaler : puzzle où les métriques du solveur et le ressenti divergent fortement',
+    de: 'ⓘ Markieren: Rätsel, bei dem Solver-Metriken und Empfinden stark abweichen',
+    ru: 'ⓘ Отметить: головоломка, где метрики солвера и ощущения сильно расходятся',
+    zh: 'ⓘ 要注意：求解器指标与体感差异极大的谜题（标记预测失败案例）',
+    ja: 'ⓘ 要注意：ソルバー指標と体感が大きく食い違うパズル（予測失敗例として記録）',
+  },
+  'playlog.labelExportHint': {
+    ko: '※ 기입 후 위의 요약 TSV / JSON 추출 버튼을 누르면 라벨이 함께 저장됩니다.',
+    en: '※ After rating, use the Summary TSV / JSON export buttons above to save labels.',
+    es: '※ Tras evaluar, usa los botones de exportación TSV / JSON.',
+    pt: '※ Após avaliar, use os botões de exportação TSV / JSON.',
+    fr: '※ Après évaluation, utilisez les boutons d\'export TSV / JSON.',
+    de: '※ Nach Bewertung die TSV / JSON-Export-Buttons oben verwenden.',
+    ru: '※ После оценки используйте кнопки экспорта TSV / JSON.',
+    zh: '※ 评分后点击上方的 摘要 TSV / JSON 导出按钮即可一并保存。',
+    ja: '※ 評価後、上の要約 TSV / JSON 抽出ボタンでラベルも保存されます。',
+  },
   'playlog.close':         {
     ko: '닫기',
     en: 'Close',
@@ -33872,6 +33937,36 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
   const [copied, setCopied] = React.useState(false);
   const [exportMsg, setExportMsg] = React.useState('');
 
+  // ── HUMAN LABELS (V15.9 — 평가 데이터 수집) ──
+  // 6 라벨: 학습 효과/솔버 측정으로 못 잡는 주관적 차원을 본인이 직접 기입.
+  //   perceivedDifficulty 체감 난이도 (실제로 얼마나 어렵게 느꼈나)
+  //   fun                 재미       (또 풀고 싶은가 — 품질 핵심)
+  //   fairness            공정성     (논리로 풀렸나/추측 강요 — #4 가짜자유 포착)
+  //   stuckQuality        막힘의 질  (지루한 그라인드 vs 짜릿한 도전 — #69ed 포착)
+  //   finalClass          최종 클래스(본인이 판별한 종합 등급; 난이도+시간이 충분히
+  //                       소모되어야 높음 — 짧고 쉬우면 낮고, 양질의 긴 도전이면 높음)
+  //   tag                 태그 분류 (질적 유형 1택)
+  const LABEL_TAGS = ['평범', '단순', '영리but짧음', '초반막힘', '후반막힘', '풍부', '밸런스', '요주'];
+  const [lblPerceivedDifficulty, setLblPerceivedDifficulty] = React.useState(0);
+  const [lblFun, setLblFun] = React.useState(0);
+  const [lblFairness, setLblFairness] = React.useState(0);
+  const [lblStuckQuality, setLblStuckQuality] = React.useState(0);
+  const [lblFinalClass, setLblFinalClass] = React.useState(0);
+  const [lblTag, setLblTag] = React.useState('');
+  const [showLabelPanel, setShowLabelPanel] = React.useState(false);
+  // 별점 입력 헬퍼 (라벨 패널에서 사용)
+  const LabelStars = ({ value, onChange }) => (
+    <span style={{ display: 'inline-flex', gap: 3 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <span key={n} onClick={() => onChange(value === n ? 0 : n)} style={{
+          cursor: 'pointer', fontSize: 18, lineHeight: 1,
+          color: n <= value ? 'var(--accent-gold)' : 'var(--border-medium)',
+          userSelect: 'none', transition: 'color 0.1s',
+        }}>★</span>
+      ))}
+    </span>
+  );
+
   // ── HFS 평가/메트릭 계산 (로그보기 모달과 동일한 점수 체계) ──
   // 실제 플레이 로그 + 시간에 더해, 퍼즐의 난이도/평가점수/시그니처를 함께 추출.
   const hfsEval = React.useMemo(() => {
@@ -33938,9 +34033,9 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
       case 'candidate-clear':
         return `${tStr} | ✕ ${t('playlog.candidateClear')} ${cellTag(d.row, d.col)}`;
       case 'candidate-enqueue':
-        return `${tStr} | + ${t('playlog.candidateEnqueue')}: ${d.speciesEmoji}${d.speciesName} @ ${cellTag(d.row, d.col)}`;
+        return `${tStr} | + ${t('playlog.candidateEnqueue')}: ${d.speciesEmoji}${d.speciesName}${d.gender ? (d.gender === 'male' ? '♂' : '♀') : ''} @ ${cellTag(d.row, d.col)}`;
       case 'candidate-dequeue':
-        return `${tStr} | − ${t('playlog.candidateDequeue')}: ${d.speciesEmoji}${d.speciesName} @ ${cellTag(d.row, d.col)}`;
+        return `${tStr} | − ${t('playlog.candidateDequeue')}: ${d.speciesEmoji}${d.speciesName}${d.gender ? (d.gender === 'male' ? '♂' : '♀') : ''} @ ${cellTag(d.row, d.col)}`;
       case 'cell-mark-change':
         return `${tStr} | ⟳ ${t('playlog.cellMarkChange')} ${cellTag(d.row, d.col)} ${d.from}→${d.to}`;
       case 'reset':
@@ -34056,6 +34151,22 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
         category: categoryOf(e.action),
         detail: e.detail || {},
       })),
+      humanLabels: {
+        perceivedDifficulty: lblPerceivedDifficulty || null,
+        fun: lblFun || null,
+        fairness: lblFairness || null,
+        stuckQuality: lblStuckQuality || null,
+        finalClass: lblFinalClass || null,
+        tag: lblTag || null,
+        labeledAt: (lblPerceivedDifficulty || lblFun || lblFairness || lblStuckQuality || lblFinalClass || lblTag)
+          ? new Date().toISOString() : null,
+      },
+      _analysisNotes: {
+        // 타임라인 분석 시 반드시 고려할 측정 아티팩트:
+        candidateRegistrationViaPlacement: 'UI상 Q-셀에 후보(animalId,gender)를 등록하려면 성별이 확정된 타일을 그 셀에 "완전히 드롭"(배치)해야 한다(PLACE_TOKEN reducer 내부에서 등록). 즉 후보 등록은 항상 place/move 액션을 수반하며, 그 place 의 onQMarkedCell=true 로 식별된다. 따라서 onQMarkedCell=true 인 place/move 는 "확정 배치"가 아니라 "후보를 넣기 위한 배치"일 수 있으니, 순수 확정 배치만 세려면 이 플래그로 필터링할 것.',
+        candidateEnqueueIsPairLevel: 'candidate-enqueue/dequeue 는 (animalId, gender) 쌍 단위다. 같은 종의 ♂/♀ 는 독립 후보로 기록된다.',
+        cellMarkVsQCandidate: 'cell-mark-change(Q 표시)는 "위치 후보 표시"이고, candidate-enqueue 는 "그 위치에 어떤 동물 후보를 넣었나"이다. 둘은 별개 시스템. 후보 동물 등록 시 같은 시점에 place(onQMarkedCell=true)+candidate-enqueue 가 함께 찍힌다.',
+      },
     };
   }
 
@@ -34077,6 +34188,13 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
       ['focusCount', o.metrics.focusCount], ['imposRatio', o.metrics.imposRatio.toFixed(3)],
       ['propEff', o.metrics.propagationEfficiency.toFixed(3)], ['signatureCount', o.metrics.signatureCount],
       ['pureRatio', o.metrics.pureRatio.toFixed(3)],
+      // Human labels (빈 값은 미평가)
+      ['lbl_perceivedDifficulty', o.humanLabels.perceivedDifficulty != null ? o.humanLabels.perceivedDifficulty : ''],
+      ['lbl_fun', o.humanLabels.fun != null ? o.humanLabels.fun : ''],
+      ['lbl_fairness', o.humanLabels.fairness != null ? o.humanLabels.fairness : ''],
+      ['lbl_stuckQuality', o.humanLabels.stuckQuality != null ? o.humanLabels.stuckQuality : ''],
+      ['lbl_finalClass', o.humanLabels.finalClass != null ? o.humanLabels.finalClass : ''],
+      ['lbl_tag', o.humanLabels.tag != null ? o.humanLabels.tag : ''],
     ];
     Object.keys(o.play.actionsByCategory).forEach(k => cols.push(['cat_' + k, o.play.actionsByCategory[k]]));
     cols.push(['seed', o.meta.seed]);
@@ -34281,6 +34399,64 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
           {exportMsg && (
             <div className="font-body" style={{ fontSize: 11, color: 'var(--accent-gold)', marginTop: 7, fontWeight: 600 }}>✓ {exportMsg}</div>
           )}
+          {/* ── HUMAN LABEL PANEL (V15.9 평가 입력) ── */}
+          <div style={{ marginTop: 10, borderTop: '1px dashed var(--border-medium)', paddingTop: 10 }}>
+            <button onClick={() => setShowLabelPanel(v => !v)} className="font-body" style={{
+              background: 'transparent', border: 'none', color: 'var(--ink-secondary)', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{showLabelPanel ? '▾' : '▸'}</span>
+              <span>★ {t('playlog.labelTitle') || '평가 기입'}</span>
+              {(lblPerceivedDifficulty || lblFun || lblFairness || lblStuckQuality || lblFinalClass || lblTag) ? (
+                <span style={{ fontSize: 10, color: 'var(--accent-gold)', fontWeight: 700 }}>● {t('playlog.labelDone') || '기입됨'}</span>
+              ) : null}
+            </button>
+            {showLabelPanel && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblDifficulty') || '체감 난이도'}</span>
+                  <LabelStars value={lblPerceivedDifficulty} onChange={setLblPerceivedDifficulty} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblFun') || '재미'}</span>
+                  <LabelStars value={lblFun} onChange={setLblFun} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblFairness') || '공정성'}</span>
+                  <LabelStars value={lblFairness} onChange={setLblFairness} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblStuck') || '막힘의 질'}</span>
+                  <LabelStars value={lblStuckQuality} onChange={setLblStuckQuality} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblFinalClass') || '최종 클래스'} <span style={{ fontSize: 9, color: 'var(--ink-tertiary)' }}>ⓘ</span></span>
+                  <LabelStars value={lblFinalClass} onChange={setLblFinalClass} />
+                </div>
+                <div className="font-body" style={{ fontSize: 10, color: 'var(--ink-tertiary)', lineHeight: 1.5, marginTop: -2, paddingLeft: 2 }}>
+                  {t('playlog.finalClassHint') || 'ⓘ 최종 클래스: 본인이 판별한 종합 등급 (난이도와 시간이 충분히 소모된 양질의 도전일수록 높음)'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                  <span className="font-body" style={{ fontSize: 12, color: 'var(--ink-primary)', minWidth: 88 }}>{t('playlog.lblTag') || '태그'}</span>
+                  {LABEL_TAGS.map(tg => (
+                    <button key={tg} onClick={() => setLblTag(lblTag === tg ? '' : tg)} className="font-body" style={{
+                      padding: '3px 9px', borderRadius: 12, fontSize: 11, cursor: 'pointer',
+                      border: '1px solid ' + (lblTag === tg ? 'var(--accent-gold)' : 'var(--border-medium)'),
+                      background: lblTag === tg ? 'var(--accent-gold)' : 'transparent',
+                      color: lblTag === tg ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+                      fontWeight: lblTag === tg ? 700 : 400,
+                    }}>{tg}</button>
+                  ))}
+                </div>
+                <div className="font-body" style={{ fontSize: 10, color: 'var(--ink-tertiary)', lineHeight: 1.5, marginTop: -2, paddingLeft: 2 }}>
+                  {t('playlog.tagHint') || 'ⓘ 요주: 솔버 메트릭과 체감이 천차만별인 퍼즐 (예측 실패 사례로 표시)'}
+                </div>
+                <div className="font-body" style={{ fontSize: 10, color: 'var(--ink-tertiary)', marginTop: 4 }}>
+                  {t('playlog.labelExportHint') || '※ 기입 후 위의 요약 TSV / JSON 추출 버튼을 누르면 라벨이 함께 저장됩니다.'}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         {/* Log timeline */}
         <div style={{
@@ -34383,12 +34559,17 @@ function recordPlayLogDiff(state, next, action) {
       const animal = (typeof animalById !== 'undefined') ? animalById(tk.animalId) : null;
       const speciesName = animal ? animal.name : ('species#' + tk.animalId);
       const speciesEmoji = animal ? animal.emoji : '';
+      // 분석 보조: 배치/제거 대상 셀이 Q(후보)로 마킹돼 있었는지 기록.
+      // Q 셀 위 배치는 "후보를 시험하려는 탐색적 배치"일 수 있어, 타임라인 분석 시
+      // 확정 배치와 구분하기 위한 신호 (UI상 후보 등록은 타일 배치를 거치므로).
+      const onQ = (key) => !!(key && state.cellMarks && state.cellMarks[key] === 'Q')
+                        || !!(key && next.cellMarks && next.cellMarks[key] === 'Q');
       if (after && !before) {
-        entries.push({ action: 'place', detail: { tokenId: tk.id, speciesName, speciesEmoji, row: after.row, col: after.col } });
+        entries.push({ action: 'place', detail: { tokenId: tk.id, speciesName, speciesEmoji, row: after.row, col: after.col, onQMarkedCell: onQ(afterKey) } });
       } else if (!after && before) {
-        entries.push({ action: 'remove', detail: { tokenId: tk.id, speciesName, speciesEmoji, fromRow: before.row, fromCol: before.col } });
+        entries.push({ action: 'remove', detail: { tokenId: tk.id, speciesName, speciesEmoji, fromRow: before.row, fromCol: before.col, fromQMarkedCell: onQ(beforeKey) } });
       } else if (after && before) {
-        entries.push({ action: 'move', detail: { tokenId: tk.id, speciesName, speciesEmoji, fromRow: before.row, fromCol: before.col, toRow: after.row, toCol: after.col } });
+        entries.push({ action: 'move', detail: { tokenId: tk.id, speciesName, speciesEmoji, fromRow: before.row, fromCol: before.col, toRow: after.row, toCol: after.col, toQMarkedCell: onQ(afterKey) } });
       }
     }
   }
@@ -34433,25 +34614,34 @@ function recordPlayLogDiff(state, next, action) {
     }
   }
 
-  // 4. Q candidate (animal IDs) changes
+  // 4. Q candidate ({animalId, gender} pairs) changes
+  // qCandidates[key] is an array of { animalId, gender } objects (NOT bare IDs),
+  // so compare on the (animalId+gender) pair and extract animalId for lookup.
   const beforeQ = state.qCandidates || {};
   const afterQ = next.qCandidates || {};
   const qKeys = new Set([...Object.keys(beforeQ), ...Object.keys(afterQ)]);
+  const _qSig = (c) => (c && typeof c === 'object') ? (c.animalId + ':' + (c.gender || 'male')) : String(c);
+  const _qAnimalId = (c) => (c && typeof c === 'object') ? c.animalId : c;
+  const _qGender = (c) => (c && typeof c === 'object') ? (c.gender || null) : null;
   for (const k of qKeys) {
     const beforeArr = beforeQ[k] || [];
     const afterArr = afterQ[k] || [];
     if (JSON.stringify(beforeArr) === JSON.stringify(afterArr)) continue;
     const [row, col] = k.split(',').map(Number);
-    // Detect added animal IDs (most common pattern: ENQUEUE_Q_CANDIDATE adds one)
-    const added = afterArr.filter(id => !beforeArr.includes(id));
-    const removed = beforeArr.filter(id => !afterArr.includes(id));
-    for (const id of added) {
-      const animal = (typeof animalById !== 'undefined') ? animalById(id) : null;
-      entries.push({ action: 'candidate-enqueue', detail: { row, col, animalId: id, speciesName: animal ? animal.name : '', speciesEmoji: animal ? animal.emoji : '' } });
+    const beforeSigs = beforeArr.map(_qSig);
+    const afterSigs = afterArr.map(_qSig);
+    // Detect added/removed candidate (animalId,gender) pairs
+    const added = afterArr.filter(c => !beforeSigs.includes(_qSig(c)));
+    const removed = beforeArr.filter(c => !afterSigs.includes(_qSig(c)));
+    for (const c of added) {
+      const aid = _qAnimalId(c);
+      const animal = (typeof animalById !== 'undefined') ? animalById(aid) : null;
+      entries.push({ action: 'candidate-enqueue', detail: { row, col, animalId: aid, gender: _qGender(c), speciesName: animal ? animal.name : '', speciesEmoji: animal ? animal.emoji : '' } });
     }
-    for (const id of removed) {
-      const animal = (typeof animalById !== 'undefined') ? animalById(id) : null;
-      entries.push({ action: 'candidate-dequeue', detail: { row, col, animalId: id, speciesName: animal ? animal.name : '', speciesEmoji: animal ? animal.emoji : '' } });
+    for (const c of removed) {
+      const aid = _qAnimalId(c);
+      const animal = (typeof animalById !== 'undefined') ? animalById(aid) : null;
+      entries.push({ action: 'candidate-dequeue', detail: { row, col, animalId: aid, gender: _qGender(c), speciesName: animal ? animal.name : '', speciesEmoji: animal ? animal.emoji : '' } });
     }
   }
 
@@ -39890,12 +40080,17 @@ function ZoogramsApp() {
     dispatch({ type: 'DRAG_START', tokenId, assignGender });
   }, []);
 
+  // ⚠️ LEGACY / DEAD CODE (V15.10 확인): 이 handleCellDrop 은 과거 HTML5
+  // drag-and-drop 방식의 잔존물이다. 현재 실제 드래그 배치는 DragProvider(포인터
+  // 기반) → onPlace → handleDragPlace → PLACE_TOKEN 경로로 처리되며, Grid/DropCell 은
+  // onCellDrop 을 호출하지 않는다(시그니처로만 전달됨). 따라서 아래 'over' phase 의
+  // ENQUEUE_Q_CANDIDATE 는 **실행되지 않는다**. 후보 등록의 실제 위치는 PLACE_TOKEN
+  // reducer 내부(타일을 Q-셀에 완전히 드롭할 때)다. 동작 변경 위험을 피하기 위해
+  // 코드는 남겨두되, 후보 등록 분석 시 이 블록을 근거로 삼지 말 것.
   const handleCellDrop = useCallback((phase, row, col) => {
     if (phase === 'over') {
       dispatch({ type: 'DRAG_OVER_CELL', row, col });
-      // If dragging a tile over a Q-marked cell, register its {animalId, gender} as candidate.
-      // BUT only if the tile has a confirmed gender — tiles in "?" state (gender undecided)
-      // must NOT be registered, because male vs female are treated as independent candidates.
+      // (DEAD) 아래 후보 등록은 현재 경로에서 호출되지 않음 — 실제 등록은 PLACE_TOKEN reducer.
       const tid = state.dragState.tokenId;
       if (tid && state.puzzle) {
         const key = `${row},${col}`;
