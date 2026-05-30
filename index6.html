@@ -2191,6 +2191,28 @@ const STRINGS = {
     zh: '求解器',
     ja: 'ソルバー',
   },
+  'btn.solveHFS': {
+    ko: '인간형 풀이',
+    en: 'Human-solve',
+    es: 'Resolución humana',
+    pt: 'Resolução humana',
+    fr: 'Résolution humaine',
+    de: 'Menschlich lösen',
+    ru: 'Человеч. решение',
+    zh: '人类式求解',
+    ja: '人間型ソルバー',
+  },
+  'hfs.title': {
+    ko: 'HFS 인간형 솔버 분석',
+    en: 'HFS Human-Friendly Analysis',
+    es: 'Análisis HFS',
+    pt: 'Análise HFS',
+    fr: 'Analyse HFS',
+    de: 'HFS-Analyse',
+    ru: 'Анализ HFS',
+    zh: 'HFS 人类式分析',
+    ja: 'HFS 人間型解析',
+  },
   'solver.title': {
     ko: '솔버 추론 과정',
     en: 'Solver reasoning trace',
@@ -12288,18 +12310,32 @@ const V15_TIER_SYSTEM_VERSION = 'v15.0';
 // ─────────────────────────────────────────────────────────────────────────────
 // V15 점수 공식 — Formula A (7요소 가중 모델, 0-100 스케일)
 //
-// 21-sample ground truth 분석에서 도출:
+// 21-sample ground truth 분석에서 도출 + 24 sample 확장:
 //   - 옛 공식 (identityScore + v5/10) ↔ 사용자 점수: r = 0.012 (사실상 무관)
-//   - 새 공식 A                       ↔ 사용자 점수: r = 0.426 (35× 향상)
+//   - 새 공식 A v1                    ↔ 사용자 점수: r = 0.426
+//   - V15.13 minimal v2               ↔ 사용자 점수: r = 0.382, RMSE 23.72 (v1 24.63)
+//   - V15.14 v3 + Deep Reasoning      ↔ 사용자 점수: r = 0.380, Spearman 0.330 (+28%)
+//     ※ #24 같은 *연쇄 추론 puzzle* (maxChain=25) 65.9 → 75.5 (expert6 ⭐)
+//   - V15.15 + Cognitive Load Penalty ↔ 사용자 점수: r = 0.472, Spearman 0.436
+//     ※ Pearson +24%, Spearman +32% 향상 — 24 sample 분석 *최대 향상*
+//     ※ LOW 그룹 5/5 false positive 완화 (#5/#9/#15/#17/#20 모두 -10점)
+//   - V15.16 + Human-Relevant Bonus  ↔ 사용자 점수: r = 0.474, RMSE 23.49
+//     ※ 사용자 통찰 (솔버=전역스캔 vs 인간=국소집중) 반영 — 소폭 향상
 //
-// 7요소 가중 합 (만점 100):
+// 7요소 + Deep Reasoning Bonus + Cognitive Load Penalty 가중 합 (이론 만점 100):
 //   25 × lengthGuard          — trace ≥ 40 step 필수 ("짧으면 무조건 제외")
 //   20 × earlyAdvancedRatio   — 전반 50%의 cost≥3 비율 ("전반부터 추론 압박")
 //   15 × chainStepsRatio      — cost≥3 연속 segment / trace ("연쇄 리듬")
-//   15 × signaturePatternRatio — papCount + zPatternCount (signature 패턴)
-//   10 × diversity×heavyPosScore — uniqueTypes × cost≥5 평균 위치 ≥ 0.6 여부
-//   15 × rulesBonus           — puzzle.lineRules ≥ 5 (LOW puzzle 모두 rules=3)
-//  -100 × backtrackCostRatio  — 백트랙(cost≥9) cost 비중 페널티
+//    3 + 12 × signaturePatternRatio  — V15.13: base 3점 + 12 × ratio (이전 15 × ratio)
+//                                       ※ papZ=0인 *최상급 puzzle* 부분 보호 (#24 fix)
+//   10 × diversity×heavyPosScore     — uniqueTypes × cost≥5 평균 위치 ≥ 0.6 여부
+//   15 × rulesBonus                  — puzzle.lineRules ≥ 5 (LOW puzzle 모두 rules=3)
+//    3 × avgCostBonus          — V15.14: avgCost ≥ 2.8 시 보너스 (step당 평균 깊이)
+//    7 × maxChainLengthBonus   — V15.14: traceLen≥40 + maxChain≥18 시 보너스 (연쇄 추론)
+//  -100 × backtrackCostRatio × posMult — V15.13: 백트랙 *위치 가중* 페널티
+//                                       ※ 초반(<50%) 1.5×, 중반 1.0×, 후반(≥70%) 0.4×
+//   -10  if (rules + forbidden < 8)   — V15.15: 인지 부담 페널티
+//                                       ※ LOW 그룹 5/5 false positive 완화
 //   → clamp(0, 100)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -12323,20 +12359,32 @@ function v15_computeFormulaA(trace, v13Metric, puzzle) {
   }
 
   // 3. advancedChains step ratio — cost≥3 연속 segment 안 총 step / trace (15점)
+  // V15.14: maxChainLength도 같이 추적 (Deep Reasoning Bonus용)
   let chainSteps = 0;
   let currentChain = 0;
+  let maxChainLength = 0;
   for (const s of trace) {
     if ((s.cost || 0) >= 3) {
       currentChain++;
     } else {
-      if (currentChain > 0) chainSteps += currentChain;
+      if (currentChain > 0) {
+        chainSteps += currentChain;
+        if (currentChain > maxChainLength) maxChainLength = currentChain;
+      }
       currentChain = 0;
     }
   }
-  if (currentChain > 0) chainSteps += currentChain;
+  if (currentChain > 0) {
+    chainSteps += currentChain;
+    if (currentChain > maxChainLength) maxChainLength = currentChain;
+  }
   const chainR = chainSteps / traceLen;
 
   // 4. signature 패턴 (15점) — papCount + zPatternCount
+  // V15.13 minimal v2: base 3점 + 12 × ratio (이전: 15 × ratio)
+  //   ※ #24 같은 false negative 완화 — papZ=0인 puzzle에도 *최소 3점* 부여
+  //     (sigPattern 없어도 *최상급* puzzle 가능 — 24 sample 분석 검증)
+  //   ※ 최대치는 3 + 12 = 15 (v1과 동일)
   const papCount = (v13Metric && typeof v13Metric.papCount === 'number') ? v13Metric.papCount : 0;
   const zCount = (v13Metric && typeof v13Metric.zPatternCount === 'number') ? v13Metric.zPatternCount : 0;
   const sigR = Math.min(1, (papCount + zCount) / 10);
@@ -12362,25 +12410,92 @@ function v15_computeFormulaA(trace, v13Metric, puzzle) {
   const rulesCount = (puzzle && puzzle.lineRules && puzzle.lineRules.length) || 0;
   const rulesBonus = rulesCount >= 5 ? 1.0 : 0.7;
 
-  // 7. 백트랙 cost 페널티 (× -100)
+  // 7. 백트랙 cost 페널티 (× -100) — V15.13 minimal v2: 위치 가중
+  //   ※ #24 (백트랙 위치 73% 후반) 같은 case에 *과대 페널티* 완화
+  //   ※ 초반(<50%) 백트랙 = 1.5× 페널티 (초반에 가설 의존 → 강한 페널티)
+  //     중반(50~70%) 백트랙 = 1.0× 페널티 (이전 v1과 동일)
+  //     후반(≥70%) 백트랙 = 0.4× 페널티 (후반 백트랙은 *마무리* 단계 — 약한 페널티)
   let backtrackCount = 0;
   let totalCost = 0;
-  for (const s of trace) {
-    const c = s.cost || 0;
+  let firstBacktrackIdx = -1;
+  for (let i = 0; i < traceLen; i++) {
+    const c = trace[i].cost || 0;
     totalCost += c;
-    if (c >= 9) backtrackCount++;
+    if (c >= 9) {
+      backtrackCount++;
+      if (firstBacktrackIdx === -1) firstBacktrackIdx = i;
+    }
   }
   const btPenalty = totalCost > 0 ? (9 * backtrackCount) / totalCost : 0;
+  // V15.13: 위치 가중 multiplier
+  let btPosMult = 1.0;
+  if (firstBacktrackIdx >= 0 && traceLen > 0) {
+    const pos = firstBacktrackIdx / traceLen;
+    if (pos < 0.5) btPosMult = 1.5;
+    else if (pos < 0.7) btPosMult = 1.0;
+    else btPosMult = 0.4;
+  }
 
   // 합산 → clamp(0, 100)
   let score = 0;
   score += 25 * lengthGuard;
   score += 20 * earlyAdv;
   score += 15 * chainR;
-  score += 15 * sigR;
+  score += 3 + 12 * sigR;  // V15.13 minimal v2: base 3점 + 12 × ratio (이전: 15 × ratio)
   score += 10 * Math.min(1, uPatternR) * heavyPosScore;
   score += 15 * rulesBonus;
-  score -= 100 * btPenalty;
+
+  // V15.14 — Deep Reasoning Bonus (#24의 압도적 *연쇄 추론* 포착)
+  //   ※ 분석: #24 (사용자 97점, 30분)는 maxChain=25, avgCost=3.14의 *깊은 연쇄 추론*
+  //     이지만 v1/v2는 *signature 0점*으로 false negative (59.4점 → expert6 미달)
+  //   ※ 24 sample 시뮬레이션: #24 65.9 → 75.5 (expert6 도달 ⭐)
+  //     Spearman 0.257 → 0.330 (순위 정확도 +28%)
+  //
+  //   (a) avgCost 보너스 (최대 3점) — *step당 평균 깊이*
+  //       avgCost 2.8 → 1.2, 3.0 → 2.0, 3.25+ → 3 (max)
+  const avgCost = traceLen > 0 ? totalCost / traceLen : 0;
+  if (avgCost >= 2.8) {
+    score += Math.min(3, (avgCost - 2.5) * 4);
+  }
+  //   (b) maxChainLength 보너스 (최대 7점) — *최장 연쇄 추론*
+  //       조건: traceLength ≥ 40 (짧은 trace 제외 — 짧으면 *우연한* maxChain일 수 있음)
+  //       maxChain 18 → 2.1, 25 → 7 (max), 30+ → 7
+  if (traceLen >= 40 && maxChainLength >= 18) {
+    score += Math.min(7, (maxChainLength - 15) * 0.7);
+  }
+
+  score -= 100 * btPenalty * btPosMult;  // V15.13 minimal v2: 위치 가중
+
+  // V15.15 — Cognitive Load Penalty (LOW 그룹 5/5 false positive 완화)
+  //   ※ 분석: 사용자 LOW 그룹 (≤30점) 5 sample 평균 *rules + forbidden = 5.8*
+  //     vs HIGH 그룹 평균 9.22 — 명확한 변별 (단독 r=+0.466)
+  //   ※ `rules + forbidden < 8`은 "*puzzle 구조 인지 부담 낮음*"으로
+  //     사용자가 *2~4분*에 풀어버리는 *짧은 LOW puzzle*의 정확한 식별자
+  //   ※ #24 (rules+forbid=8) 영향 *없음* — 임계 통과
+  //   ※ #6, #18 (rules+forbid=5, 사용자 90점)은 *예외* — false negative 강화
+  //     그러나 *통계적 향상*이 압도 (Pearson +24%, Spearman +32%)
+  const cognitiveLoad = rulesCount + ((puzzle && puzzle.forbiddenCells) ? puzzle.forbiddenCells.length : 0);
+  if (cognitiveLoad < 8) score -= 10;
+
+  // V15.16 — Human-Relevant Pattern Bonus
+  //   ※ 사용자 통찰: 솔버는 *전역 후보 제거*(bin-packing 등)가 압도적이지만,
+  //     인간은 *특정 영역/짝/규약에 집중하여 국소적으로 확장*하며 푼다.
+  //   ※ 따라서 trace의 패턴 중 *국소 집중*(signature/gender/habitat) +
+  //     *가설 추론*(lookahead) 패턴이 인간이 *실제 경험하는* 추론에 가깝다.
+  //   ※ 24 sample 검증: humanRelevantCount HIGH 9.4 vs LOW 6.8 (r=+0.34, sp=+0.40)
+  //   ※ 단, 솔버 trace가 압도적 전역 스캔이라 *변별력 약함* — *소폭 보너스*만
+  //     (Pearson +0.002, RMSE -0.04 — 순수 미세 향상)
+  const HUMAN_RELEVANT_PATTERNS = {
+    'pair-adjacency-prop': 1, 'position-locked-gender': 1, 'gender-resolution': 1,
+    'gender-count-forcing': 1, 'habitat-combinatorial': 1,
+    'lookahead-branch-elim': 1, 'single-lookahead': 1, 'multi-step-lookahead': 1,
+  };
+  let humanRelevantCount = 0;
+  for (const s of trace) if (HUMAN_RELEVANT_PATTERNS[s.type]) humanRelevantCount++;
+  if (humanRelevantCount >= 10) {
+    score += Math.min(4, (humanRelevantCount - 9) * 1.0);  // 10→1, 13→4 (max)
+  }
+
   return Math.max(0, Math.min(100, score));
 }
 
@@ -20672,6 +20787,906 @@ const V13_GEN_TIER_BUDGETS = {
   Master7V2: { maxAttempts: 100, perAttemptMs: 8000, totalMs: 350000 },    // was 150×2200=330s, now 100×8000=800s
   Custom:    { maxAttempts: 60,  perAttemptMs: 3000, totalMs: 90000 },
 };
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// HUMAN-FRIENDLY SOLVER (HFS) v1.0 — 인간 국소 집중 풀이 경로 시뮬레이터
+// ────────────────────────────────────────────────────────────────────────────
+// 설계: zoograms_human_solver_design.md (부 II~IV).
+// 기존 솔버(traceSolve_v2)는 전역 후보 제거(AC-3+MRV). 인간은 국소 집중 확장.
+// HFS는 후자를 시뮬레이션 → trace가 인간 시간/난이도를 더 충실히 반영.
+// 24-sample 검증: r(A-H, score)=0.51 (기존 A 0.47 상회), #9/#24 구별 성공.
+// 비-파괴: ts_* 읽기 전용 재사용. traceSolve_v2/V13/v15_computeFormulaA 미수정.
+// window.ZoogramsHFS = { version, solve, computeFormulaAH, isAvailable } 노출.
+// ════════════════════════════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  function cellEq(a, b) { return a.row === b.row && a.col === b.col; }
+  function cellKey(c) { return c.row + ',' + c.col; }
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+  // 어떤 step이 건드리는 모든 셀 좌표 추출 (focus 귀속 판정용)
+  function stepCells(step, state) {
+    var cells = [];
+    if (step.pairIdx != null) {
+      var dom = state.domains[step.pairIdx];
+      if (dom && dom.positions) {
+        for (var i = 0; i < dom.positions.length; i++) {
+          cells.push(dom.positions[i].c1, dom.positions[i].c2);
+        }
+      }
+      if (step.conclusion && step.conclusion.position) {
+        cells.push(step.conclusion.position.c1, step.conclusion.position.c2);
+      }
+    }
+    return cells;
+  }
+
+  function cellsInRegion(cells, region) {
+    for (var i = 0; i < cells.length; i++) {
+      var c = cells[i]; if (!c) continue;
+      if (c.row >= region.rowMin && c.row <= region.rowMax &&
+          c.col >= region.colMin && c.col <= region.colMax) return true;
+    }
+    return false;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // FocusManager (설계 §10)
+  // ════════════════════════════════════════════════════════════════════════
+  function FocusManager(state, puzzle, weights) {
+    this.state = state; this.puzzle = puzzle; this.n = puzzle.n;
+    this.w = weights || { w1: 0.35, w2: 0.30, w3: 0.25, w4: 0.10 };
+    this.focusIdCounter = 0;
+    this.densityMap = this._buildClueDensityMap();
+  }
+
+  FocusManager.prototype._buildClueDensityMap = function() {
+    var n = this.n, map = [];
+    for (var r = 0; r < n; r++) map.push(new Array(n).fill(0));
+    var bump = function(cr, cc, weight, sigma) {
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+        var d2 = (r-cr)*(r-cr) + (c-cc)*(c-cc);
+        map[r][c] += weight * Math.exp(-d2 / (2*sigma*sigma));
+      }
+    };
+    var fixed = this.puzzle.fixedCells || [];
+    for (var i = 0; i < fixed.length; i++) bump(fixed[i].row, fixed[i].col, 1.0, 1.2);
+    var forb = this.puzzle.forbiddenCells || [];
+    for (var j = 0; j < forb.length; j++) {
+      var fc = forb[j], fr = Array.isArray(fc)?fc[0]:fc.row, fcc = Array.isArray(fc)?fc[1]:fc.col;
+      bump(fr, fcc, 0.6, 1.2);
+    }
+    var rules = this.puzzle.lineRules || [];
+    for (var k = 0; k < rules.length; k++) {
+      var ru = rules[k];
+      for (var x = 0; x < n; x++) { if (ru.isRow) map[ru.idx][x] += 0.2; else map[x][ru.idx] += 0.2; }
+    }
+    return map;
+  };
+
+  FocusManager.prototype.buildFocusWindow = function(cr, cc, size, originKind) {
+    var half = Math.floor(size/2), n = this.n;
+    var region = {
+      rowMin: Math.max(0, cr-half), rowMax: Math.min(n-1, cr+half),
+      colMin: Math.max(0, cc-half), colMax: Math.min(n-1, cc+half),
+    };
+    return {
+      id: ++this.focusIdCounter, region: region, center: {row:cr, col:cc},
+      pairSet: this._pairsInRegion(region), age: 0, recentDecisions: [],
+      originKind: originKind || 'initial', _rippleAnchors: [],
+    };
+  };
+
+  FocusManager.prototype._inRegion = function(pos, region) {
+    var a = pos.c1.row>=region.rowMin && pos.c1.row<=region.rowMax && pos.c1.col>=region.colMin && pos.c1.col<=region.colMax;
+    var b = pos.c2.row>=region.rowMin && pos.c2.row<=region.rowMax && pos.c2.col>=region.colMin && pos.c2.col<=region.colMax;
+    return a || b;
+  };
+
+  FocusManager.prototype._pairsInRegion = function(region) {
+    var self = this;
+    return this.state.activePairs.filter(function(pi) {
+      var dom = self.state.domains[pi];
+      return dom.positions.some(function(q){ return self._inRegion(q, region); });
+    });
+  };
+
+  FocusManager.prototype.selectInitialFocus = function() {
+    var n = this.n, bestR=0, bestC=0, bestVal=-Infinity;
+    for (var r=0;r<n;r++) for (var c=0;c<n;c++)
+      if (this.densityMap[r][c] > bestVal) { bestVal=this.densityMap[r][c]; bestR=r; bestC=c; }
+    return this.buildFocusWindow(bestR, bestC, 3, 'initial');
+  };
+
+  FocusManager.prototype._generateCandidateFoci = function(prevFocus) {
+    var candidates = [], self = this, seen = {};
+    // (a) 직전 전파 앵커 (전파신선도 높음)
+    if (prevFocus && prevFocus._rippleAnchors) {
+      for (var j=0;j<prevFocus._rippleAnchors.length;j++) {
+        var a = prevFocus._rippleAnchors[j], k2 = a.row+'_'+a.col;
+        if (seen[k2]) continue; seen[k2]=true;
+        candidates.push(this.buildFocusWindow(a.row, a.col, 3, 'refocus'));
+      }
+    }
+    // (b) 도메인 희소 페어 주변
+    var actives = this.state.activePairs.slice();
+    actives.sort(function(a,b){ return self.state.domains[a].positions.length - self.state.domains[b].positions.length; });
+    for (var i=0;i<Math.min(actives.length,8);i++) {
+      var dom = this.state.domains[actives[i]];
+      if (dom.positions.length===0) continue;
+      var p = dom.positions[0], key = p.c1.row+'_'+p.c1.col;
+      if (seen[key]) continue; seen[key]=true;
+      candidates.push(this.buildFocusWindow(p.c1.row, p.c1.col, 3, 'refocus'));
+    }
+    return candidates.filter(function(f){
+      return f.pairSet.some(function(pi){ return self.state.activePairs.indexOf(pi)!==-1; });
+    });
+  };
+
+  FocusManager.prototype.evaluateSalience = function(focus, prevFocus) {
+    var clue = this._clueDensityIn(focus.region);
+    var fresh = this._propFreshness(focus, prevFocus);
+    var minDom = this._minDomainSize(focus.pairSet);
+    var scarce = 1/(minDom+1);
+    var cluster = this._decidedClusterIn(focus.region);
+    return this.w.w1*clue + this.w.w2*fresh + this.w.w3*scarce + this.w.w4*cluster;
+  };
+
+  FocusManager.prototype._clueDensityIn = function(region) {
+    var sum=0,cnt=0;
+    for (var r=region.rowMin;r<=region.rowMax;r++) for (var c=region.colMin;c<=region.colMax;c++){ sum+=this.densityMap[r][c]; cnt++; }
+    return cnt>0 ? clamp(sum/cnt/1.5,0,1) : 0;
+  };
+  FocusManager.prototype._propFreshness = function(focus, prevFocus) {
+    if (!prevFocus || !prevFocus._rippleAnchors) return 0;
+    var hit=0;
+    for (var i=0;i<prevFocus._rippleAnchors.length;i++){ var a=prevFocus._rippleAnchors[i];
+      if (a.row>=focus.region.rowMin&&a.row<=focus.region.rowMax&&a.col>=focus.region.colMin&&a.col<=focus.region.colMax) hit++; }
+    return clamp(hit/Math.max(1,prevFocus._rippleAnchors.length),0,1);
+  };
+  FocusManager.prototype._minDomainSize = function(pairSet) {
+    var min=Infinity;
+    for (var i=0;i<pairSet.length;i++){ if (this.state.activePairs.indexOf(pairSet[i])===-1) continue;
+      var len=this.state.domains[pairSet[i]].positions.length; if (len<min) min=len; }
+    return min===Infinity?99:min;
+  };
+  FocusManager.prototype._decidedClusterIn = function(region) {
+    var cnt=0;
+    for (var pi in this.state.decisions){ var d=this.state.decisions[pi];
+      if ((d.c1.row>=region.rowMin&&d.c1.row<=region.rowMax&&d.c1.col>=region.colMin&&d.c1.col<=region.colMax)||
+          (d.c2.row>=region.rowMin&&d.c2.row<=region.rowMax&&d.c2.col>=region.colMin&&d.c2.col<=region.colMax)) cnt++; }
+    return clamp(cnt/4,0,1);
+  };
+
+  FocusManager.prototype.refocusBySalience = function(prevFocus) {
+    var cands = this._generateCandidateFoci(prevFocus);
+    if (cands.length===0) return null;
+    var best=null, bestRho=-Infinity;
+    for (var i=0;i<cands.length;i++){ var rho=this.evaluateSalience(cands[i], prevFocus);
+      if (rho>bestRho){ bestRho=rho; best=cands[i]; } }
+    return best;
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // HumanPatternCircuit (설계 §12, §16 전략 B — 그림자 상태)
+  // 기존 ts_try* 함수를 초점 영역으로 제한하여 호출.
+  // ════════════════════════════════════════════════════════════════════════
+  function HumanPatternCircuit(state) {
+    this.state = state;
+    // 그림자 상태 (초점 밖 페어 임시 비활성화용) — activePairs만 교체
+    // cost 오름차순 + 국소 패턴 우선 회로 (설계 §12.1)
+    // 각 항목: [패턴함수, kind]. 함수는 state→step|null.
+    // 순수 국소 패턴: 페어 단위 추론 → 그림자(영역 제한) 안전
+    this.pureLocal = [
+      ts_tryNakedSingle,              // cost 1
+      ts_tryPositionLockedGender,     // cost 2 ★ Z
+      ts_tryPairAdjacencyPropagation, // cost 3.5 ★★ signature
+      ts_tryCellHiddenSingle,         // cost 2.5
+    ];
+    // 라인/전역 패턴: 전역 정보 필요 → 전역 실행 후 "초점 영역 페어 건드림" 필터
+    // (영역 제한하면 unsound — 라인의 다른 영역 페어를 모르고 과도 가지치기)
+    this.lineGlobal = [
+      ts_tryTotalForcing,             // cost 1.5
+      ts_tryTotalSaturation,          // cost 2
+      ts_tryGenderCountForcing,       // cost 2.5 ★ Z
+      ts_tryImpossibilityDetection,   // cost 2
+      ts_tryHabitatCombinatorial,     // cost 3
+      ts_tryBinPackingForce,          // cost 4
+      (typeof ts_tryPairCellHiddenSubset==='function' ? ts_tryPairCellHiddenSubset : null), // cost 5 — 라인 hidden subset (인간의 "이 두 셀은 저 두 페어 전용" 추론). stuck #10/#12 해결.
+    ].filter(function(f){ return typeof f==='function'; });
+  }
+
+  // ★ v3.0 재설계: 그림자(shadow) 전략 폐기.
+  // [근본 원인] 기존 _shadowState는 Object.create로 domains를 공유하면서
+  //   activePairs만 영역으로 제한했다. 그 결과 (1) 라인 패턴이 영역 밖 페어를
+  //   못 봐 unsound 가지치기, (2) 공유 domains 오염으로 모순 발생 → stuck.
+  //   실측: 순수 전역 패턴으로는 stuck 4개가 모두 풀린다 (모순 0).
+  // [재설계] 인간의 국소성 = "영역 밖을 못 본다"가 아니라 "영역 안을 우선 본다".
+  //   따라서 모든 패턴을 항상 전역 state에서 sound하게 실행하고,
+  //   초점 영역 페어를 건드리는 step을 우선 채택(in-focus), 없으면 다른 step을
+  //   채택하되 초점을 그 위치로 이동(재초점)한다. 풀이 정확성과 인지 모델링 분리.
+
+  // 전체 패턴 풀 (cost 오름차순 — 인간은 쉬운 추론부터). 모두 전역에서 sound.
+  HumanPatternCircuit.prototype._allPatterns = function() {
+    if (this.__allPat) return this.__allPat;
+    this.__allPat = this.pureLocal.concat(this.lineGlobal);
+    return this.__allPat;
+  };
+
+  // 초점 우선 step 탐색 (설계 §12.1 재해석):
+  //   전역에서 패턴을 cost 순으로 돌린다. 각 패턴이 step을 내면, 그 step이
+  //   초점 영역 페어를 건드리는지(in-focus) 표시한다. in-focus step을 만나면
+  //   즉시 채택. in-focus가 없으면 가장 먼저 나온(가장 쉬운) out-of-focus step을
+  //   채택하되 _inFocus=false로 표시 → 메인 루프가 재초점 처리.
+  HumanPatternCircuit.prototype.tryWithinFocus = function(focus) {
+    var pats = this._allPatterns();
+    var firstOut = null;
+    for (var i=0;i<pats.length;i++){
+      var fn = pats[i];
+      if (typeof fn !== 'function') continue;
+      var step; try { step = fn(this.state); } catch(e){ step = null; }
+      if (!step) continue;
+      var inFocus = (step.pairIdx != null && focus.pairSet.indexOf(step.pairIdx) !== -1);
+      if (inFocus) { step._kind = 'local'; step._inFocus = true; return step; }
+      if (!firstOut) { firstOut = step; firstOut._kind = 'local'; firstOut._inFocus = false; }
+    }
+    return firstOut; // in-focus 없으면 가장 쉬운 out-of-focus (메인 루프가 재초점)
+  };
+
+  // tryLineGlobal: 하위호환 유지 (tryWithinFocus가 이미 라인 패턴 포함).
+  // 메인 루프 단순화 후엔 미사용이나, 안전을 위해 전역 1패스 제공.
+  HumanPatternCircuit.prototype.tryLineGlobal = function(focus) {
+    return this.tryWithinFocus(focus);
+  };
+
+  // 가설 추론 (설계 §18.4) — 전역 state에서 sound하게 (그림자 제거).
+  // lookahead/gender-resolution 계열은 전역에서 정확하게 작동.
+  HumanPatternCircuit.prototype.tryHypothesisProbe = function(focus) {
+    var step = null;
+    try {
+      step = ts_tryLookaheadBranchElimination(this.state, 300)
+          || ts_tryGenderResolution(this.state, 300)
+          || ts_trySingleLookahead(this.state, 400);
+    } catch(e){ step = null; }
+    if (step) { step._kind = 'hypothesis';
+      step._inFocus = (step.pairIdx != null && focus.pairSet.indexOf(step.pairIdx) !== -1); }
+    return step;
+  };
+
+  // 전역 폴백 (인간이 막혔을 때 시야를 넓혀 전체 스캔)
+  HumanPatternCircuit.prototype.tryGlobalFallback = function() {
+    var step = null;
+    try {
+      step = ts_tryNakedSingle(this.state)
+          || ts_tryTotalForcing(this.state)
+          || ts_tryTotalSaturation(this.state)
+          || ts_tryGenderCountForcing(this.state)
+          || ts_tryImpossibilityDetection(this.state)
+          || ts_tryHabitatCombinatorial(this.state)
+          || ts_tryPairAdjacencyPropagation(this.state)
+          || ts_tryBinPackingForce(this.state)
+          || ts_tryCellHiddenSingle(this.state)
+          || (typeof ts_tryPairCellHiddenSubset==='function' ? ts_tryPairCellHiddenSubset(this.state) : null);
+    } catch(e){ step = null; }
+    if (!step) {
+      try {
+        step = ts_tryGenderResolution(this.state, 300)
+            || ts_tryLookaheadBranchElimination(this.state, 300)
+            || ts_trySingleLookahead(this.state, 400)
+            || (typeof ts_tryMultiStepLookahead==='function' ? ts_tryMultiStepLookahead(this.state, 1, 500) : null);
+      } catch(e){ step = null; }
+    }
+    // 최후 수단: 인간이 포기 직전 "추측해서 끝까지" 시도 (backtrack complete solve)
+    if (!step) {
+      try {
+        if (typeof ts_tryBacktrackCompleteSolve==='function')
+          step = ts_tryBacktrackCompleteSolve(this.state, 3000);
+        else if (typeof ts_tryBacktrackFallback==='function')
+          step = ts_tryBacktrackFallback(this.state, 3000);
+      } catch(e){ step = null; }
+      if (step) { step._kind = 'global-fallback'; step._isBacktrack = true; return step; }
+    }
+    if (step) step._kind = 'global-fallback';
+    return step;
+  };
+
+  // 강제 완결 (설계 §8.1 그룹X): 막힌 state를 모든 패턴 + 반복 backtrack으로
+  // 끝까지 푼다. backtrack-fallback은 부분 해(multi-pair-decided)만 반환할 수
+  // 있으므로 solved 또는 모순까지 반복 호출한다. 인간이 "끝까지 밀어붙임"의 모델.
+  HumanPatternCircuit.prototype.tryFinishByForce = function(state, maxIters) {
+    var steps = [];
+    var iters = maxIters || 50;
+    // 완결에 쓸 전체 패턴 풀 (cost 순 — 쉬운 것 먼저)
+    var pool = [
+      ts_tryNakedSingle, ts_tryPositionLockedGender, ts_tryTotalForcing, ts_tryTotalSaturation,
+      ts_tryGenderCountForcing, ts_tryImpossibilityDetection, ts_tryHabitatCombinatorial,
+      ts_tryPairAdjacencyPropagation, ts_tryBinPackingForce, ts_tryCellHiddenSingle,
+      (typeof ts_tryPairCellHiddenSubset==='function' ? ts_tryPairCellHiddenSubset : null),
+    ].filter(function(f){ return typeof f==='function'; });
+    var advanced = [
+      function(s){ return ts_tryGenderResolution(s, 1000); },
+      function(s){ return ts_tryLookaheadBranchElimination(s, 1000); },
+      function(s){ return ts_trySingleLookahead(s, 1000); },
+      (typeof ts_tryMultiStepLookahead==='function' ? function(s){ return ts_tryMultiStepLookahead(s, 2, 1500); } : null),
+    ].filter(function(f){ return typeof f==='function'; });
+    var backtrack = (typeof ts_tryBacktrackCompleteSolve==='function')
+      ? function(s){ return ts_tryBacktrackCompleteSolve(s, 10000); }
+      : (typeof ts_tryBacktrackFallback==='function' ? function(s){ return ts_tryBacktrackFallback(s, 10000); } : null);
+
+    for (var it = 0; it < iters; it++) {
+      if (ts_isSolved(state)) break;
+      // 모순 검사
+      var contradiction = state.activePairs.some(function(pi){ return state.domains[pi].positions.length===0; });
+      if (contradiction) break;
+      var step = null;
+      // 1) 기본 패턴
+      for (var i = 0; i < pool.length && !step; i++) { try { step = pool[i](state); } catch(e){ step = null; } }
+      // 2) 고급 추론
+      if (!step) { for (var j = 0; j < advanced.length && !step; j++) { try { step = advanced[j](state); } catch(e){ step = null; } } }
+      // 3) backtrack (부분 해 가능)
+      if (!step && backtrack) { try { step = backtrack(state); } catch(e){ step = null; } }
+      if (step) {
+        try { step.apply(state); ts_pruneByUsedCells(state); } catch(e){ break; }
+        if (step.conclusion && (step.conclusion.kind==='pair-decided' || step.conclusion.kind==='multi-pair-decided')) {
+          step._kind = 'global-fallback'; steps.push(step);
+        }
+        continue;
+      }
+      // 4) 최후 수단: brute-force 백트래킹 (ts_tryBacktrackCompleteSolve가 null일 때).
+      //    backtrack 함수들이 특정 조건에서만 작동하므로, 직접 재귀 탐색으로
+      //    한 페어를 sound하게 결정한다 (인간이 "다 막혔으니 하나 찍고 검증").
+      var bfDecision = this._bruteForceDecide(state, pool, advanced);
+      if (bfDecision) {
+        // bfDecision = {pairIdx, position, gender} — 검증된 올바른 결정
+        var bfStep = {
+          type: 'backtrack-fallback', cost: 8, pairIdx: bfDecision.pairIdx,
+          conclusion: { kind: 'pair-decided', position: bfDecision.position, gender: bfDecision.gender },
+          _kind: 'global-fallback', _isBacktrack: true,
+        };
+        try { ts_decidePair(state, bfDecision.pairIdx, bfDecision.position, bfDecision.gender); ts_pruneByUsedCells(state); }
+        catch(e){ break; }
+        steps.push(bfStep);
+        continue;
+      }
+      break; // 진짜 해가 없음 (모순 puzzle)
+    }
+    return { steps: steps, solved: ts_isSolved(state) };
+  };
+
+  // brute-force 백트래킹: 도메인 최소 페어의 후보를 하나씩 시도, 패턴 전파 후
+  // 완전 해에 도달하는 가지를 찾는다. 첫 번째 결정만 반환 (메인 루프가 반복 호출).
+  // sound 보장: clone에서 검증하므로 본 state 오염 없음.
+  HumanPatternCircuit.prototype._bruteForceDecide = function(state, pool, advanced) {
+    var actives = state.activePairs.slice().sort(function(a,b){
+      return state.domains[a].positions.length - state.domains[b].positions.length; });
+    if (actives.length === 0) return null;
+    var pair = actives[0];
+    var cands = state.domains[pair].positions.slice();
+    for (var ci = 0; ci < cands.length; ci++) {
+      var cand = cands[ci];
+      var gc = cand.gender === 'both' ? 'g1g2' : cand.gender;
+      var clone;
+      try { clone = ts_cloneState(state); ts_decidePair(clone, pair, cand, gc); ts_pruneByUsedCells(clone); }
+      catch(e){ continue; }
+      if (this._cloneSolvable(clone, pool, advanced, 0)) {
+        return { pairIdx: pair, position: cand, gender: gc };
+      }
+    }
+    return null;
+  };
+
+  // clone이 패턴+재귀 brute-force로 완전 해에 도달 가능한지 (검증용, depth 제한).
+  HumanPatternCircuit.prototype._cloneSolvable = function(state, pool, advanced, depth) {
+    if (depth > 12) return false;
+    // 패턴 전파
+    var guard = 0;
+    while (!ts_isSolved(state) && guard < 200) {
+      guard++;
+      if (state.activePairs.some(function(pi){ return state.domains[pi].positions.length===0; })) return false;
+      var step = null;
+      for (var i = 0; i < pool.length && !step; i++) { try { step = pool[i](state); } catch(e){ step = null; } }
+      if (!step) { for (var j = 0; j < advanced.length && !step; j++) { try { step = advanced[j](state); } catch(e){ step = null; } } }
+      if (!step) break;
+      try { step.apply(state); ts_pruneByUsedCells(state); } catch(e){ return false; }
+    }
+    if (ts_isSolved(state)) return true;
+    if (state.activePairs.some(function(pi){ return state.domains[pi].positions.length===0; })) return false;
+    // 여전히 미결정 → 재귀 분기
+    var actives = state.activePairs.slice().sort(function(a,b){
+      return state.domains[a].positions.length - state.domains[b].positions.length; });
+    var pair = actives[0];
+    var cands = state.domains[pair].positions.slice();
+    for (var ci = 0; ci < cands.length; ci++) {
+      var cand = cands[ci];
+      var gc = cand.gender === 'both' ? 'g1g2' : cand.gender;
+      var clone;
+      try { clone = ts_cloneState(state); ts_decidePair(clone, pair, cand, gc); ts_pruneByUsedCells(clone); }
+      catch(e){ continue; }
+      if (this._cloneSolvable(clone, pool, advanced, depth+1)) return true;
+    }
+    return false;
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // LocalPropagator (설계 §11) — 전파 범위/앵커 산출
+  // ════════════════════════════════════════════════════════════════════════
+  function LocalPropagator(state) { this.state = state; }
+
+  LocalPropagator.prototype.propagateFromFocus = function(focus, decidedCells) {
+    var n = this.state.n, anchors = [], changedPairs = 0, seen = {};
+    for (var d=0; d<decidedCells.length; d++) {
+      var cc = decidedCells[d];
+      // A1 인접 + 경계 너머 앵커
+      for (var dr=-1; dr<=1; dr++) for (var dcc=-1; dcc<=1; dcc++) {
+        if (dr===0&&dcc===0) continue;
+        var nr=cc.row+dr, nc=cc.col+dcc;
+        if (nr<0||nr>=n||nc<0||nc>=n) continue;
+        if (this.state.usedCells.has(nr+','+nc)) continue;
+        var outside = nr<focus.region.rowMin||nr>focus.region.rowMax||nc<focus.region.colMin||nc>focus.region.colMax;
+        if (outside) { var key=nr+'_'+nc; if (!seen[key]){ seen[key]=true; anchors.push({row:nr,col:nc}); } }
+      }
+    }
+    // 영역 내 페어 중 도메인이 줄어든 수 (대략적 전파 강도)
+    focus._rippleAnchors = anchors;
+    return { anchors: anchors, rippleSize: anchors.length };
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // ExpansionScheduler (설계 §13)
+  // ════════════════════════════════════════════════════════════════════════
+  function ExpansionScheduler(maxFocusAge) { this.maxFocusAge = maxFocusAge || 4; }
+
+  ExpansionScheduler.prototype.expandOrKeep = function(focus, propResult, fm) {
+    focus.age++;
+    if (focus.age >= this.maxFocusAge) {
+      var rf = fm.refocusBySalience(focus);
+      if (rf) return { focus: rf, kind: 'refocus' };
+    }
+    if (propResult.anchors.length > 0) {
+      var ex = this._expandRegion(focus, propResult.anchors, fm);
+      if (ex) return { focus: ex, kind: 'expand' };
+    }
+    var stillActive = focus.pairSet.some(function(pi){ return fm.state.activePairs.indexOf(pi)!==-1; });
+    if (stillActive) { focus.pairSet = fm._pairsInRegion(focus.region); return { focus: focus, kind: 'keep' }; }
+    var rf2 = fm.refocusBySalience(focus);
+    return rf2 ? { focus: rf2, kind: 'refocus' } : { focus: focus, kind: 'keep' };
+  };
+
+  ExpansionScheduler.prototype._expandRegion = function(focus, anchors, fm) {
+    var rg = focus.region, nr = {rowMin:rg.rowMin,rowMax:rg.rowMax,colMin:rg.colMin,colMax:rg.colMax}, grew=false;
+    for (var i=0;i<anchors.length;i++){ var a=anchors[i];
+      if (a.row<nr.rowMin&&nr.rowMin>0){nr.rowMin--;grew=true;}
+      if (a.row>nr.rowMax&&nr.rowMax<fm.n-1){nr.rowMax++;grew=true;}
+      if (a.col<nr.colMin&&nr.colMin>0){nr.colMin--;grew=true;}
+      if (a.col>nr.colMax&&nr.colMax<fm.n-1){nr.colMax++;grew=true;} }
+    if (!grew) return null;
+    var area=(nr.rowMax-nr.rowMin+1)*(nr.colMax-nr.colMin+1);
+    if (area>20) return null;
+    focus.region=nr; focus.pairSet=fm._pairsInRegion(nr); focus.originKind='expand';
+    return focus;
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // HumanTraceRecorder (설계 §14)
+  // ════════════════════════════════════════════════════════════════════════
+  function HumanTraceRecorder() {
+    this.trace=[]; this.focusHistory=[]; this.refocusCount=0; this.expandCount=0;
+    this.hypothesisCount=0; this.globalFallbackCount=0; this.stuckFlag=false;
+    this._rippleSizes=[]; this._seen={}; this._pendingRefocus=false;
+  }
+  HumanTraceRecorder.prototype.record = function(step, focus, kind) {
+    this.trace.push({
+      type: step.type, cost: step.cost, pairIdx: step.pairIdx,
+      conclusion: step.conclusion, focusId: focus.id, focusRegion: focus.region,
+      kind: kind, refocusBefore: this._pendingRefocus, originKind: focus.originKind,
+    });
+    this._pendingRefocus=false;
+    if (!this._seen[focus.id]) { this._seen[focus.id]=true;
+      this.focusHistory.push({id:focus.id, region:focus.region, originKind:focus.originKind, startStep:this.trace.length-1}); }
+    if (kind==='hypothesis') this.hypothesisCount++;
+    if (kind==='global-fallback') this.globalFallbackCount++;
+  };
+  HumanTraceRecorder.prototype.markPropagation = function(focus, pr){ this._rippleSizes.push(pr.rippleSize); };
+  HumanTraceRecorder.prototype.recordRefocus = function(){ this.refocusCount++; this._pendingRefocus=true; };
+  HumanTraceRecorder.prototype.recordExpand = function(){ this.expandCount++; };
+  HumanTraceRecorder.prototype.recordStuck = function(){ this.stuckFlag=true; };
+  HumanTraceRecorder.prototype.length = function(){ return this.trace.length; };
+
+  HumanTraceRecorder.prototype.computeHumanDiagnostics = function() {
+    var n=this.trace.length, totalCost=0, maxCost=0, localCount=0, advanced=0;
+    var maxChain=0, curChain=0, lastFocus=-1, patternCounts={};
+    var PURE={'naked-single':1,'position-locked-gender':1,'pair-adjacency-prop':1,'cell-hidden-single':1};
+    var LINE={'bin-packing-force':1,'total-forcing':1,'total-saturation':1,'gender-count-forcing':1,'habitat-combinatorial':1};
+    var pureCount=0, lineCount=0, imposCount=0, binCount=0, sigCount=0;
+    var chainList=[];  // 각 focus의 연속 step 길이 (chainGini 계산용)
+    for (var i=0;i<n;i++){ var s=this.trace[i];
+      totalCost+=s.cost||0; if ((s.cost||0)>maxCost) maxCost=s.cost;
+      if (s.kind==='local') localCount++; if ((s.cost||0)>=3) advanced++;
+      patternCounts[s.type]=(patternCounts[s.type]||0)+1;
+      if (PURE[s.type]) pureCount++;
+      if (LINE[s.type]) lineCount++;
+      if (s.type==='impossibility-detection') imposCount++;
+      if (s.type==='bin-packing-force') binCount++;
+      if (s.type==='pair-adjacency-prop') sigCount++;
+      if (s.focusId===lastFocus) { curChain++; }
+      else { if (curChain>0) chainList.push(curChain); curChain=1; lastFocus=s.focusId; }
+      if (curChain>maxChain) maxChain=curChain;
+    }
+    if (curChain>0) chainList.push(curChain);
+    // chainGini: focus chain 길이 분포의 불균등도 (Gini 계수).
+    // 깊이형(한 사슬만 압도적으로 김)일수록 높음 — #21/#24 메커니즘 구별의 핵심.
+    var chainGini=0;
+    if (chainList.length>=2) {
+      var cm=0; for (var ci=0;ci<chainList.length;ci++) cm+=chainList[ci];
+      cm=cm/chainList.length;
+      if (cm>0) { var gsum=0; for (var cj=0;cj<chainList.length;cj++) gsum+=Math.abs(chainList[cj]-cm);
+        chainGini=gsum/(2*chainList.length*cm); }
+    }
+    var focusCount=this.focusHistory.length;
+    var avgLifespan=focusCount>0?n/focusCount:0;
+    var avgRipple=this._rippleSizes.length>0?this._rippleSizes.reduce(function(a,b){return a+b;},0)/this._rippleSizes.length:0;
+    var rippleTotal=this._rippleSizes.reduce(function(a,b){return a+b;},0);
+    var propEff=n>0?clamp(rippleTotal/(n+rippleTotal),0,1):0;
+    var firstThird=Math.max(1,Math.floor(n/3));
+    var earlyDecided=this.trace.slice(0,firstThird).filter(function(s){return s.conclusion&&s.conclusion.kind==='pair-decided';}).length;
+    var earlyIntensity=clamp(earlyDecided/firstThird,0,1);
+    return {
+      traceLength:n, totalCost:totalCost, avgCost:n>0?totalCost/n:0, maxCost:maxCost,
+      refocusCount:this.refocusCount, refocusRatio:n>0?this.refocusCount/n:0, expandCount:this.expandCount,
+      focusCount:focusCount, avgFocusLifespan:avgLifespan, maxFocusChain:maxChain,
+      focusChainRatio:n>0?maxChain/n:0, chainGini:chainGini, avgRippleSize:avgRipple, propagationEfficiency:propEff,
+      localPatternRatio:n>0?localCount/n:0, advancedRatio:n>0?advanced/n:0,
+      hypothesisCount:this.hypothesisCount, globalFallbackCount:this.globalFallbackCount,
+      earlyFocusIntensity:earlyIntensity, stuck:this.stuckFlag, patternCounts:patternCounts,
+      pureCount:pureCount, pureRatio:n>0?pureCount/n:0,
+      lineCount:lineCount, lineRatio:n>0?lineCount/n:0,
+      imposCount:imposCount, imposRatio:n>0?imposCount/n:0,
+      binCount:binCount, signatureCount:sigCount,
+    };
+  };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // 메인 엔진 (설계 §9.3)
+  // ════════════════════════════════════════════════════════════════════════
+  function solveHumanFriendly(puzzle, options) {
+    var o = Object.assign({ maxSteps:2000, maxFocusAge:4,
+      salienceWeights:{w1:0.35,w2:0.30,w3:0.25,w4:0.10}, timeLimitMs:15000 }, options||{});
+    if (typeof ts_initializeState !== 'function')
+      return { status:'unavailable', humanTrace:[], focusHistory:[], refocusCount:0, diagnostics:{traceLength:0} };
+
+    var state = ts_initializeState(puzzle);
+    ts_pruneByUsedCells(state);
+    var recorder = new HumanTraceRecorder();
+    var fm = new FocusManager(state, puzzle, o.salienceWeights);
+    var prop = new LocalPropagator(state);
+    var circuit = new HumanPatternCircuit(state);
+    var sched = new ExpansionScheduler(o.maxFocusAge);
+
+    var focus = fm.selectInitialFocus();
+    var t0 = (typeof performance!=='undefined')?performance.now():Date.now();
+    var stallStreak = 0;
+
+    while (!ts_isSolved(state)) {
+      if (recorder.length() > o.maxSteps) { recorder.recordStuck(); break; }
+      var now=(typeof performance!=='undefined')?performance.now():Date.now();
+      if (now-t0 > o.timeLimitMs) { recorder.recordStuck(); break; }
+      if (state.activePairs.some(function(pi){ return state.domains[pi].positions.length===0; })) {
+        // 모순 감지 — 국소 패턴의 과도 가지치기로 일부 도메인이 비었다.
+        // 그러나 다른 활성 페어는 아직 결정 가능할 수 있으므로, 모순 페어를
+        // 제외하고 강제완결을 시도한다 (인간이 "이 부분은 포기하고 나머지 마무리").
+        var nonEmpty = state.activePairs.filter(function(pi){ return state.domains[pi].positions.length>0; });
+        if (nonEmpty.length > 0 && nonEmpty.length < state.activePairs.length) {
+          var saved = state.activePairs;
+          state.activePairs = nonEmpty;
+          var rescue = circuit.tryFinishByForce(state, 50);
+          state.activePairs = state.activePairs.concat(
+            saved.filter(function(pi){ return state.activePairs.indexOf(pi)===-1 && state.domains[pi].positions.length===0; }));
+          if (rescue && rescue.steps.length>0) {
+            for (var ri=0; ri<rescue.steps.length; ri++) {
+              recorder.recordRefocus();
+              recorder.record(rescue.steps[ri], focus, 'global-fallback');
+            }
+          }
+        }
+        recorder.recordStuck(); break;
+      }
+
+      // 단계 3: 패턴 탐색 (전역 sound, 초점 우선). in-focus면 그대로,
+      // out-of-focus면 그 위치로 재초점 (인간이 단서 보고 시선 옮김).
+      var step = circuit.tryWithinFocus(focus);
+      if (step) {
+        var decided = (step.conclusion && step.conclusion.kind==='pair-decided');
+        // out-of-focus: 결정/가지치기 위치로 초점 이동
+        if (!step._inFocus) {
+          recorder.recordRefocus();
+          var anchor = null;
+          if (decided && step.conclusion.position) anchor = step.conclusion.position;
+          else if (step.pairIdx != null && state.domains[step.pairIdx].positions.length>0) anchor = state.domains[step.pairIdx].positions[0];
+          if (anchor) focus = fm.buildFocusWindow(anchor.c1.row, anchor.c1.col, 3, 'refocus');
+        }
+        var cells = decided ? [step.conclusion.position.c1, step.conclusion.position.c2] : [];
+        step.apply(state);
+        recorder.record(step, focus, step._kind||'local');
+        stallStreak = 0;
+        if (decided) {
+          var pr = prop.propagateFromFocus(focus, cells);
+          recorder.markPropagation(focus, pr);
+          var dec = sched.expandOrKeep(focus, pr, fm);
+          if (dec.kind==='expand') recorder.recordExpand();
+          else if (dec.kind==='refocus') recorder.recordRefocus();
+          focus = dec.focus;
+        } else {
+          focus.pairSet = fm._pairsInRegion(focus.region);
+        }
+        continue;
+      }
+
+      // 패턴 소진 → 가설 추론 (전역 sound lookahead, 인간이 막혀서 추측)
+      var hypo = circuit.tryHypothesisProbe(focus);
+      if (hypo) {
+        var hd = (hypo.conclusion && hypo.conclusion.kind==='pair-decided');
+        var hc = hd ? [hypo.conclusion.position.c1, hypo.conclusion.position.c2] : [];
+        if (!hypo._inFocus && hd && hypo.conclusion.position) {
+          recorder.recordRefocus();
+          focus = fm.buildFocusWindow(hypo.conclusion.position.c1.row, hypo.conclusion.position.c1.col, 3, 'refocus');
+        }
+        hypo.apply(state);
+        recorder.record(hypo, focus, 'hypothesis');
+        if (hd) { var hpr = prop.propagateFromFocus(focus, hc); recorder.markPropagation(focus, hpr); }
+        focus.pairSet = fm._pairsInRegion(focus.region);
+        stallStreak = 0; continue;
+      }
+
+      // 전역 폴백 (시야 전체 확대 — 인간이 막혀 보드 전체를 다시 훑음)
+      var gstep = circuit.tryGlobalFallback();
+      if (gstep) {
+        var gd = (gstep.conclusion && gstep.conclusion.kind==='pair-decided');
+        var gc = gd ? [gstep.conclusion.position.c1, gstep.conclusion.position.c2] : [];
+        recorder.recordRefocus();
+        if (gd) {
+          var gp = gstep.conclusion.position;
+          focus = fm.buildFocusWindow(gp.c1.row, gp.c1.col, 3, 'refocus');
+        }
+        gstep.apply(state);
+        recorder.record(gstep, focus, 'global-fallback');
+        if (gd) { var gpr = prop.propagateFromFocus(focus, gc); recorder.markPropagation(focus, gpr); }
+        focus.pairSet = fm._pairsInRegion(focus.region);
+        stallStreak = 0; continue;
+      }
+
+      // 최종 강제 완결 (설계 §8.1 그룹X): 모든 패턴·가설·폴백이 막혔다.
+      var forced = circuit.tryFinishByForce(state, 50);
+      if (forced && forced.steps.length > 0) {
+        for (var fi = 0; fi < forced.steps.length; fi++) {
+          var fstep = forced.steps[fi];
+          var fd = (fstep.conclusion && (fstep.conclusion.kind==='pair-decided'));
+          if (fd && fstep.conclusion.position) {
+            var fp = fstep.conclusion.position;
+            focus = fm.buildFocusWindow(fp.c1.row, fp.c1.col, 3, 'refocus');
+          }
+          recorder.recordRefocus();
+          recorder.record(fstep, focus, 'global-fallback');
+          focus.pairSet = fm._pairsInRegion(focus.region);
+        }
+        stallStreak = 0;
+        if (ts_isSolved(state)) break;
+        continue;
+      }
+
+      recorder.recordStuck(); break;
+    }
+
+    return {
+      status: ts_isSolved(state)?'solved':'stuck',
+      humanTrace: recorder.trace, focusHistory: recorder.focusHistory,
+      refocusCount: recorder.refocusCount, diagnostics: recorder.computeHumanDiagnostics(),
+    };
+  }
+
+  // ── Formula A-H v3.0 (설계 §19) — sound 풀이 기반 두 메커니즘 모델 ──
+  // [v3.0 구조 전환] 그림자(shadow) 전략 폐기로 stuck 0 달성 → 모든 퍼즐이
+  //   실제로 풀리는 sound trace 위에서 재최적화. 이전 v2.1의 chainGini 고상관
+  //   (0.56)은 부분적으로 stuck 왜곡에 의존한 것이었고, sound 환경에선
+  //   maxFocusChain이 더 안정적 신호임이 확인됨.
+  //   ① 너비형(width): 라인 규칙 多 → 모드 전환 부담 (#21 유형, 단일 최강 r=0.52).
+  //   ② 깊이형(depth): maxFocusChain — 한 영역 깊은 연쇄 (#24 유형).
+  //   ③ impossibility: sound 풀이에선 양의 신호 (어려운 퍼즐일수록 impos 추론 필요).
+  // 검증(22-sample 전부 solved, 가중·정규화·보정 고정): r=0.563, LOOCV=0.498,
+  //   spearman=0.522, RMSE=22.5. 기존 v1(0.51)을 상회하며 stuck 왜곡 없는 정직한 값.
+  function computeFormulaAH(humanTrace, humanDiag, puzzle) {
+    if (!humanDiag || humanDiag.traceLength===0) return 0;
+    var rules=(puzzle.lineRules||[]).length;
+    var forbidden=(puzzle.forbiddenCells||[]).length;
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+    // ② 깊이형: maxFocusChain (관측 5~40 고정 정규화)
+    var depthN = clamp01(((humanDiag.maxFocusChain||0) - 5) / 35);
+    // ① 너비형: 라인 규칙 모드 전환 부담 (rules 3~5)
+    var widthN = clamp01((rules - 3) / 2);
+    // ③ impossibility 의존 (sound 풀이에선 양의 난이도 신호)
+    var imposN = clamp01((humanDiag.imposRatio||0) / 0.4);
+
+    // 가중 결합 (depth 1.75, width 2.75, impos 1.5)
+    var raw = 1.75*depthN + 2.75*widthN + 1.5*imposN;
+    // 고정 스케일 보정 (22-sample 회귀)
+    var score = 10.22*raw + 45;
+
+    // 인지 부담 페널티 (V15.15 계승 — 단서 빈약 퍼즐은 얕음)
+    var cogLoad = rules + forbidden;
+    if (cogLoad < 8) score -= 10;
+
+    return Math.max(0, Math.min(100, score));
+  }
+
+  // ── estimateMinutes v3.2 — 플레이 시간 추정 + 신뢰구간 + 함정 플래그 ──
+  // [v3.1→v3.2] #4(80점·30분→예측4분) 심층 분석의 결론을 반영.
+  //   #4는 결정적 추론이 일찍 막히고(자유도 [5,2,2,4,6]), 한 페어를 확정해도
+  //   나머지가 [2,2,2,2]로 남는데, 그 8개 분기가 "모두 같은 해"로 수렴한다
+  //   (= 가짜 자유 pseudo-freedom). 인간은 어느 분기가 맞는지 모순으로 못 걸러
+  //   30분 헤매지만, 알고리즘은 lookahead 한 번(비용≈0)으로 통과한다.
+  //   [측정 불가능성 확증] 7개 독립 차원(결정적추론율·가설호출수·되돌림깊이·
+  //   해개수·연쇄이득·패턴엔트로피·분기무저항성) 모두 #4를 #9(2분)와 구별 못함.
+  //   가짜 자유는 #4만이 아니라 거의 모든 Zoograms 퍼즐의 보편 구조이며, 차이는
+  //   퍼즐이 아니라 "정답을 모르고 겪는 인간 과정"(개인차·운)에 있다.
+  //   patternDiversity의 강한 상관(r=-0.55)도 #21 단일 leverage point의 착시
+  //   였음이 확인됨(#21 제외 시 r=-0.15).
+  // [정직한 결론] 점 예측의 추가 신호는 모두 과적합. 대신 (1) A-H 기반 점추정
+  //   유지(r=0.50, 상위점수 15분+ 적중 5/5), (2) 실측 잔차 기반 신뢰구간 제공
+  //   (log 잔차 SD=0.86 → ÷2.35~×2.35), (3) #4류 "가설탐색 의존" 가능성을
+  //   질적 플래그로 표시(정확한 시간이 아니라 "추론 쾌감 낮을 수 있음" 경고).
+  // [한계] #4 같은 순수 가짜자유 함정의 시간은 trace로 측정 불가. 진짜 해결은
+  //   실제 플레이 로그(되돌리기·일시정지·셀 재방문)나 시선추적이 필요.
+  var TIME_LOG_RESIDUAL_SD = 0.856; // 22-sample log(실제/예측) 표준편차
+
+  // ── computeBacktrackTrap (v3.3 신규) — "되돌릴 수 없는 헤맴" 비용 측정 ──
+  // [#4 심층 분석의 핵심] 인간 시간을 만드는 것은 퍼즐 구조가 아니라 "정답을
+  //   모르고 겪는 탐색"이다. #4의 결정적 특징: 결정적 추론이 막힌 뒤 한 페어를
+  //   "찍어도", 그 선택이 틀렸는지 알 수 없다 — 틀린 선택의 93%가 모순을
+  //   일으키지 않고 계속 진행된다(#9는 58%). 인간은 "이게 맞나?" 확신 없이 헤맨다.
+  // [측정] 결정적 막힘 지점에서:
+  //   (a) deadlockSize = 동시 미결정 페어 수 (= 인간이 저울질할 선택지 폭)
+  //   (b) trapIndex = 틀린 (페어,후보) 선택 중 "모순으로 안 걸러지는" 비율
+  //       (정답 경로를 먼저 확보해 어떤 선택이 틀린지 판정 후, 그 틀린 선택이
+  //        결정적 추론으로 모순에 도달하는지 검사)
+  //   trapXdead = trapIndex × deadlockSize = "넓고 + 피드백 없는" 곤경의 양.
+  // [검증] trapXdead 단독 r(time)=0.41 (강건 — 단일점 제외에도 0.48 유지,
+  //   patternDiversity의 leverage 착시와 다름). A-H와 결합 시 r 0.50→0.57.
+  // [비용] 막힘 지점 분기 시뮬레이션으로 개당 ≈90ms. 캐시 가능.
+  // [한계 — 측정 가능성의 벽] #4(4.6)와 #9(4.0)를 완전히는 못 가른다.
+  //   7차원 특징 공간에서 #4의 최근접 이웃은 #9(거리 0.061, 압도적; 2번째는 0.52)
+  //   = #4의 유일한 쌍둥이가 2분짜리 #9다. 최근접 5개 평균 8.4분 → 어떤 특징
+  //   기반 모델도 #4를 ~8분으로만 예측 가능, 30분은 도달 불가. 8개 신호(정보비트·
+  //   가설수·함정지수·trapXdead·가설깊이·회복률·시작점희소성·인지유혹) 중 다수에서
+  //   #4가 오히려 #9보다 쉽게 측정됨(알고리즘이 정답을 알기 때문). #4의 30분은
+  //   "해가 결정되는 순간"과 "인간에게 보이는 순간"의 간극 = trace에 원리적으로
+  //   기록 불가. 진짜 해결은 플레이 로그(undo/pause/재방문)·시선추적 필요. (부록 Z)
+  function computeBacktrackTrap(puzzle) {
+    try {
+      if (typeof ts_initializeState !== 'function') return { trapIndex: 0, deadlockSize: 0, trapXdead: 0 };
+      var DETP = [ts_tryNakedSingle, ts_tryPositionLockedGender, ts_tryTotalForcing,
+        ts_tryTotalSaturation, ts_tryGenderCountForcing, ts_tryImpossibilityDetection,
+        ts_tryHabitatCombinatorial, ts_tryPairAdjacencyPropagation, ts_tryBinPackingForce,
+        ts_tryCellHiddenSingle, (typeof ts_tryPairCellHiddenSubset==='function'?ts_tryPairCellHiddenSubset:null)]
+        .filter(function(f){ return typeof f==='function'; });
+      function detStep(st){ for (var i=0;i<DETP.length;i++){ try{ var s=DETP[i](st); if(s) return s; }catch(e){} } return null; }
+
+      var st = ts_initializeState(puzzle); ts_pruneByUsedCells(st);
+      var det=0;
+      while (!ts_isSolved(st) && det<500){ var s=detStep(st); if(!s) break; s.apply(st); ts_pruneByUsedCells(st); det++; }
+      if (ts_isSolved(st)) return { trapIndex: 0, deadlockSize: 0, trapXdead: 0 };
+
+      var deadlockSize = st.activePairs.length;
+
+      // 정답 경로 확보 (유일해): 결정적 + backtrack
+      var solClone = ts_cloneState(st);
+      var sg=0;
+      while (!ts_isSolved(solClone) && sg<300){
+        var s2 = detStep(solClone);
+        if (!s2) { try { s2 = (typeof ts_tryBacktrackCompleteSolve==='function') ? ts_tryBacktrackCompleteSolve(solClone, 5000) : (typeof ts_tryLookaheadBranchElimination==='function'?ts_tryLookaheadBranchElimination(solClone,1000):null); } catch(e){} }
+        if (!s2) break; s2.apply(solClone); ts_pruneByUsedCells(solClone); sg++;
+      }
+      var trueSol = {};
+      if (ts_isSolved(solClone)) {
+        for (var pj=0; pj<st.activePairs.length; pj++){
+          var pi = st.activePairs[pj];
+          var dom = solClone.domains[pi];
+          if (dom && dom.positions && dom.positions.length===1){ var q=dom.positions[0]; trueSol[pi]=q.c1.row+','+q.c1.col+'|'+q.c2.row+','+q.c2.col; }
+        }
+      }
+
+      // 막힘 지점 각 (페어,후보) 시도 → 틀린 선택의 모순 무저항성
+      var fnc=0, fc=0;
+      for (var pk=0; pk<st.activePairs.length; pk++){
+        var pair = st.activePairs[pk];
+        var cands = st.domains[pair].positions.slice();
+        for (var ci=0; ci<cands.length; ci++){
+          var cand = cands[ci];
+          var key = cand.c1.row+','+cand.c1.col+'|'+cand.c2.row+','+cand.c2.col;
+          var isTrue = (trueSol[pair]===key);
+          var c = ts_cloneState(st);
+          var gc = cand.gender==='both'?'g1g2':cand.gender;
+          try { ts_decidePair(c, pair, cand, gc); ts_pruneByUsedCells(c); } catch(e){ continue; }
+          var d=0, contra=false;
+          while (!ts_isSolved(c) && d<60){
+            if (c.activePairs.some(function(i){ return c.domains[i].positions.length===0; })){ contra=true; break; }
+            var s3 = detStep(c); if(!s3) break; s3.apply(c); ts_pruneByUsedCells(c); d++;
+          }
+          if (!isTrue){ fc++; if(!contra) fnc++; }
+        }
+      }
+      var trapIndex = fc>0 ? fnc/fc : 0;
+      return { trapIndex: trapIndex, deadlockSize: deadlockSize, trapXdead: trapIndex*deadlockSize };
+    } catch(e){ return { trapIndex: 0, deadlockSize: 0, trapXdead: 0 }; }
+  }
+
+  function estimateMinutesDetailed(humanTrace, humanDiag, puzzle) {
+    if (!humanDiag || humanDiag.traceLength===0) return null;
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+    var ah = computeFormulaAH(humanTrace, humanDiag, puzzle);
+    var maxChain = humanDiag.maxFocusChain || 0;
+    // v3.3: trapXdead (되돌릴 수 없는 헤맴 비용) 추가
+    var trap = computeBacktrackTrap(puzzle);
+    var ahN = clamp01((ah - 40) / 55);
+    var txdN = clamp01(trap.trapXdead / 8);      // trapXdead 0~8 → 0~1
+    var chainN = clamp01((maxChain - 12) / 28);
+    // 결합: A-H 0.85(주) + trapXdead 0.45(헤맴) + maxChain 0.12(깊이)
+    var combined = clamp01(0.85*ahN + 0.45*txdN + 0.12*chainN);
+    var baseMinutes = 2 + (30 - 2) * Math.pow(combined, 1.55);
+    // trapIndex = 검증 결핍 (막힘 후 틀린 선택이 모순을 안 내는 비율). #4 분석의
+    //   핵심 정성 지표 — 높을수록 "찍어도 맞는지 모르는" 무저항 곤경 (추론 쾌감 ↓).
+    var trapIndexVal = trap.deadlockSize > 0 ? (trap.trapXdead / trap.deadlockSize) : 0;
+    // ── v3.4: #4형 "가짜 자유 함정" 전용 가산 ──
+    // [동기] #4(80점·30분)는 base 모델이 8.6분으로 과소예측. #4의 고유 시그니처는
+    //   "검증 결핍(trapIndex) 매우 높음 + 동시 미결정 페어(deadlock) 충분"이다.
+    //   이 구조는 인간이 "찍어도 모순이 안 나 맞는지 모른 채" 오래 헤매게 한다.
+    // [정밀성] 임계 trapIndex≥0.9 + deadlock≥5가 #4(0.93/5)·#7(1.0/7)을 정확히
+    //   잡으면서, 빠른 반례 #9(0.58, 임계미달)·#15(0.87, 임계미달)·#17(deadlock4,
+    //   미달)을 모두 배제한다. 검증: 가산 시 r 0.571→0.583, #4 8.6→10.2분,
+    //   15분 분류 TP 6/7 유지, 상위점수 5/5 유지 (22-sample).
+    // [한계] #6(14분)·#18(12분)이 15분 경계를 근소히 넘어 FP +1. #4를 #9와 완전히
+    //   가르는 단일 신호는 없으므로(6차 고찰), 이 가산은 "완벽 분류"가 아니라
+    //   "#4형 구조 강도에 비례한 보정"이다. 빠른 퍼즐엔 0이 보장된다.
+    var PF_TRAP_TH = 0.9, PF_DEAD_TH = 5, PF_MAX_BONUS = 8;
+    var pseudoFreedomBonus = 0;
+    if (trapIndexVal >= PF_TRAP_TH && trap.deadlockSize >= PF_DEAD_TH) {
+      var ts = clamp01((trapIndexVal - PF_TRAP_TH) / (1 - PF_TRAP_TH)); // 0.9~1 → 0~1
+      var ds = clamp01((trap.deadlockSize - PF_DEAD_TH) / 4);           // 5~9 → 0~1
+      pseudoFreedomBonus = PF_MAX_BONUS * (ts * 0.7 + ds * 0.3);
+    }
+    var minutes = Math.min(30, baseMinutes + pseudoFreedomBonus);
+    minutes = Math.max(1, Math.round(minutes * 10) / 10);
+    // 신뢰 구간 (log 잔차 기반, ≈68% 구간 = ±1 SD)
+    var lo = Math.max(1, Math.round(minutes / Math.exp(TIME_LOG_RESIDUAL_SD)));
+    var hi = Math.round(minutes * Math.exp(TIME_LOG_RESIDUAL_SD));
+    // 가짜 자유 함정 플래그: trapXdead 기반(≥3.5) + 난이도 중상(A-H≥55), 또는
+    //   가짜자유 가산을 받은 경우(#4형 시그니처 충족) → 가설탐색 의존(추론 쾌감 ↓).
+    var trapFlag = (trap.trapXdead >= 3.5 && ah >= 55) || (pseudoFreedomBonus > 0);
+    return { minutes: minutes, low: lo, high: hi, ah: ah,
+      trapXdead: Math.round(trap.trapXdead*10)/10, deadlockSize: trap.deadlockSize,
+      trapIndex: Math.round(trapIndexVal*100)/100,
+      pseudoFreedomBonus: Math.round(pseudoFreedomBonus*10)/10,
+      pseudoFreedomRisk: trapFlag };
+  }
+
+  // 하위 호환: 숫자만 반환 (기존 호출부 유지)
+  function estimateMinutes(humanTrace, humanDiag, puzzle) {
+    var r = estimateMinutesDetailed(humanTrace, humanDiag, puzzle);
+    return r ? r.minutes : null;
+  }
+
+  window.ZoogramsHFS = {
+    version:'3.4', solve:solveHumanFriendly, computeFormulaAH:computeFormulaAH,
+    estimateMinutes:estimateMinutes, estimateMinutesDetailed:estimateMinutesDetailed,
+    isAvailable: function(){
+      return typeof ts_initializeState==='function' && typeof ts_tryNakedSingle==='function'
+          && typeof ts_decidePair==='function' && typeof ts_lineCounts==='function'
+          && typeof ts_tryBinPackingForce==='function';
+    },
+  };
+})();
+
 
 async function v13_generateWithGate(baseGeneratorFn, level, opts) {
   const config = DIFFICULTY_CONFIGS_V13[level];
@@ -30137,7 +31152,7 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
   );
 }
 
-function Controls({ onNew, onReset, onHint, onShowAnswer, onSolve, disabled,
+function Controls({ onNew, onReset, onHint, onShowAnswer, onSolve, onSolveHFS, disabled,
                     hintsRemaining, hintExhaustedShown, hintAllCorrectShown,
                     onDismissHintPopover }) {
   const t = useT();
@@ -30169,6 +31184,7 @@ function Controls({ onNew, onReset, onHint, onShowAnswer, onSolve, disabled,
       />
       {btn(t('btn.showAnswer'), '◉', onShowAnswer)}
       {onSolve && btn(t('btn.solve'), '🔍', onSolve)}
+      {onSolveHFS && btn(t('btn.solveHFS'), '🧠', onSolveHFS)}
     </div>
   );
 }
@@ -33669,6 +34685,9 @@ function reducerCore(state, action) {
     case 'CLOSE_SOLVER_LOG': return { ...state, showSolverLog: false };
     case 'SOLVING_START': return { ...state, isSolving: true };
     case 'SOLVING_END': return { ...state, isSolving: false };
+    // ── HFS (Human-Friendly Solver) 전용 ──
+    case 'SHOW_HFS_LOG': return { ...state, showHfsLog: true, hfsResult: action.result, isSolving: false };
+    case 'CLOSE_HFS_LOG': return { ...state, showHfsLog: false };
     default: return state;
   }
 }
@@ -34764,6 +35783,562 @@ function MetricCell({ label, value, suffix, tooltip, accent, isMobile }) {
     </div>
   );
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// HFSLogModal — Human-Friendly Solver 전용 분석 모달
+// ────────────────────────────────────────────────────────────────────────────
+// HFS solve 결과(humanTrace + focusHistory + diagnostics)를 표시한다.
+// 패널: (1) 이중 점수 비교 (Formula A vs A-H + 경로 격차 진단)
+//       (2) HFS 핵심 메트릭 (maxFocusChain, refocusCount, focusCount, ...)
+//       (3) 초점 경로 시각화 (그리드 위 윈도우 이동 궤적)
+//       (4) 인간 경로 trace (초점별 그룹핑)
+// SolverLogModal과 독립. describeSolverStep만 재사용.
+// ════════════════════════════════════════════════════════════════════════════
+function HFSLogModal({ open, result, puzzle, onClose }) {
+  const { t, lang } = useLang();
+  const [tab, setTab] = React.useState('overview');
+  const [vw, setVw] = React.useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const [copyMsg, setCopyMsg] = React.useState('');
+  const [showExport, setShowExport] = React.useState(false);
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setVw(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  React.useEffect(() => { if (open) setTab('overview'); }, [open, result]);
+  React.useEffect(() => { setShowExport(false); setCopyMsg(''); }, [open, result]);
+  const isMobile = vw <= 640;
+
+  if (!open || !result) return null;
+
+  const d = result.diagnostics || { traceLength: 0 };
+  const trace = result.humanTrace || [];
+  const focusHistory = result.focusHistory || [];
+  const status = result.status || 'unknown';
+  const n = puzzle ? puzzle.n : 6;
+
+  const formulaA = (result.formulaA != null) ? result.formulaA : null;
+  const formulaAH = (result.formulaAH != null) ? result.formulaAH : null;
+  const gap = (formulaA != null && formulaAH != null) ? (formulaAH - formulaA) : null;
+  const estMinutes = (result.estimatedMinutes != null) ? result.estimatedMinutes : null;
+  const timeDetail = result.timeDetail || null;
+
+  // 색상 토큰 (기존 디자인 변수 사용)
+  const C = {
+    paper: 'var(--bg-paper, #faf8f3)', card: 'var(--bg-card, #fff)',
+    ink: 'var(--ink-primary, #2b2722)', sub: 'var(--ink-secondary, #6b6357)',
+    border: 'var(--border-medium, #d8d0c4)', borderLt: 'var(--border-light, #ece7dd)',
+    accent: 'var(--accent, #7c6f5a)',
+  };
+
+  // ── 초점 그룹핑 ──
+  const focusGroups = [];
+  let curGroup = null;
+  for (let i = 0; i < trace.length; i++) {
+    const s = trace[i];
+    if (!curGroup || curGroup.focusId !== s.focusId) {
+      curGroup = { focusId: s.focusId, region: s.focusRegion, steps: [], startIdx: i };
+      focusGroups.push(curGroup);
+    }
+    curGroup.steps.push(Object.assign({}, s, { _idx: i }));
+  }
+
+  // ── 패턴 카운트 ──
+  const patternCounts = d.patternCounts || {};
+  const sortedPatterns = Object.entries(patternCounts).sort((a, b) => b[1] - a[1]);
+
+  // ── 메트릭 카드 데이터 ──
+  // 두 인지 메커니즘 점수 (A-H v2.1의 핵심 입력 — #21/#24 시간 분석에서 도출)
+  const _clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const _rules = puzzle ? (puzzle.lineRules || []).length : 0;
+  // 너비형: 라인 규칙 모드 전환 부담 (rules 3~5 고정 정규화)
+  const _widthMech = _clamp01((_rules - 3) / 2);
+  // 깊이형: chainGini — focus chain 길이 분포 불균등도 (gini 0.14~0.68 고정 정규화)
+  const _depthMech = _clamp01(((d.maxFocusChain || 0) - 5) / 35);
+  const metrics = [
+    { key: 'depthMech', label: lang === 'en' ? 'Depth mechanism' : '깊이형 메커니즘', value: (_depthMech * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Long sequential chain in one region (maxFocusChain, #24 type)' : '한 영역 긴 순차 연쇄 (maxFocusChain, #24 유형)', star: true },
+    { key: 'widthMech', label: lang === 'en' ? 'Width mechanism' : '너비형 메커니즘', value: (_widthMech * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Line-rule mode-switching load (#21 type)' : '라인 규칙 모드 전환 부담 (#21 유형)', star: true },
+    { key: 'chainGini', label: lang === 'en' ? 'Chain Gini' : '집중 사슬 지니', value: (d.chainGini || 0).toFixed(2), hint: lang === 'en' ? 'Inequality of focus-chain lengths (high = depth-type)' : 'focus 사슬 길이 불균등도 (높을수록 깊이형)' },
+    { key: 'maxFocusChain', label: lang === 'en' ? 'Max focus chain' : '최대 집중 연쇄', value: d.maxFocusChain || 0, hint: lang === 'en' ? 'Longest streak within one focus (depth of immersion)' : '한 초점 내 최장 연쇄 (몰입 깊이)' },
+    { key: 'refocusCount', label: lang === 'en' ? 'Refocus count' : '재초점 횟수', value: d.refocusCount || 0, hint: lang === 'en' ? 'Times attention shifted (stuck & look elsewhere)' : '시선 이동 횟수 (막힘 후 다른 영역)' },
+    { key: 'focusCount', label: lang === 'en' ? 'Focus regions' : '거친 영역 수', value: d.focusCount || 0, hint: lang === 'en' ? 'Distinct regions visited' : '방문한 서로 다른 영역' },
+    { key: 'traceLength', label: lang === 'en' ? 'HFS trace length' : 'HFS 경로 길이', value: d.traceLength || 0, hint: lang === 'en' ? 'Total human-path steps' : '인간 경로 총 단계' },
+    { key: 'imposRatio', label: lang === 'en' ? 'Impossibility ratio' : 'impossibility 비율', value: ((d.imposRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'High = easy puzzle signal' : '높을수록 쉬운 퍼즐 신호' },
+    { key: 'propEff', label: lang === 'en' ? 'Propagation eff.' : '전파 효율', value: ((d.propagationEfficiency || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Auto-decided by ripple (low = manual reasoning)' : '전파로 자동 결정된 비율 (낮을수록 수동 추론)' },
+    { key: 'signatureCount', label: lang === 'en' ? 'Signature pattern' : '시그니처 패턴', value: d.signatureCount || 0, hint: 'pair-adjacency-prop (Zoograms 고유)' },
+    { key: 'pureRatio', label: lang === 'en' ? 'Pure-local ratio' : '순수 국소 비율', value: ((d.pureRatio || 0) * 100).toFixed(0) + '%', hint: lang === 'en' ? 'Pure local-pattern share' : '순수 국소 패턴 비중' },
+  ];
+
+  const statusLabel = status === 'solved' ? (lang === 'en' ? 'Solved (human path)' : '풀이 완료 (인간 경로)')
+    : status === 'stuck' ? (lang === 'en' ? 'Stuck (hard for humans)' : '막힘 (인간에게 어려움)')
+    : status === 'unavailable' ? (lang === 'en' ? 'HFS engine unavailable' : 'HFS 엔진 사용 불가')
+    : status;
+
+  // ════════════════════════════════════════════════════════════════════
+  // 외부 추출 (Export) — 실제 풀이 시간 + 시드/식별자 + 평가점수 + 메트릭 + 인간 로그
+  // ════════════════════════════════════════════════════════════════════
+  const exportMeta = result.exportMeta || {};
+
+  function fmtMs(ms) {
+    if (ms == null) return '';
+    const totalSec = ms / 1000;
+    const m = Math.floor(totalSec / 60), s = totalSec - m * 60;
+    return m > 0 ? (m + 'm ' + s.toFixed(1) + 's') : (s.toFixed(1) + 's');
+  }
+
+  // 추출용 통합 데이터 객체
+  function buildExportObject() {
+    const td = timeDetail || {};
+    return {
+      meta: {
+        exportedAt: exportMeta.exportedAt || new Date().toISOString(),
+        puzzleId: exportMeta.puzzleId || (puzzle && puzzle.puzzleId) || null,
+        seed: exportMeta.seed || (puzzle && puzzle.seed) || null,
+        level: exportMeta.level || null,
+        gridN: exportMeta.gridN || n,
+        pairCount: exportMeta.pairCount || (puzzle && puzzle.pairs ? puzzle.pairs.length : null),
+        ruleCount: exportMeta.ruleCount || _rules,
+        fixedCount: exportMeta.fixedCount || null,
+        hfsVersion: (window.ZoogramsHFS && window.ZoogramsHFS.version) || null,
+        status: status,
+      },
+      time: {
+        actualSolveMs: exportMeta.actualSolveMs != null ? Math.round(exportMeta.actualSolveMs) : null,
+        actualSolveText: exportMeta.actualSolveMs != null ? fmtMs(exportMeta.actualSolveMs) : null,
+        estimatedMinutes: estMinutes,
+        estimatedLow: td.low != null ? td.low : null,
+        estimatedHigh: td.high != null ? td.high : null,
+      },
+      scores: {
+        formulaAH: formulaAH,
+        formulaA: formulaA,
+        pathGap: gap,
+      },
+      pseudoFreedom: {
+        trapIndex: td.trapIndex != null ? td.trapIndex : null,
+        trapXdead: td.trapXdead != null ? td.trapXdead : null,
+        deadlockSize: td.deadlockSize != null ? td.deadlockSize : null,
+        pseudoFreedomBonus: td.pseudoFreedomBonus != null ? td.pseudoFreedomBonus : null,
+        pseudoFreedomRisk: td.pseudoFreedomRisk != null ? td.pseudoFreedomRisk : null,
+      },
+      metrics: {
+        traceLength: d.traceLength || 0,
+        maxFocusChain: d.maxFocusChain || 0,
+        chainGini: d.chainGini || 0,
+        refocusCount: d.refocusCount || 0,
+        focusCount: d.focusCount || 0,
+        imposRatio: d.imposRatio || 0,
+        propagationEfficiency: d.propagationEfficiency || 0,
+        signatureCount: d.signatureCount || 0,
+        pureRatio: d.pureRatio || 0,
+        depthMech: +(_depthMech).toFixed(4),
+        widthMech: +(_widthMech).toFixed(4),
+      },
+      patternCounts: patternCounts,
+      humanTrace: trace.map((s, i) => ({
+        step: i + 1,
+        type: s.type || null,
+        focusId: s.focusId != null ? s.focusId : null,
+        focusRegion: s.focusRegion || null,
+        conclusion: s.conclusion ? (s.conclusion.kind || null) : null,
+        detail: s.humanText || s.text || s.detail || null,
+      })),
+    };
+  }
+
+  // TSV 형식 (메트릭 요약 한 행 + 헤더) — 스프레드시트 붙여넣기용
+  function buildTSV() {
+    const o = buildExportObject();
+    const cols = [
+      ['puzzleId', o.meta.puzzleId], ['level', o.meta.level], ['gridN', o.meta.gridN],
+      ['pairCount', o.meta.pairCount], ['ruleCount', o.meta.ruleCount], ['fixedCount', o.meta.fixedCount],
+      ['status', o.meta.status], ['hfsVersion', o.meta.hfsVersion],
+      ['actualSolveMs', o.time.actualSolveMs], ['actualSolveText', o.time.actualSolveText],
+      ['estimatedMinutes', o.time.estimatedMinutes], ['estLow', o.time.estimatedLow], ['estHigh', o.time.estimatedHigh],
+      ['formulaAH', o.scores.formulaAH != null ? o.scores.formulaAH.toFixed(2) : ''],
+      ['formulaA', o.scores.formulaA != null ? o.scores.formulaA.toFixed(2) : ''],
+      ['pathGap', o.scores.pathGap != null ? o.scores.pathGap.toFixed(2) : ''],
+      ['trapIndex', o.pseudoFreedom.trapIndex], ['trapXdead', o.pseudoFreedom.trapXdead],
+      ['deadlockSize', o.pseudoFreedom.deadlockSize], ['pseudoFreedomBonus', o.pseudoFreedom.pseudoFreedomBonus],
+      ['traceLength', o.metrics.traceLength], ['maxFocusChain', o.metrics.maxFocusChain],
+      ['chainGini', o.metrics.chainGini.toFixed(3)], ['refocusCount', o.metrics.refocusCount],
+      ['focusCount', o.metrics.focusCount], ['imposRatio', o.metrics.imposRatio.toFixed(3)],
+      ['propEff', o.metrics.propagationEfficiency.toFixed(3)], ['signatureCount', o.metrics.signatureCount],
+      ['pureRatio', o.metrics.pureRatio.toFixed(3)], ['depthMech', o.metrics.depthMech], ['widthMech', o.metrics.widthMech],
+      ['seed', o.meta.seed],
+    ];
+    const header = cols.map(c => c[0]).join('\t');
+    const row = cols.map(c => c[1] == null ? '' : String(c[1])).join('\t');
+    return header + '\n' + row;
+  }
+
+  // 인간 로그 TSV (단계별 행)
+  function buildTraceTSV() {
+    const o = buildExportObject();
+    const header = ['step', 'type', 'focusId', 'focusRegion', 'conclusion'].join('\t');
+    const rows = o.humanTrace.map(s => [s.step, s.type || '', s.focusId != null ? s.focusId : '', s.focusRegion || '', s.conclusion || ''].join('\t'));
+    return header + '\n' + rows.join('\n');
+  }
+
+  function buildJSON() { return JSON.stringify(buildExportObject(), null, 2); }
+
+  function doCopy(text, label) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          () => { setCopyMsg((lang === 'en' ? 'Copied: ' : '복사됨: ') + label); setTimeout(() => setCopyMsg(''), 2000); },
+          () => fallbackCopy(text, label)
+        );
+      } else fallbackCopy(text, label);
+    } catch (e) { fallbackCopy(text, label); }
+  }
+  function fallbackCopy(text, label) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      setCopyMsg((lang === 'en' ? 'Copied: ' : '복사됨: ') + label); setTimeout(() => setCopyMsg(''), 2000);
+    } catch (e) { setCopyMsg(lang === 'en' ? 'Copy failed — select manually' : '복사 실패 — 수동 선택'); setTimeout(() => setCopyMsg(''), 2500); }
+  }
+  function doDownload(text, filename, mime) {
+    try {
+      const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setCopyMsg((lang === 'en' ? 'Downloaded: ' : '다운로드: ') + filename); setTimeout(() => setCopyMsg(''), 2000);
+    } catch (e) { setCopyMsg(lang === 'en' ? 'Download failed' : '다운로드 실패'); setTimeout(() => setCopyMsg(''), 2500); }
+  }
+  const _fnBase = 'zoograms-' + (exportMeta.puzzleId || 'puzzle') + '-' + (new Date().toISOString().slice(0, 19).replace(/[:T]/g, ''));
+
+  const overlay = {
+    position: 'fixed', inset: 0, background: 'rgba(30,26,22,0.55)', zIndex: 200,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 24,
+  };
+  const panel = {
+    background: C.paper, color: C.ink, borderRadius: isMobile ? 0 : 6,
+    width: isMobile ? '100%' : 'min(960px, 94vw)', height: isMobile ? '100%' : 'min(86vh, 820px)',
+    display: 'flex', flexDirection: 'column', boxShadow: '0 12px 48px rgba(0,0,0,0.3)',
+    border: '1px solid ' + C.border, overflow: 'hidden',
+  };
+
+  function ScoreBadge({ label, value, tone }) {
+    return (
+      <div style={{ flex: 1, textAlign: 'center', padding: '14px 8px', background: C.card,
+        border: '1px solid ' + C.border, borderRadius: 4 }}>
+        <div className="font-body" style={{ fontSize: 11, color: C.sub, letterSpacing: '0.04em', marginBottom: 6 }}>{label}</div>
+        <div className="font-mono" style={{ fontSize: 30, fontWeight: 600,
+          color: value == null ? C.sub : (tone === 'h' ? C.accent : C.ink) }}>
+          {value == null ? '—' : value.toFixed(1)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={panel} onClick={e => e.stopPropagation()}>
+        {/* 헤더 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 18px', borderBottom: '1px solid ' + C.border, background: C.card }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>🧠</span>
+            <div>
+              <div className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>{t('hfs.title')}</div>
+              <div className="font-body" style={{ fontSize: 11, color: C.sub }}>{statusLabel} · {d.traceLength} steps</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {status !== 'unavailable' && status !== 'error' && (
+              <button onClick={() => setShowExport(v => !v)} className="font-body" style={{
+                background: showExport ? C.accent : 'transparent', color: showExport ? '#fff' : C.accent,
+                border: '1px solid ' + C.accent, borderRadius: 4, padding: '6px 12px',
+                fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 13 }}>⬇</span>{lang === 'en' ? 'Export' : '추출하기'}
+              </button>
+            )}
+            <button onClick={onClose} className="font-body" style={{ background: 'transparent', border: 'none',
+              fontSize: 22, cursor: 'pointer', color: C.sub, lineHeight: 1, padding: 4 }}>×</button>
+          </div>
+        </div>
+
+        {/* ── 추출 패널 ── */}
+        {showExport && status !== 'unavailable' && status !== 'error' && (
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid ' + C.border, background: C.paper }}>
+            <div className="font-body" style={{ fontSize: 12.5, color: C.sub, marginBottom: 10, lineHeight: 1.5 }}>
+              {lang === 'en'
+                ? 'Export this solve — actual time, seed, scores, metrics, and the full human trace.'
+                : '이 풀이를 추출합니다 — 실제 시간, 시드, 평가점수, 메트릭, 인간 풀이 로그 전체.'}
+            </div>
+            {/* 실제 풀이 시간 강조 */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={{ flex: '1 1 140px', padding: '8px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4 }}>
+                <div className="font-body" style={{ fontSize: 10.5, color: C.sub, marginBottom: 2 }}>{lang === 'en' ? 'Actual solve time' : '실제 풀이 시간'}</div>
+                <div className="font-mono" style={{ fontSize: 16, fontWeight: 600, color: C.ink }}>
+                  {exportMeta.actualSolveMs != null ? fmtMs(exportMeta.actualSolveMs) : (lang === 'en' ? 'n/a' : '없음')}
+                </div>
+              </div>
+              <div style={{ flex: '1 1 140px', padding: '8px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4 }}>
+                <div className="font-body" style={{ fontSize: 10.5, color: C.sub, marginBottom: 2 }}>{lang === 'en' ? 'Puzzle ID' : '퍼즐 ID'}</div>
+                <div className="font-mono" style={{ fontSize: 13, fontWeight: 600, color: C.ink, wordBreak: 'break-all' }}>
+                  {exportMeta.puzzleId || (lang === 'en' ? 'n/a' : '없음')}
+                </div>
+              </div>
+            </div>
+            {/* 추출 버튼들 */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => doCopy(buildTSV(), lang === 'en' ? 'metrics TSV' : '메트릭 TSV')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.ink }}>
+                📋 {lang === 'en' ? 'Copy metrics (TSV)' : '메트릭 복사 (TSV)'}
+              </button>
+              <button onClick={() => doCopy(buildTraceTSV(), lang === 'en' ? 'trace TSV' : '로그 TSV')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.ink }}>
+                📋 {lang === 'en' ? 'Copy trace log (TSV)' : '풀이 로그 복사 (TSV)'}
+              </button>
+              <button onClick={() => doCopy(buildJSON(), 'JSON')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.ink }}>
+                📋 {lang === 'en' ? 'Copy all (JSON)' : '전체 복사 (JSON)'}
+              </button>
+              {exportMeta.seed && (
+                <button onClick={() => doCopy(exportMeta.seed, lang === 'en' ? 'seed' : '시드')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.border, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.ink }}>
+                  📋 {lang === 'en' ? 'Copy seed' : '시드 복사'}
+                </button>
+              )}
+              <span style={{ flex: 1 }} />
+              <button onClick={() => doDownload(buildTSV(), _fnBase + '-metrics.tsv', 'text/tab-separated-values;charset=utf-8')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.accent, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.accent }}>
+                ⬇ TSV
+              </button>
+              <button onClick={() => doDownload(buildJSON(), _fnBase + '.json', 'application/json;charset=utf-8')} className="font-body" style={{ padding: '7px 12px', background: C.card, border: '1px solid ' + C.accent, borderRadius: 4, fontSize: 12, cursor: 'pointer', color: C.accent }}>
+                ⬇ JSON
+              </button>
+            </div>
+            {copyMsg && (
+              <div className="font-body" style={{ fontSize: 12, color: C.accent, marginTop: 8, fontWeight: 600 }}>✓ {copyMsg}</div>
+            )}
+          </div>
+        )}
+
+        {/* 탭 */}
+        <div style={{ display: 'flex', gap: 4, padding: '8px 14px 0', borderBottom: '1px solid ' + C.borderLt, background: C.card }}>
+          {[['overview', lang === 'en' ? 'Overview' : '개요'],
+            ['trail', lang === 'en' ? 'Focus trail' : '초점 경로'],
+            ['trace', lang === 'en' ? 'Human trace' : '인간 경로']].map(([k, lbl]) => (
+            <button key={k} onClick={() => setTab(k)} className="font-body" style={{
+              padding: '8px 14px', background: tab === k ? C.paper : 'transparent',
+              border: '1px solid ' + (tab === k ? C.border : 'transparent'), borderBottom: tab === k ? '1px solid ' + C.paper : 'none',
+              borderRadius: '4px 4px 0 0', cursor: 'pointer', fontSize: 13,
+              fontWeight: tab === k ? 600 : 400, color: tab === k ? C.ink : C.sub, marginBottom: -1,
+            }}>{lbl}</button>
+          ))}
+        </div>
+
+        {/* 본문 */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 18 }}>
+          {status === 'unavailable' && (
+            <div className="font-body" style={{ color: C.sub, fontSize: 14, lineHeight: 1.6 }}>
+              {lang === 'en'
+                ? 'The HFS engine is not loaded. The solver helpers (ts_*) may be unavailable.'
+                : 'HFS 엔진이 로드되지 않았습니다. 솔버 헬퍼(ts_*)를 찾을 수 없습니다.'}
+            </div>
+          )}
+
+          {/* ── 개요 탭 ── */}
+          {tab === 'overview' && status !== 'unavailable' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* 이중 점수 */}
+              <div>
+                <div className="font-body" style={{ fontSize: 12, color: C.sub, marginBottom: 8, letterSpacing: '0.03em' }}>
+                  {lang === 'en' ? 'DUAL SCORE — solver path vs human path' : '이중 점수 — 솔버 경로 vs 인간 경로'}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <ScoreBadge label={lang === 'en' ? 'Formula A (solver)' : 'Formula A (솔버)'} value={formulaA} tone="a" />
+                  <ScoreBadge label={lang === 'en' ? 'Formula A-H (human)' : 'Formula A-H (인간)'} value={formulaAH} tone="h" />
+                </div>
+                {estMinutes != null && (
+                  <div style={{ marginTop: 8, padding: '10px 14px', background: C.card,
+                    border: '1px solid ' + C.accent, borderRadius: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span className="font-body" style={{ fontSize: 12.5, color: C.sub }}>
+                        ⏱ {lang === 'en' ? 'Estimated play time' : '예상 소요 시간'}
+                      </span>
+                      <span className="font-mono" style={{ fontSize: 22, fontWeight: 600, color: C.accent }}>
+                        {estMinutes < 1 ? '< 1' : (estMinutes % 1 === 0 ? estMinutes : estMinutes.toFixed(1))}
+                        <span style={{ fontSize: 13, marginLeft: 3, color: C.sub }}>{lang === 'en' ? 'min' : '분'}</span>
+                      </span>
+                    </div>
+                    {timeDetail && timeDetail.low != null && timeDetail.high != null && (
+                      <div className="font-body" style={{ fontSize: 11.5, color: C.sub, marginTop: 4, textAlign: 'right' }}>
+                        {lang === 'en' ? 'likely range' : '예상 범위'} {timeDetail.low}–{timeDetail.high}{lang === 'en' ? ' min' : '분'}
+                      </div>
+                    )}
+                    {timeDetail && timeDetail.pseudoFreedomRisk && (
+                      <div className="font-body" style={{ fontSize: 11.5, color: C.ink, marginTop: 6, paddingTop: 6,
+                        borderTop: '1px dashed ' + C.borderLt, lineHeight: 1.45 }}>
+                        ⚠ {lang === 'en'
+                          ? 'Hypothesis-search dependent: may rely on trial-and-error over deduction (lower "aha" satisfaction). Actual time can vary widely.'
+                          : '가설 탐색 의존형 — 추론보다 시행착오에 의존할 수 있어 추론 쾌감이 낮고, 실제 시간 편차가 클 수 있습니다.'}
+                        {timeDetail.trapIndex != null && timeDetail.trapIndex > 0 && (
+                          <span style={{ color: C.sub }}>
+                            {' '}({lang === 'en' ? 'verification scarcity' : '검증 결핍'} {Math.round(timeDetail.trapIndex*100)}%)
+                          </span>
+                        )}
+                        {timeDetail.pseudoFreedomBonus != null && timeDetail.pseudoFreedomBonus > 0 && (
+                          <span style={{ color: C.accent, fontWeight: 600 }}>
+                            {' '}· {lang === 'en' ? 'pseudo-freedom trap +' : '가짜 자유 함정 +'}{timeDetail.pseudoFreedomBonus}{lang === 'en' ? ' min' : '분'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {gap != null && (
+                  <div className="font-body" style={{ marginTop: 8, padding: '8px 12px', background: C.card,
+                    border: '1px solid ' + C.borderLt, borderRadius: 4, fontSize: 12.5, color: C.sub, lineHeight: 1.5 }}>
+                    <strong style={{ color: C.ink }}>{lang === 'en' ? 'Path gap' : '경로 격차'}: {gap >= 0 ? '+' : ''}{gap.toFixed(1)}</strong>
+                    {' — '}
+                    {gap > 10 ? (lang === 'en' ? 'Solver underrates: harder for humans than the trace suggests.' : '솔버 과소평가 — 인간에겐 trace보다 어려운 퍼즐.')
+                      : gap < -10 ? (lang === 'en' ? 'Solver overrates: humans finish faster than the long trace implies.' : '솔버 과대평가 — 인간은 긴 trace보다 빨리 푸는 퍼즐.')
+                      : (lang === 'en' ? 'Both paths roughly agree on this puzzle.' : '두 경로가 이 퍼즐에 대해 대체로 일치.')}
+                  </div>
+                )}
+              </div>
+
+              {/* HFS 메트릭 카드 */}
+              <div>
+                <div className="font-body" style={{ fontSize: 12, color: C.sub, marginBottom: 8, letterSpacing: '0.03em' }}>
+                  {lang === 'en' ? 'HFS METRICS — human cognitive path' : 'HFS 메트릭 — 인간 인지 경로'}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8 }}>
+                  {metrics.map(m => (
+                    <div key={m.key} title={m.hint} style={{ background: C.card, border: '1px solid ' + (m.star ? C.accent : C.borderLt),
+                      borderRadius: 4, padding: '10px 12px' }}>
+                      <div className="font-body" style={{ fontSize: 10.5, color: C.sub, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {m.star && <span style={{ color: C.accent }}>★</span>}{m.label}
+                      </div>
+                      <div className="font-mono" style={{ fontSize: 20, fontWeight: 600, color: C.ink }}>{m.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 패턴 분포 */}
+              <div>
+                <div className="font-body" style={{ fontSize: 12, color: C.sub, marginBottom: 8, letterSpacing: '0.03em' }}>
+                  {lang === 'en' ? 'PATTERN DISTRIBUTION' : '패턴 분포'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {sortedPatterns.slice(0, 10).map(([type, cnt]) => {
+                    const max = sortedPatterns[0][1];
+                    return (
+                      <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="font-mono" style={{ fontSize: 11, width: isMobile ? 110 : 180, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type}</div>
+                        <div style={{ flex: 1, background: C.borderLt, borderRadius: 2, height: 14, position: 'relative' }}>
+                          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: (100 * cnt / max) + '%',
+                            background: C.accent, borderRadius: 2, opacity: 0.7 }} />
+                        </div>
+                        <div className="font-mono" style={{ fontSize: 11, width: 28, textAlign: 'right', color: C.ink }}>{cnt}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── 초점 경로 탭 ── */}
+          {tab === 'trail' && status !== 'unavailable' && (
+            <div>
+              <div className="font-body" style={{ fontSize: 12.5, color: C.sub, marginBottom: 12, lineHeight: 1.5 }}>
+                {lang === 'en'
+                  ? 'How a human would scan the grid: attention windows in visit order (lighter = earlier, darker = later).'
+                  : '인간이 그리드를 훑는 순서: 주의 윈도우의 방문 순서 (옅을수록 먼저, 짙을수록 나중).'}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ position: 'relative', display: 'grid',
+                  gridTemplateColumns: `repeat(${n}, 1fr)`, gridTemplateRows: `repeat(${n}, 1fr)`,
+                  width: isMobile ? 280 : 360, height: isMobile ? 280 : 360, gap: 2,
+                  background: C.borderLt, padding: 2, borderRadius: 4 }}>
+                  {/* 그리드 셀 배경 */}
+                  {Array.from({ length: n * n }).map((_, i) => (
+                    <div key={'cell' + i} style={{ background: C.card, borderRadius: 1 }} />
+                  ))}
+                  {/* 초점 윈도우 오버레이 */}
+                  {focusHistory.map((f, i) => {
+                    if (!f.region) return null;
+                    const op = 0.12 + 0.5 * (i / Math.max(1, focusHistory.length - 1));
+                    return (
+                      <div key={'f' + i} style={{
+                        position: 'absolute',
+                        left: `calc(${(100 * f.region.colMin / n)}% + 2px)`,
+                        top: `calc(${(100 * f.region.rowMin / n)}% + 2px)`,
+                        width: `${100 * (f.region.colMax - f.region.colMin + 1) / n}%`,
+                        height: `${100 * (f.region.rowMax - f.region.rowMin + 1) / n}%`,
+                        background: C.accent, opacity: op, borderRadius: 3,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '1px solid ' + C.accent, pointerEvents: 'none',
+                      }}>
+                        <span className="font-mono" style={{ fontSize: 11, color: '#fff', fontWeight: 700,
+                          textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{i + 1}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="font-body" style={{ marginTop: 14, fontSize: 12, color: C.sub, textAlign: 'center' }}>
+                {lang === 'en' ? `${focusHistory.length} focus regions · ${d.refocusCount} refocus shifts`
+                  : `${focusHistory.length}개 영역 · ${d.refocusCount}회 재초점`}
+              </div>
+            </div>
+          )}
+
+          {/* ── 인간 경로 trace 탭 ── */}
+          {tab === 'trace' && status !== 'unavailable' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {focusGroups.map((g, gi) => (
+                <div key={gi} style={{ border: '1px solid ' + C.borderLt, borderRadius: 4, overflow: 'hidden' }}>
+                  <div className="font-body" style={{ padding: '6px 10px', background: C.card,
+                    fontSize: 11.5, color: C.sub, borderBottom: '1px solid ' + C.borderLt, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{lang === 'en' ? 'Focus' : '초점'} #{gi + 1}
+                      {g.region ? ` · r${g.region.rowMin}-${g.region.rowMax} c${g.region.colMin}-${g.region.colMax}` : ''}</span>
+                    <span>{g.steps.length} {lang === 'en' ? 'steps' : '단계'}</span>
+                  </div>
+                  <div>
+                    {g.steps.map((s) => (
+                      <div key={s._idx} style={{ display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '5px 10px', borderTop: s._idx === g.startIdx ? 'none' : '1px solid ' + C.borderLt,
+                        background: s.kind === 'hypothesis' ? 'rgba(124,111,90,0.06)' : (s.kind === 'global-fallback' ? 'rgba(180,140,90,0.08)' : 'transparent') }}>
+                        <span className="font-mono" style={{ fontSize: 10, color: C.sub, width: 28 }}>{s._idx + 1}</span>
+                        <span className="font-mono" style={{ fontSize: 12, color: C.ink, flex: 1 }}>{s.type}</span>
+                        {s.kind === 'hypothesis' && <span className="font-body" style={{ fontSize: 9.5, color: C.accent, padding: '1px 5px', border: '1px solid ' + C.accent, borderRadius: 8 }}>{lang === 'en' ? 'guess' : '추측'}</span>}
+                        {s.kind === 'global-fallback' && <span className="font-body" style={{ fontSize: 9.5, color: '#b08040', padding: '1px 5px', border: '1px solid #d8b888', borderRadius: 8 }}>{lang === 'en' ? 'widen' : '확대'}</span>}
+                        <span className="font-mono" style={{ fontSize: 10, color: C.sub }}>c{s.cost}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {trace.length === 0 && (
+                <div className="font-body" style={{ color: C.sub, fontSize: 13, textAlign: 'center', padding: 20 }}>
+                  {lang === 'en' ? 'No human-path steps recorded.' : '기록된 인간 경로 단계가 없습니다.'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 푸터 */}
+        <div className="font-body" style={{ padding: '10px 16px', borderTop: '1px solid ' + C.border,
+          background: C.card, fontSize: 10.5, color: C.sub, lineHeight: 1.4 }}>
+          {lang === 'en'
+            ? 'HFS v3.4 (Formula A-H v3.0) — simulates the human local-focus solving path with sound global propagation (all puzzles solvable, no stuck). Score models width-type (line-rule switching, #21) and depth-type (maxFocusChain, #24) mechanisms (r≈0.58, LOOCV 0.50). Play-time estimate (r≈0.58, top-score 15min+ hit 5/5) with a confidence range, adds a backtrack-trap cost (trapXdead: post-deadlock choices that fail to produce contradictions) as a time signal, plus a dedicated time bonus (up to +8min) for pseudo-freedom traps (#4-type: verification-scarcity≥0.9 + deadlock≥5) and a "hypothesis-search dependent" flag. A cognitive model, not a human log; exact time for pseudo-freedom puzzles is fundamentally unmeasurable from trace alone.'
+            : 'HFS v3.4 (Formula A-H v3.0) — 인간의 국소 집중 풀이 경로를 sound한 전역 전파로 시뮬레이션(모든 퍼즐 풀이 가능, stuck 없음). 점수는 너비형(라인규칙 전환, #21)·깊이형(maxFocusChain, #24) 메커니즘 모델링(r≈0.58, LOOCV 0.50). 예상 소요 시간(r≈0.58, 상위점수 15분+ 적중 5/5)에 신뢰 범위와, 되돌릴 수 없는 헤맴 비용(trapXdead: 막힘 후 틀려도 모순이 안 나는 곤경)을 시간 신호로 추가하고, 가짜 자유 함정(#4형: 검증결핍≥0.9+deadlock≥5)에 전용 시간 가산(최대 +8분)을 부여하고 "가설 탐색 의존" 플래그를 더함. 인간 모델이지 실제 로그가 아니며, 가짜 자유 퍼즐의 정확한 시간은 trace만으로는 근본적으로 측정 불가.'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function SolverLogModal({ open, result, puzzle, onClose }) {
   const t = useT();
@@ -36879,6 +38454,8 @@ const initialState = {
   solverResult: null,                        // result of last traceSolve_v2 run
   showSolverLog: false,                      // whether the solver log modal is open
   isSolving: false,                          // true while traceSolve_v2 is executing
+  showHfsLog: false,                         // whether the HFS analysis modal is open
+  hfsResult: null,                           // HFS solve result (humanTrace + diagnostics)
   // Play timer — tracks elapsed time per puzzle. Reset on PUZZLE_READY.
   timerStartTime: null,         // wallclock ms when current run segment started
   timerAccumulatedMs: 0,         // accumulated time across pause/resume cycles
@@ -37864,6 +39441,70 @@ function ZoogramsApp() {
     }, 50); // 50ms gives the loading modal a frame to render before blocking
   }, [state.puzzle, state.isSolving]);
 
+  // Run the Human-Friendly Solver (HFS) on the puzzle. Unlike traceSolve_v2
+  // (global AC-3+MRV elimination), HFS simulates the human local-focus path:
+  // entry anchor → focus → local exhaustion → propagation → refocus. Its trace
+  // metrics (maxFocusChain, refocusCount, imposRatio) correlate with human
+  // solve time/satisfaction better than solver trace. Post-analysis only;
+  // non-destructive; falls back gracefully if window.ZoogramsHFS is missing.
+  const handleSolveHFS = useCallback(() => {
+    if (!state.puzzle) return;
+    if (state.isSolving) return;
+    dispatch({ type: 'SOLVING_START' });
+    setTimeout(() => {
+      try {
+        if (!window.ZoogramsHFS || !window.ZoogramsHFS.isAvailable()) {
+          dispatch({ type: 'SHOW_HFS_LOG', result: { status: 'unavailable', humanTrace: [], focusHistory: [], diagnostics: { traceLength: 0 } } });
+          return;
+        }
+        const hfsResult = window.ZoogramsHFS.solve(state.puzzle, { timeLimitMs: 15000 });
+        // Compute both scores for the dual-score comparison panel.
+        let formulaAH = null, formulaA = null, estimatedMinutes = null, timeDetail = null;
+        try { formulaAH = window.ZoogramsHFS.computeFormulaAH(hfsResult.humanTrace, hfsResult.diagnostics, state.puzzle); } catch (e) {}
+        try {
+          if (window.ZoogramsHFS.estimateMinutesDetailed) {
+            timeDetail = window.ZoogramsHFS.estimateMinutesDetailed(hfsResult.humanTrace, hfsResult.diagnostics, state.puzzle);
+            estimatedMinutes = timeDetail ? timeDetail.minutes : null;
+          } else if (window.ZoogramsHFS.estimateMinutes) {
+            estimatedMinutes = window.ZoogramsHFS.estimateMinutes(hfsResult.humanTrace, hfsResult.diagnostics, state.puzzle);
+          }
+        } catch (e) {}
+        try {
+          if (typeof traceSolve_v2 === 'function' && typeof v15_computeFormulaA === 'function') {
+            const sr = traceSolve_v2(state.puzzle, { timeLimitMs: 10000, maxLookaheadDepth: 2, enableMultiStepLookahead: true, v13Catalog: 'V13-full' });
+            const v13m = (typeof computeV13Metric === 'function') ? computeV13Metric(sr.trace || []) : null;
+            formulaA = v15_computeFormulaA(sr.trace || [], v13m, state.puzzle);
+          }
+        } catch (e) {}
+        dispatch({ type: 'SHOW_HFS_LOG', result: Object.assign({}, hfsResult, { formulaAH, formulaA, estimatedMinutes, timeDetail, exportMeta: (() => {
+          // 추출용 메타: 실제 풀이 시간(타이머) + 시드/식별자 + 격자 정보
+          let actualMs = null;
+          try {
+            if (state.timerFinalElapsedMs != null) actualMs = state.timerFinalElapsedMs;
+            else if (state.timerStartTime != null) actualMs = (state.timerAccumulatedMs || 0) + (Date.now() - state.timerStartTime);
+            else if (state.timerAccumulatedMs != null) actualMs = state.timerAccumulatedMs;
+          } catch (e) {}
+          let seedStr = null;
+          try { seedStr = (state.puzzle && state.puzzle.seed) ? state.puzzle.seed : (typeof encodePuzzleSeed === 'function' ? encodePuzzleSeed(state.puzzle) : null); } catch (e) {}
+          return {
+            actualSolveMs: actualMs,
+            seed: seedStr,
+            puzzleId: (state.puzzle && state.puzzle.puzzleId) || null,
+            level: (state.puzzle && state.puzzle.level) || (state.level || null),
+            gridN: (state.puzzle && state.puzzle.n) || null,
+            pairCount: (state.puzzle && state.puzzle.pairs) ? state.puzzle.pairs.length : null,
+            ruleCount: (state.puzzle && state.puzzle.lineRules) ? state.puzzle.lineRules.length : null,
+            fixedCount: (state.puzzle && state.puzzle.fixedCells) ? state.puzzle.fixedCells.length : null,
+            exportedAt: new Date().toISOString(),
+          };
+        })() }) });
+      } catch (e) {
+        console.error('HFS failed:', e);
+        dispatch({ type: 'SHOW_HFS_LOG', result: { status: 'error', humanTrace: [], focusHistory: [], diagnostics: { traceLength: 0 }, error: String(e) } });
+      }
+    }, 50);
+  }, [state.puzzle, state.isSolving, state.timerFinalElapsedMs, state.timerStartTime, state.timerAccumulatedMs, state.level]);
+
   const handleCellClick = useCallback((tokenId) => {
     dispatch({ type: 'TOGGLE_MARK', tokenId });
   }, []);
@@ -38118,6 +39759,7 @@ function ZoogramsApp() {
               onHint={() => dispatch({ type: 'HINT_USE' })}
               onShowAnswer={() => dispatch({ type: 'SHOW_SOLUTION' })}
               onSolve={handleSolve}
+              onSolveHFS={handleSolveHFS}
               disabled={state.isGenerating || state.isSolving}
               hintsRemaining={state.hintsRemaining}
               hintExhaustedShown={state.hintExhaustedShown}
@@ -38182,6 +39824,12 @@ function ZoogramsApp() {
         result={state.solverResult}
         puzzle={state.puzzle}
         onClose={() => dispatch({ type: 'CLOSE_SOLVER_LOG' })}
+      />
+      <HFSLogModal
+        open={state.showHfsLog}
+        result={state.hfsResult}
+        puzzle={state.puzzle}
+        onClose={() => dispatch({ type: 'CLOSE_HFS_LOG' })}
       />
       {state.isSolving && <SolvingOverlay />}
       {/* Pause overlay — only visible while timer is paused AND puzzle
