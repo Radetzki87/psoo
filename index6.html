@@ -6885,6 +6885,30 @@ const STRINGS = {
     zh: '已复制 ✓',
     ja: 'コピー済 ✓',
   },
+  'playlog.downloaded':    {
+    ko: '다운로드됨', en: 'Downloaded', es: 'Descargado', pt: 'Baixado', fr: 'Téléchargé',
+    de: 'Heruntergeladen', ru: 'Загружено', zh: '已下载', ja: 'ダウンロード済',
+  },
+  'playlog.exportLabel':   {
+    ko: '추출', en: 'Export', es: 'Exportar', pt: 'Exportar', fr: 'Exporter',
+    de: 'Export', ru: 'Экспорт', zh: '导出', ja: 'エクスポート',
+  },
+  'playlog.exportSummary': {
+    ko: '요약 (TSV)', en: 'Summary (TSV)', es: 'Resumen (TSV)', pt: 'Resumo (TSV)', fr: 'Résumé (TSV)',
+    de: 'Übersicht (TSV)', ru: 'Сводка (TSV)', zh: '摘要 (TSV)', ja: '要約 (TSV)',
+  },
+  'playlog.exportTimeline':{
+    ko: '타임라인 (TSV)', en: 'Timeline (TSV)', es: 'Cronología (TSV)', pt: 'Linha do tempo (TSV)', fr: 'Chronologie (TSV)',
+    de: 'Zeitleiste (TSV)', ru: 'Хронология (TSV)', zh: '时间线 (TSV)', ja: 'タイムライン (TSV)',
+  },
+  'playlog.exportJson':    {
+    ko: '전체 (JSON)', en: 'All (JSON)', es: 'Todo (JSON)', pt: 'Tudo (JSON)', fr: 'Tout (JSON)',
+    de: 'Alle (JSON)', ru: 'Всё (JSON)', zh: '全部 (JSON)', ja: '全体 (JSON)',
+  },
+  'playlog.exportSeed':    {
+    ko: '시드', en: 'Seed', es: 'Semilla', pt: 'Semente', fr: 'Graine',
+    de: 'Seed', ru: 'Сид', zh: '种子', ja: 'シード',
+  },
   'playlog.close':         {
     ko: '닫기',
     en: 'Close',
@@ -33744,6 +33768,10 @@ function WinDialog({ show, level, presetLabel, uniqueness, solutionCount, solveT
         <PlayLogModal
           playLog={playLog}
           solveTimeMs={solveTimeMs}
+          puzzle={puzzle}
+          level={level}
+          hintsUsed={hintsUsed}
+          wasRevealed={wasRevealed}
           onClose={() => setShowPlayLog(false)}
         />
       )}
@@ -33767,10 +33795,28 @@ function WinDialog({ show, level, presetLabel, uniqueness, solutionCount, solveT
 // ║ 실제 플레이어가 시간 경과에 따라 후보 결정/타일 배치/배제/최종 배치│
 // ║ 모든 과정을 timestamp와 함께 표시. Win modal에서 호출.               ║
 // ═══════════════════════════════════════════════════════════════════════
-function PlayLogModal({ playLog, solveTimeMs, onClose }) {
+function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevealed, onClose }) {
   const t = useT();
   const [filter, setFilter] = React.useState('all');
   const [copied, setCopied] = React.useState(false);
+  const [exportMsg, setExportMsg] = React.useState('');
+
+  // ── HFS 평가/메트릭 계산 (로그보기 모달과 동일한 점수 체계) ──
+  // 실제 플레이 로그 + 시간에 더해, 퍼즐의 난이도/평가점수/시그니처를 함께 추출.
+  const hfsEval = React.useMemo(() => {
+    try {
+      if (!puzzle || !window.ZoogramsHFS || !window.ZoogramsHFS.isAvailable()) return null;
+      const h = window.ZoogramsHFS.solve(puzzle, { timeLimitMs: 12000 });
+      const ah = window.ZoogramsHFS.computeFormulaAH ? window.ZoogramsHFS.computeFormulaAH(h.humanTrace, h.diagnostics, puzzle) : null;
+      let td = null;
+      try { td = window.ZoogramsHFS.estimateMinutesDetailed ? window.ZoogramsHFS.estimateMinutesDetailed(h.humanTrace, h.diagnostics, puzzle) : null; } catch (e) {}
+      return { status: h.status, diagnostics: h.diagnostics || {}, formulaAH: ah, timeDetail: td };
+    } catch (e) { return null; }
+  }, [puzzle]);
+
+  const puzzleSeed = React.useMemo(() => {
+    try { return (puzzle && puzzle.seed) ? puzzle.seed : (typeof encodePuzzleSeed === 'function' ? encodePuzzleSeed(puzzle) : null); } catch (e) { return null; }
+  }, [puzzle]);
 
   // Filter categories — 카테고리별 보기
   const categoryOf = (action) => {
@@ -33875,6 +33921,151 @@ function PlayLogModal({ playLog, solveTimeMs, onClose }) {
     }
   };
 
+  // ════════════════════════════════════════════════════════════════════
+  // 외부 추출 (Export) — 실제 플레이 타임라인 + 시간 + 메트릭 + 평가점수 + 시드
+  // ════════════════════════════════════════════════════════════════════
+  // 카테고리 통계
+  const catStats = {};
+  for (const e of playLog) { const c = categoryOf(e.action); catStats[c] = (catStats[c] || 0) + 1; }
+
+  // 통합 추출 객체
+  function buildExportObject() {
+    const d = (hfsEval && hfsEval.diagnostics) || {};
+    const td = (hfsEval && hfsEval.timeDetail) || {};
+    return {
+      meta: {
+        exportedAt: new Date().toISOString(),
+        puzzleId: (puzzle && puzzle.puzzleId) || null,
+        seed: puzzleSeed,
+        level: level || (puzzle && puzzle.level) || null,
+        gridN: (puzzle && puzzle.n) || null,
+        pairCount: (puzzle && puzzle.pairs) ? puzzle.pairs.length : null,
+        ruleCount: (puzzle && puzzle.lineRules) ? puzzle.lineRules.length : null,
+        fixedCount: (puzzle && puzzle.fixedCells) ? puzzle.fixedCells.length : null,
+        hfsVersion: (window.ZoogramsHFS && window.ZoogramsHFS.version) || null,
+      },
+      play: {
+        actualSolveMs: typeof solveTimeMs === 'number' ? Math.round(solveTimeMs) : null,
+        actualSolveText: typeof solveTimeMs === 'number' ? formatTimerMs(solveTimeMs) : null,
+        totalActions: playLog.length,
+        hintsUsed: typeof hintsUsed === 'number' ? hintsUsed : null,
+        wasRevealed: !!wasRevealed,
+        actionsByCategory: catStats,
+      },
+      scores: {
+        formulaAH: (hfsEval && hfsEval.formulaAH != null) ? hfsEval.formulaAH : null,
+        estimatedMinutes: (td && td.minutes != null) ? td.minutes : null,
+        estimatedLow: (td && td.low != null) ? td.low : null,
+        estimatedHigh: (td && td.high != null) ? td.high : null,
+        hfsStatus: (hfsEval && hfsEval.status) || null,
+      },
+      pseudoFreedom: {
+        trapIndex: (td && td.trapIndex != null) ? td.trapIndex : null,
+        trapXdead: (td && td.trapXdead != null) ? td.trapXdead : null,
+        deadlockSize: (td && td.deadlockSize != null) ? td.deadlockSize : null,
+        pseudoFreedomBonus: (td && td.pseudoFreedomBonus != null) ? td.pseudoFreedomBonus : null,
+        pseudoFreedomRisk: (td && td.pseudoFreedomRisk != null) ? td.pseudoFreedomRisk : null,
+      },
+      metrics: {
+        traceLength: d.traceLength || 0,
+        maxFocusChain: d.maxFocusChain || 0,
+        chainGini: d.chainGini || 0,
+        refocusCount: d.refocusCount || 0,
+        focusCount: d.focusCount || 0,
+        imposRatio: d.imposRatio || 0,
+        propagationEfficiency: d.propagationEfficiency || 0,
+        signatureCount: d.signatureCount || 0,
+        pureRatio: d.pureRatio || 0,
+      },
+      timeline: playLog.map((e, i) => ({
+        index: i + 1,
+        tMs: typeof e.t === 'number' ? Math.round(e.t) : null,
+        tText: typeof e.t === 'number' ? formatT(e.t) : null,
+        action: e.action || null,
+        category: categoryOf(e.action),
+        detail: e.detail || {},
+      })),
+    };
+  }
+
+  // 요약 TSV (메트릭 + 시간 + 평가점수 한 행)
+  function buildSummaryTSV() {
+    const o = buildExportObject();
+    const cols = [
+      ['puzzleId', o.meta.puzzleId], ['level', o.meta.level], ['gridN', o.meta.gridN],
+      ['pairCount', o.meta.pairCount], ['ruleCount', o.meta.ruleCount], ['fixedCount', o.meta.fixedCount],
+      ['hfsVersion', o.meta.hfsVersion],
+      ['actualSolveMs', o.play.actualSolveMs], ['actualSolveText', o.play.actualSolveText],
+      ['totalActions', o.play.totalActions], ['hintsUsed', o.play.hintsUsed], ['wasRevealed', o.play.wasRevealed],
+      ['formulaAH', o.scores.formulaAH != null ? o.scores.formulaAH.toFixed(2) : ''],
+      ['estimatedMinutes', o.scores.estimatedMinutes], ['estLow', o.scores.estimatedLow], ['estHigh', o.scores.estimatedHigh],
+      ['trapIndex', o.pseudoFreedom.trapIndex], ['trapXdead', o.pseudoFreedom.trapXdead],
+      ['deadlockSize', o.pseudoFreedom.deadlockSize], ['pseudoFreedomBonus', o.pseudoFreedom.pseudoFreedomBonus],
+      ['traceLength', o.metrics.traceLength], ['maxFocusChain', o.metrics.maxFocusChain],
+      ['chainGini', o.metrics.chainGini.toFixed(3)], ['refocusCount', o.metrics.refocusCount],
+      ['focusCount', o.metrics.focusCount], ['imposRatio', o.metrics.imposRatio.toFixed(3)],
+      ['propEff', o.metrics.propagationEfficiency.toFixed(3)], ['signatureCount', o.metrics.signatureCount],
+      ['pureRatio', o.metrics.pureRatio.toFixed(3)],
+    ];
+    Object.keys(o.play.actionsByCategory).forEach(k => cols.push(['cat_' + k, o.play.actionsByCategory[k]]));
+    cols.push(['seed', o.meta.seed]);
+    const header = cols.map(c => c[0]).join('\t');
+    const row = cols.map(c => c[1] == null ? '' : String(c[1])).join('\t');
+    return header + '\n' + row;
+  }
+
+  // 타임라인 TSV (시간순 액션 한 행씩) — detail은 평탄화한 주요 필드
+  function buildTimelineTSV() {
+    const o = buildExportObject();
+    const header = ['index', 'tMs', 'tText', 'action', 'category', 'detail'].join('\t');
+    const rows = o.timeline.map(e => {
+      const det = e.detail || {};
+      // 셀 좌표/종/성별 등 주요 필드를 간략 문자열로
+      const parts = [];
+      if (det.speciesName) parts.push(det.speciesEmoji ? (det.speciesEmoji + det.speciesName) : det.speciesName);
+      if (det.gender) parts.push(det.gender);
+      if (det.row != null && det.col != null) parts.push('r' + det.row + 'c' + det.col);
+      if (det.fromRow != null && det.fromCol != null) parts.push('from:r' + det.fromRow + 'c' + det.fromCol);
+      if (det.toRow != null && det.toCol != null) parts.push('to:r' + det.toRow + 'c' + det.toCol);
+      if (det.from != null && det.to != null) parts.push(det.from + '->' + det.to);
+      if (det.remaining != null) parts.push('rem:' + det.remaining);
+      const detStr = parts.join(' ') || (Object.keys(det).length ? JSON.stringify(det) : '');
+      return [e.index, e.tMs != null ? e.tMs : '', e.tText || '', e.action || '', e.category || '', detStr].join('\t');
+    });
+    return header + '\n' + rows.join('\n');
+  }
+
+  function buildJSON() { return JSON.stringify(buildExportObject(), null, 2); }
+
+  function doCopyText(text, label) {
+    const done = () => { setExportMsg((t('playlog.copied') || 'Copied') + ': ' + label); setTimeout(() => setExportMsg(''), 2000); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, () => fbCopy(text, done));
+      } else fbCopy(text, done);
+    } catch (e) { fbCopy(text, done); }
+  }
+  function fbCopy(text, done) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+    } catch (e) { setExportMsg('Copy failed'); setTimeout(() => setExportMsg(''), 2000); }
+  }
+  function doDownload(text, filename, mime) {
+    try {
+      const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setExportMsg((t('playlog.downloaded') || 'Downloaded') + ': ' + filename); setTimeout(() => setExportMsg(''), 2000);
+    } catch (e) { setExportMsg('Download failed'); setTimeout(() => setExportMsg(''), 2000); }
+  }
+  const _pid = (puzzle && puzzle.puzzleId) || 'puzzle';
+  const _fnBase = 'zoograms-playlog-' + _pid + '-' + (new Date().toISOString().slice(0, 19).replace(/[:T]/g, ''));
+
+
   // Action category counts for filter bar
   const counts = { all: playLog.length };
   for (const e of playLog) {
@@ -33972,6 +34163,53 @@ function PlayLogModal({ playLog, solveTimeMs, onClose }) {
               </button>
             );
           })}
+        </div>
+        {/* Export bar — 시간/메트릭/평가점수/시드 추출 */}
+        <div style={{
+          padding: '10px 22px', borderBottom: '1px solid var(--border-soft)',
+          background: 'var(--bg-paper)',
+        }}>
+          {/* 평가 요약 (있을 때) */}
+          {hfsEval && (hfsEval.formulaAH != null || (hfsEval.timeDetail && hfsEval.timeDetail.minutes != null)) && (
+            <div className="font-body" style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginBottom: 8, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              {hfsEval.formulaAH != null && (
+                <span>{t('playlog.exportScore') || 'A-H'}: <span className="font-mono" style={{ color: 'var(--ink-primary)', fontWeight: 600 }}>{hfsEval.formulaAH.toFixed(1)}</span></span>
+              )}
+              {hfsEval.timeDetail && hfsEval.timeDetail.minutes != null && (
+                <span>{t('playlog.exportEst') || 'est.'}: <span className="font-mono" style={{ color: 'var(--ink-primary)', fontWeight: 600 }}>{hfsEval.timeDetail.minutes}m</span></span>
+              )}
+              {hfsEval.timeDetail && hfsEval.timeDetail.trapIndex != null && hfsEval.timeDetail.trapIndex > 0 && (
+                <span>{t('playlog.exportTrap') || 'trap'}: <span className="font-mono" style={{ color: 'var(--ink-primary)', fontWeight: 600 }}>{Math.round(hfsEval.timeDetail.trapIndex * 100)}%</span></span>
+              )}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span className="font-body" style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginRight: 2 }}>{t('playlog.exportLabel') || '추출'}:</span>
+            <button onClick={() => doCopyText(buildSummaryTSV(), t('playlog.exportSummary') || '요약 TSV')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--ink-primary)' }}>
+              📋 {t('playlog.exportSummary') || '요약 (TSV)'}
+            </button>
+            <button onClick={() => doCopyText(buildTimelineTSV(), t('playlog.exportTimeline') || '타임라인 TSV')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--ink-primary)' }}>
+              📋 {t('playlog.exportTimeline') || '타임라인 (TSV)'}
+            </button>
+            <button onClick={() => doCopyText(buildJSON(), 'JSON')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--ink-primary)' }}>
+              📋 {t('playlog.exportJson') || '전체 (JSON)'}
+            </button>
+            {puzzleSeed && (
+              <button onClick={() => doCopyText(puzzleSeed, t('playlog.exportSeed') || '시드')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--ink-primary)' }}>
+                📋 {t('playlog.exportSeed') || '시드'}
+              </button>
+            )}
+            <span style={{ flex: 1 }} />
+            <button onClick={() => doDownload(buildTimelineTSV(), _fnBase + '.tsv', 'text/tab-separated-values;charset=utf-8')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--accent-gold)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--accent-gold)' }}>
+              ⬇ TSV
+            </button>
+            <button onClick={() => doDownload(buildJSON(), _fnBase + '.json', 'application/json;charset=utf-8')} className="font-body" style={{ padding: '5px 10px', background: 'var(--bg-card)', border: '1px solid var(--accent-gold)', borderRadius: 2, fontSize: 11, cursor: 'pointer', color: 'var(--accent-gold)' }}>
+              ⬇ JSON
+            </button>
+          </div>
+          {exportMsg && (
+            <div className="font-body" style={{ fontSize: 11, color: 'var(--accent-gold)', marginTop: 7, fontWeight: 600 }}>✓ {exportMsg}</div>
+          )}
         </div>
         {/* Log timeline */}
         <div style={{
