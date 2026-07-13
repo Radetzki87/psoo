@@ -1,0 +1,4556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zoologic — Animal Logic Puzzle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root {
+    --bg-paper: #FAF7F0;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F5F2EA;
+    --bg-fixed: #EEE9DC;       /* pre-mark tile background — neutral, not gold */
+    --ink-primary: #1C1917;
+    --ink-secondary: #44403C;
+    --ink-tertiary: #78716C;
+    --border-soft: #E7E5E4;
+    --border-medium: #D6D3D1;
+    --accent-gold: #B45309;    /* reserved: constraints (badges, Q, selection) */
+    --accent-gold-soft: #D97706;
+    --success-soft: #FEF3C7;
+    --forbidden: #E7E5E4;
+    --danger: #B91C1C;
+    --gender-male: #1E3A8A;    /* reserved: ♂ only */
+    --gender-female: #9D174D;  /* reserved: ♀ only */
+    --ok-strict: #B45309;
+    --ok-loose: #92400E;
+    --ok-flexible: #78716C;
+    --lang-font: 'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body, #root { margin: 0; padding: 0; background: var(--bg-paper); color: var(--ink-primary); }
+  body {
+    font-family: var(--lang-font);
+    -webkit-font-smoothing: antialiased;
+    /* Suppress mobile system gestures that interfere with the puzzle UX:
+       - iOS long-press callout (image save / share menu)
+       - iOS magnifier on long-press
+       - blue tap highlight rectangle
+       - long-press text selection bubble
+       The game has its own long-press semantics for tile attribute popovers,
+       and accidental triggering of system menus over tile images breaks flow. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Re-enable text selection inside elements where reading/copying matters
+     (tooltips, help modal body, dialogs). Add `data-selectable="1"` to opt-in. */
+  [data-selectable="1"], [data-selectable="1"] * {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  /* Images everywhere: disable native HTML5 drag and iOS preview/save menu.
+     The puzzle moves tiles via its own pointer-drag system; native drag would
+     fight it. */
+  img {
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    pointer-events: none;  /* let parent tile own pointer events */
+  }
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+  .font-body { font-family: var(--lang-font); }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; }
+  button:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+
+  @keyframes cellResolve {
+    0% { transform: scale(0.88); opacity: 0.6; }
+    60% { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes partnerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(180, 83, 9, 0.2); }
+  }
+  @keyframes celebrationWave {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.08); filter: brightness(1.15) saturate(1.1); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  @keyframes fadeInUp {
+    0% { transform: translateY(8px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes progressShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes softPulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(180,83,9,0); }
+    50%      { box-shadow: 0 0 0 4px rgba(180,83,9,0.18); }
+  }
+  @keyframes tooltipIn {
+    0%   { opacity: 0; transform: translateY(-4px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes badgeTipFade {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Accessibility: respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Stronger keyboard focus indication */
+  [role="button"]:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<!-- Inlined from i18n.jsx (originally a separate file) -->
+<script type="text/babel">
+// =============================================================================
+// i18n — Zoologic multi-language support
+// Korean primary, plus English, Simplified Chinese, Japanese.
+// Exports: LANGS, STRINGS, ANIMAL_NAMES, LangProvider, useT, useLang,
+//          LangSwitcher, getFontStack.
+// =============================================================================
+'use strict';
+
+const { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ─────────────────────────────────────────────────────────────────
+// Language metadata
+// ─────────────────────────────────────────────────────────────────
+const LANGS = [
+  { code: 'ko', label: '한국어', short: 'KO', htmlLang: 'ko' },
+  { code: 'en', label: 'English', short: 'EN', htmlLang: 'en' },
+  { code: 'zh', label: '简体中文', short: '中', htmlLang: 'zh-CN' },
+  { code: 'ja', label: '日本語', short: '日', htmlLang: 'ja' },
+];
+
+// Language-specific UI font stacks.
+// Each language gets a primary web font optimised for its script +
+// graceful system fallbacks. Display font (Fraunces) is retained for
+// serif headings in all languages — it handles Latin; CJK glyphs fall
+// through to the body stack automatically.
+const FONT_STACK = {
+  ko: `'Pretendard', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif`,
+  en: `'Inter', 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif`,
+  zh: `'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', system-ui, sans-serif`,
+  ja: `'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', system-ui, sans-serif`,
+};
+
+function getFontStack(lang) { return FONT_STACK[lang] || FONT_STACK.ko; }
+
+// ─────────────────────────────────────────────────────────────────
+// Animal names — standard common-name style per Q
+// (penguin / fox / 企鹅 / ペンギン — most familiar forms)
+// ─────────────────────────────────────────────────────────────────
+const ANIMAL_NAMES = {
+  1:  { ko: '사자',     en: 'Lion',           zh: '狮子',   ja: 'ライオン' },
+  2:  { ko: '얼룩말',   en: 'Zebra',          zh: '斑马',   ja: 'シマウマ' },
+  3:  { ko: '코끼리',   en: 'Elephant',       zh: '大象',   ja: 'ゾウ' },
+  4:  { ko: '북극곰',   en: 'Polar Bear',     zh: '北极熊', ja: 'ホッキョクグマ' },
+  5:  { ko: '펭귄',     en: 'Penguin',        zh: '企鹅',   ja: 'ペンギン' },
+  6:  { ko: '바다표범', en: 'Seal',           zh: '海豹',   ja: 'アザラシ' },
+  7:  { ko: '돌고래',   en: 'Dolphin',        zh: '海豚',   ja: 'イルカ' },
+  8:  { ko: '바다거북', en: 'Sea Turtle',     zh: '海龟',   ja: 'ウミガメ' },
+  9:  { ko: '상어',     en: 'Shark',          zh: '鲨鱼',   ja: 'サメ' },
+  10: { ko: '호랑이',   en: 'Tiger',          zh: '老虎',   ja: 'トラ' },
+  11: { ko: '판다',     en: 'Panda',          zh: '熊猫',   ja: 'パンダ' },
+  12: { ko: '사슴',     en: 'Deer',           zh: '鹿',     ja: 'シカ' },
+};
+
+function getAnimalName(id, lang) {
+  return (ANIMAL_NAMES[id] && ANIMAL_NAMES[id][lang]) || ANIMAL_NAMES[id]?.ko || '';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Translations
+// ─────────────────────────────────────────────────────────────────
+// Function-values receive an args object. Example: t('progress.placed', {n, total})
+// KO tone: friendly/soft (Q4 answer — "이 줄은 모두 암컷이에요")
+// EN tone: friendly conversational (Q5)
+// ZH/JP: localized puzzle-game idioms, short & punchy (Q6)
+// ─────────────────────────────────────────────────────────────────
+const STRINGS = {
+  // ─── App chrome ───────────────────────────────────────────────
+  'app.title': {
+    ko: 'Zoologic — 동물 논리 퍼즐',
+    en: 'Zoologic — Animal Logic Puzzle',
+    zh: 'Zoologic — 动物逻辑谜题',
+    ja: 'Zoologic — どうぶつロジックパズル',
+  },
+  'app.brand': {
+    ko: 'Zoologic', en: 'Zoologic', zh: 'Zoologic', ja: 'Zoologic',
+  },
+  'app.tagline': {
+    ko: '동물 논리 퍼즐',
+    en: 'Animal logic puzzle',
+    zh: '动物逻辑谜题',
+    ja: 'どうぶつロジックパズル',
+  },
+
+  // ─── Attribute values (habitat / diet / gender) ────────────────
+  'habitat.savanna':  { ko: '사바나',   en: 'Savanna',  zh: '草原',   ja: 'サバンナ' },
+  'habitat.arctic':   { ko: '극지',     en: 'Arctic',   zh: '极地',   ja: '極地' },
+  'habitat.ocean':    { ko: '해양',     en: 'Ocean',    zh: '海洋',   ja: '海洋' },
+  'habitat.forest':   { ko: '숲',       en: 'Forest',   zh: '森林',   ja: '森' },
+  'diet.carnivore':   { ko: '육식',     en: 'Carnivore',zh: '食肉',   ja: '肉食' },
+  'diet.herbivore':   { ko: '초식',     en: 'Herbivore',zh: '食草',   ja: '草食' },
+  'gender.male':      { ko: '수컷',     en: 'Male',     zh: '雄性',   ja: 'オス' },
+  'gender.female':    { ko: '암컷',     en: 'Female',   zh: '雌性',   ja: 'メス' },
+  'gender.unset':     { ko: '성별 미정', en: 'Gender unset', zh: '未定性别', ja: '性別未定' },
+  'dim.habitat':      { ko: '서식지',   en: 'Habitat',  zh: '栖息地', ja: '生息地' },
+  'dim.diet':         { ko: '식성',     en: 'Diet',     zh: '食性',   ja: '食性' },
+  'dim.gender':       { ko: '성별',     en: 'Gender',   zh: '性别',   ja: '性別' },
+
+  // ─── Difficulty ────────────────────────────────────────────────
+  'diff.Sprout.label': { ko: '새싹', en: 'Sprout', zh: '萌芽', ja: '新芽' },
+  'diff.Sprout.subtitle': {
+    ko: '인접과 서식지에 익숙해져요',
+    en: 'Get comfy with adjacency and habitats',
+    zh: '熟悉相邻规则与栖息地',
+    ja: '隣接と生息地に慣れよう',
+  },
+  'diff.Easy.label': { ko: '기초', en: 'Easy', zh: '入门', ja: '初級' },
+  'diff.Easy.subtitle': {
+    ko: '서식지와 식성이 교차해요',
+    en: 'Habitats and diets intertwine',
+    zh: '栖息地与食性交织',
+    ja: '生息地と食性が交差',
+  },
+  'diff.MediumPlus.label': { ko: '중상급', en: 'Medium+', zh: '中上', ja: '中上級' },
+  'diff.MediumPlus.subtitle': {
+    ko: '규약 4-5개가 교차합니다',
+    en: 'Four to five rules intertwine',
+    zh: '4-5 条规则交织',
+    ja: 'ルール4〜5個が絡む',
+  },
+  'diff.Medium.label': { ko: '중급', en: 'Medium', zh: '中级', ja: '中級' },
+  'diff.Medium.subtitle': {
+    ko: '규약이 느슨해 추론의 여지가 커요',
+    en: 'Looser rules, more room to reason',
+    zh: '规则宽松，推理空间大',
+    ja: 'ルール緩め、推理の幅広し',
+  },
+  'diff.Hard.label': { ko: '상급', en: 'Hard', zh: '高级', ja: '上級' },
+  'diff.Hard.subtitle': {
+    ko: '규약 8개가 촘촘하게 얽힙니다',
+    en: 'Eight rules tightly intertwined',
+    zh: '8 条规则紧密交织',
+    ja: 'ルール8個が密に絡み合う',
+  },
+
+  // ─── Header / Progress ─────────────────────────────────────────
+  'header.difficulty': {
+    ko: '난이도 선택',
+    en: 'Difficulty',
+    zh: '难度选择',
+    ja: '難易度',
+  },
+  'header.help': {
+    ko: '도움말',
+    en: 'Help',
+    zh: '帮助',
+    ja: 'ヘルプ',
+  },
+  'header.lang': {
+    ko: '언어',
+    en: 'Language',
+    zh: '语言',
+    ja: '言語',
+  },
+  'progress.placed': { ko: '배치', en: 'Placed', zh: '已放', ja: '配置' },
+  'progress.gender': { ko: '성별', en: 'Gender', zh: '性别', ja: '性別' },
+  'progress.adjacency': { ko: '인접', en: 'Adjacent', zh: '相邻', ja: '隣接' },
+
+  // ─── Uniqueness badge ──────────────────────────────────────────
+  'uniq.strict.label': {
+    ko: '유일해',
+    en: 'Unique',
+    zh: '唯一解',
+    ja: '唯一解',
+  },
+  'uniq.strict.desc': {
+    ko: '답이 정확히 하나예요',
+    en: 'Exactly one valid answer',
+    zh: '仅有一个正解',
+    ja: '正解はひとつだけ',
+  },
+  'uniq.loose.label': {
+    ko: ({ n }) => `해답 ${n}개 중 하나`,
+    en: ({ n }) => `One of ${n} answers`,
+    zh: ({ n }) => `${n} 解中之一`,
+    ja: ({ n }) => `${n}解のうち一つ`,
+  },
+  'uniq.loose.desc': {
+    ko: ({ n }) => `${n}개의 유효한 답 중 하나를 찾으면 돼요`,
+    en: ({ n }) => `Find any one of ${n} valid answers`,
+    zh: ({ n }) => `在 ${n} 个有效解中找出一个即可`,
+    ja: ({ n }) => `${n}通りのうち一つを見つければOK`,
+  },
+  'uniq.flex.label': {
+    ko: '규약 만족',
+    en: 'Rules satisfied',
+    zh: '满足规则',
+    ja: 'ルール達成',
+  },
+  'uniq.flex.desc': {
+    ko: '모든 규약을 지키는 배치를 찾아보세요',
+    en: 'Find any placement that satisfies every rule',
+    zh: '找出满足全部规则的布局',
+    ja: '全ルールを満たす配置を探そう',
+  },
+
+  // ─── Line rule tooltip ─────────────────────────────────────────
+  'linerule.tip': {
+    ko: ({ label }) => `이 줄은 전부 ${label}이에요`,
+    en: ({ label }) => `Every tile in this line is ${label}`,
+    zh: ({ label }) => `本行/列全为${label}`,
+    ja: ({ label }) => `このラインは全部${label}`,
+  },
+  'linerule.aria': {
+    ko: ({ tip, ok }) => `라인 제약: ${tip}${ok ? ' (충족)' : ''}`,
+    en: ({ tip, ok }) => `Line constraint: ${tip}${ok ? ' (satisfied)' : ''}`,
+    zh: ({ tip, ok }) => `线路约束:${tip}${ok ? '(已满足)' : ''}`,
+    ja: ({ tip, ok }) => `ライン制約:${tip}${ok ? '(達成)' : ''}`,
+  },
+
+  // ─── Count hint badge ──────────────────────────────────────────
+  'count.kind.total':  { ko: '전체', en: 'Total', zh: '共', ja: '全' },
+  'count.kind.male':   { ko: '수컷', en: 'Male',  zh: '雄', ja: 'オス' },
+  'count.kind.female': { ko: '암컷', en: 'Female',zh: '雌', ja: 'メス' },
+  // Counter unit shown next to the number on the "total" badge — a localized
+  // animal counter (마리 / 只 / 匹). English uses no suffix since "5" alone
+  // reads naturally; CJK languages have dedicated counter words.
+  'count.unit':        { ko: '마리', en: '',       zh: '只', ja: '匹' },
+  'count.tip': {
+    ko: ({ kind, n, over, ok }) => `이 줄에 ${kind} ${n}마리${over ? ' · 초과' : ok ? ' · 충족' : ''}`,
+    en: ({ kind, n, over, ok }) => `${kind}: ${n} in this line${over ? ' · over' : ok ? ' · met' : ''}`,
+    zh: ({ kind, n, over, ok }) => `此线${kind}${n}只${over ? '·超出' : ok ? '·达成' : ''}`,
+    ja: ({ kind, n, over, ok }) => `このラインに${kind}${n}匹${over ? '·超過' : ok ? '·達成' : ''}`,
+  },
+  'count.aria': {
+    ko: ({ kind, n, ok, over }) => `${kind} ${n}마리${ok ? ' (충족)' : over ? ' (초과)' : ''}`,
+    en: ({ kind, n, ok, over }) => `${kind} ${n}${ok ? ' (met)' : over ? ' (over)' : ''}`,
+    zh: ({ kind, n, ok, over }) => `${kind}${n}${ok ? '(达成)' : over ? '(超出)' : ''}`,
+    ja: ({ kind, n, ok, over }) => `${kind}${n}${ok ? '(達成)' : over ? '(超過)' : ''}`,
+  },
+
+  // ─── Tile aria ─────────────────────────────────────────────────
+  'tile.aria': {
+    ko: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? ` ${gender}` : ' 성별 미정'}${fixed ? ' (고정)' : ''}${bad ? ' — 짝과 인접하지 않음' : ''}`,
+    en: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `, ${gender}` : ', gender unset'}${fixed ? ' (fixed)' : ''}${bad ? ' — not adjacent to partner' : ''}`,
+    zh: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `·${gender}` : '·性别未定'}${fixed ? '(固定)' : ''}${bad ? ' — 与配偶不相邻' : ''}`,
+    ja: ({ name, gender, fixed, bad }) =>
+      `${name}${gender ? `·${gender}` : '·性別未定'}${fixed ? '(固定)' : ''}${bad ? ' — ペアと非隣接' : ''}`,
+  },
+  'tile.fixed': {
+    ko: '고정 타일 (변경 불가)',
+    en: 'Fixed tile (cannot move)',
+    zh: '固定棋子(不可移动)',
+    ja: '固定タイル(移動不可)',
+  },
+
+  // ─── Hand ──────────────────────────────────────────────────────
+  'hand.title': {
+    ko: '손패',
+    en: 'Hand',
+    zh: '手牌',
+    ja: '手札',
+  },
+  'hand.waiting': {
+    ko: ({ n }) => `${n}마리 대기`,
+    en: ({ n }) => `${n} waiting`,
+    zh: ({ n }) => `${n} 只待放`,
+    ja: ({ n }) => `${n}匹待機`,
+  },
+  'hand.allPlaced': {
+    ko: '모든 토큰이 배치됐어요',
+    en: 'All tokens placed',
+    zh: '全部已放置',
+    ja: '全て配置済み',
+  },
+  'hand.hint': {
+    ko: '타일 클릭으로 성별 순환 · 짝은 상하좌우대각선 이웃이어야 해요',
+    en: 'Tap to cycle gender · pairs must be 8-way neighbors',
+    zh: '点击切换性别 · 配对要八方向相邻',
+    ja: 'タップで性別切替 · ペアは8方向のどこかで隣接',
+  },
+
+  // ─── Bottom toolbar ────────────────────────────────────────────
+  'btn.new': {
+    ko: '새 퍼즐',
+    en: 'New puzzle',
+    zh: '新谜题',
+    ja: '新しい問題',
+  },
+  'btn.reset': {
+    ko: '초기화',
+    en: 'Reset',
+    zh: '重置',
+    ja: 'リセット',
+  },
+  'btn.hint': {
+    ko: '정답 보기',
+    en: 'Show answer',
+    zh: '查看答案',
+    ja: '答えを見る',
+  },
+
+  // ─── Help ──────────────────────────────────────────────────────
+  'help.open':  { ko: '규약 읽는 법 ↓', en: 'How to read rules ↓', zh: '规则说明 ↓', ja: 'ルールの読み方 ↓' },
+  'help.close': { ko: '규약 읽는 법 ↑', en: 'How to read rules ↑', zh: '规则说明 ↑', ja: 'ルールの読み方 ↑' },
+  'help.rule.global.label':   { ko: '전역 규약.', en: 'Global rule.', zh: '全局规则。', ja: '全体ルール。' },
+  'help.rule.global.body': {
+    ko: '같은 종 두 마리는 반드시 상·하·좌·우·대각선 중 하나로 이웃이어야 해요.',
+    en: 'A matching pair must be 8-way neighbors — up, down, left, right, or diagonal.',
+    zh: '同种的两只必须在八方向(上下左右及对角)中相邻。',
+    ja: '同種2匹は上下左右+対角の8方向のいずれかで必ず隣接。',
+  },
+  'help.rule.count.label': { ko: '메인 규약 #.', en: 'Count hint #.', zh: '数量提示 #。', ja: '数量ヒント #。' },
+  'help.rule.count.body': {
+    ko: '가장자리의 #N은 해당 행/열의 총 토큰 수가 N이라는 뜻이에요. 힌트가 없는 라인도 있어요.',
+    en: 'An edge #N means that row/column has exactly N tokens. Not every line has a hint.',
+    zh: '边上的 #N 表示该行/列共 N 个棋子,并非每行每列都带提示。',
+    ja: '端の #N はその行/列の合計がN個という意味。ヒントが無いラインもある。',
+  },
+  'help.rule.line.label': { ko: '라인 규약.', en: 'Line rule.', zh: '线路规则。', ja: 'ラインルール。' },
+  'help.rule.line.body': {
+    ko: '일부 행/열은 하나의 서식지/식성/성별로만 채워져야 해요. 난이도별로 2~4개가 나타납니다.',
+    en: 'Some rows/columns must be all one habitat, diet, or gender. 2–4 per puzzle depending on difficulty.',
+    zh: '部分行/列需全为同一栖息地/食性/性别,每题 2-4 条,依难度而定。',
+    ja: '一部の行/列は同じ生息地/食性/性別で揃える必要。難易度で2〜4個。',
+  },
+  'help.rule.fixed.label': { ko: '고정 타일.', en: 'Fixed tiles.', zh: '固定棋子。', ja: '固定タイル。' },
+  'help.rule.fixed.body': {
+    ko: '옅은 배경의 타일은 움직일 수 없고 성별도 이미 결정되어 있어요.',
+    en: 'Tinted tiles cannot be moved and their gender is already set.',
+    zh: '带底纹的棋子不可移动,性别也已确定。',
+    ja: '色付きのタイルは移動不可で、性別も確定済み。',
+  },
+  'help.rule.uniq.label': { ko: '유일성 등급.', en: 'Uniqueness grade.', zh: '唯一性等级。', ja: '唯一性の等級。' },
+  'help.rule.uniq.body': {
+    ko: ({ strict, loose }) => `${strict}는 답이 정확히 하나, ${loose}는 여러 유효해 중 하나를 찾으면 돼요.`,
+    en: ({ strict, loose }) => `${strict} = exactly one answer; ${loose} = find any one of several.`,
+    zh: ({ strict, loose }) => `${strict}仅有唯一解,${loose}在多个有效解中找出一个即可。`,
+    ja: ({ strict, loose }) => `${strict}は正解1通り、${loose}は複数解のうち1つでOK。`,
+  },
+  'help.rule.flow.label': { ko: '단계.', en: 'Flow.', zh: '操作。', ja: '流れ。' },
+  'help.rule.flow.body': {
+    ko: '(1) 손패에서 드래그하여 격자에 배치 · (2) 타일 클릭으로 ? → ♂ → ♀ → ? 순환. 짝은 자동으로 반대 성별이 돼요.',
+    en: '(1) Drag from hand onto the grid · (2) Tap a tile to cycle ? → ♂ → ♀ → ?. The partner flips automatically.',
+    zh: '(1)从手牌拖到格子 ·(2)点击棋子循环 ? → ♂ → ♀ → ?,配偶自动反转。',
+    ja: '(1)手札からドラッグで配置 ·(2)タップで ? → ♂ → ♀ → ? 循環。ペアは自動で反対。',
+  },
+
+  // ─── Loading ───────────────────────────────────────────────────
+  'loading.generating': {
+    ko: '새 퍼즐 생성 중',
+    en: 'Generating new puzzle',
+    zh: '正在生成新谜题',
+    ja: '新しい問題を生成中',
+  },
+  'loading.attempts': {
+    ko: ({ n }) => `시도 ${n}`,
+    en: ({ n }) => `Attempt ${n}`,
+    zh: ({ n }) => `第 ${n} 次尝试`,
+    ja: ({ n }) => `試行 ${n}`,
+  },
+  'loading.strict': {
+    ko: '유일해 탐색 중',
+    en: 'Searching for a unique solution',
+    zh: '搜索唯一解中',
+    ja: '唯一解を探索中',
+  },
+  'loading.loose': {
+    ko: ({ n }) => `해답 ${n}개 이하 허용 중`,
+    en: ({ n }) => `Allowing up to ${n} solutions`,
+    zh: ({ n }) => `允许不超过 ${n} 个解`,
+    ja: ({ n }) => `${n}解以下を許容中`,
+  },
+
+  // ─── Win dialog ────────────────────────────────────────────────
+  'win.headline1': {
+    ko: '모든 짝이',
+    en: 'Every pair',
+    zh: '每一对',
+    ja: 'すべての番い',
+  },
+  'win.headline2': {
+    ko: '이웃으로.',
+    en: 'a neighbor.',
+    zh: '都相邻了。',
+    ja: '隣り合う。',
+  },
+  'win.subtitle': {
+    ko: ({ glyph, label }) => `${glyph} ${label} 난이도 해결`,
+    en: ({ glyph, label }) => `${glyph} ${label} solved`,
+    zh: ({ glyph, label }) => `${glyph} ${label} 通关`,
+    ja: ({ glyph, label }) => `${glyph} ${label} クリア`,
+  },
+  'win.desc.loose': {
+    ko: ({ n }) => `유효한 ${n}개 해답 중 하나를 찾았어요`,
+    en: ({ n }) => `Found one of ${n} valid answers`,
+    zh: ({ n }) => `在 ${n} 个有效解中找到了一个`,
+    ja: ({ n }) => `${n}通りの正解のうちの一つを発見`,
+  },
+  'win.desc.flex': {
+    ko: '규약을 만족하는 배치를 완성했어요',
+    en: 'You satisfied every rule',
+    zh: '已完成满足全部规则的布局',
+    ja: '全ルールを満たす配置を完成',
+  },
+  'win.next': {
+    ko: '다음 퍼즐 →',
+    en: 'Next puzzle →',
+    zh: '下一题 →',
+    ja: '次の問題 →',
+  },
+  'win.more': {
+    ko: '조금 더 보기',
+    en: 'Stay a moment',
+    zh: '再看一会',
+    ja: 'もう少し見る',
+  },
+
+  // ─── Legend / misc ─────────────────────────────────────────────
+  'legend.rules': { ko: '규약', en: 'Rules', zh: '规则', ja: 'ルール' },
+  'legend.how': {
+    ko: '인접, 카운트, 라인 규약',
+    en: 'Adjacency, counts, line rules',
+    zh: '相邻 · 数量 · 线路规则',
+    ja: '隣接・数量・ラインルール',
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Context + hooks
+// ─────────────────────────────────────────────────────────────────
+const LangContext = createContext({ lang: 'ko', setLang: () => {}, t: (k) => k });
+
+function LangProvider({ children, initialLang = 'ko', onChange }) {
+  const [lang, setLangState] = useState(initialLang);
+
+  const setLang = useCallback((next) => {
+    if (!LANGS.find(l => l.code === next)) return;
+    setLangState(next);
+    try { localStorage.setItem('zoologic.lang', next); } catch (e) {}
+    if (onChange) onChange(next);
+  }, [onChange]);
+
+  // Sync <html lang>, font stack + --lang-font CSS variable on change.
+  useEffect(() => {
+    const meta = LANGS.find(l => l.code === lang) || LANGS[0];
+    document.documentElement.setAttribute('lang', meta.htmlLang);
+    document.documentElement.style.setProperty('--lang-font', FONT_STACK[lang]);
+    document.body.style.fontFamily = FONT_STACK[lang];
+  }, [lang]);
+
+  const t = useCallback((key, args) => {
+    const entry = STRINGS[key];
+    if (!entry) return key;
+    const val = entry[lang] || entry.ko || key;
+    if (typeof val === 'function') return val(args || {});
+    return val;
+  }, [lang]);
+
+  const ctxValue = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
+  return <LangContext.Provider value={ctxValue}>{children}</LangContext.Provider>;
+}
+
+function useLang() { return useContext(LangContext); }
+function useT() { return useContext(LangContext).t; }
+
+// Translate a habitat/diet/gender raw value (the Korean keys used in ANIMALS)
+// into the current language. Returns the raw value unchanged if not found.
+function translateValue(raw, t) {
+  const map = {
+    '사바나': 'habitat.savanna', '극지': 'habitat.arctic', '해양': 'habitat.ocean', '숲': 'habitat.forest',
+    '육식':  'diet.carnivore',   '초식': 'diet.herbivore',
+    'male':  'gender.male',      'female': 'gender.female',
+  };
+  return map[raw] ? t(map[raw]) : raw;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Language switcher component — header dropdown
+// ─────────────────────────────────────────────────────────────────
+function LangSwitcher({ compact = false }) {
+  const { lang, setLang, t } = useLang();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const current = LANGS.find(l => l.code === lang) || LANGS[0];
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t('header.lang')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: compact ? '6px 8px' : '7px 10px',
+          border: '1px solid var(--border-medium)',
+          borderRadius: 4,
+          background: open ? 'var(--bg-subtle)' : 'var(--bg-card)',
+          color: 'var(--ink-primary)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 500,
+          letterSpacing: '0.02em',
+          minHeight: 32,
+          transition: 'background 120ms',
+        }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18" />
+        </svg>
+        <span style={{ fontFamily: FONT_STACK[lang] }}>{current.short}</span>
+        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ opacity: 0.6 }}>
+          <path d="M2 4l4 4 4-4" />
+        </svg>
+      </button>
+      {open && (
+        <ul role="listbox" aria-label={t('header.lang')} style={{
+          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+          margin: 0, padding: 4, listStyle: 'none',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-medium)',
+          borderRadius: 4,
+          boxShadow: '0 8px 24px -6px rgba(0,0,0,0.18)',
+          minWidth: 140,
+          zIndex: 500,
+        }}>
+          {LANGS.map(l => {
+            const active = l.code === lang;
+            return (
+              <li key={l.code}>
+                <button
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => { setLang(l.code); setOpen(false); }}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    padding: '8px 10px',
+                    border: 'none',
+                    background: active ? 'var(--bg-subtle)' : 'transparent',
+                    color: 'var(--ink-primary)',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    textAlign: 'left',
+                    borderRadius: 3,
+                    fontFamily: FONT_STACK[l.code],
+                  }}>
+                  <span style={{ fontWeight: active ? 600 : 400 }}>{l.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>{l.short}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// Expose everything on window so sibling <script type="text/babel"> blocks
+// can access without ES module imports.
+Object.assign(window, {
+  LANGS, STRINGS, ANIMAL_NAMES, FONT_STACK,
+  LangProvider, LangContext, useLang, useT, LangSwitcher,
+  getFontStack, getAnimalName, translateValue,
+});
+</script>
+
+<script type="text/babel">
+'use strict';
+
+const { useState, useEffect, useMemo, useCallback, useReducer, useRef } = React;
+
+// =============================================================================
+// SECTION 1 — DATA CONSTANTS
+// =============================================================================
+
+const ANIMALS = [
+  { id: 1,  name: '사자',     emoji: '🦁', diet: '육식', habitat: '사바나' },
+  { id: 2,  name: '얼룩말',   emoji: '🦓', diet: '초식', habitat: '사바나' },
+  { id: 3,  name: '코끼리',   emoji: '🐘', diet: '초식', habitat: '사바나' },
+  { id: 4,  name: '북극곰',   emoji: '🐻‍❄️', diet: '육식', habitat: '극지' },
+  { id: 5,  name: '펭귄',     emoji: '🐧', diet: '육식', habitat: '극지' },
+  { id: 6,  name: '바다표범', emoji: '🦭', diet: '육식', habitat: '극지' },
+  { id: 7,  name: '돌고래',   emoji: '🐬', diet: '육식', habitat: '해양' },
+  { id: 8,  name: '바다거북', emoji: '🐢', diet: '초식', habitat: '해양' },
+  { id: 9,  name: '상어',     emoji: '🦈', diet: '육식', habitat: '해양' },
+  { id: 10, name: '호랑이',   emoji: '🐯', diet: '육식', habitat: '숲' },
+  { id: 11, name: '판다',     emoji: '🐼', diet: '초식', habitat: '숲' },
+  { id: 12, name: '사슴',     emoji: '🦌', diet: '초식', habitat: '숲' },
+];
+
+const IMAGE_BASE_URL = 'imgsrc';
+
+function getAnimalImageUrl(animalId, gender) {
+  const num = (animalId - 1) * 2 + (gender === 'male' ? 1 : 2);
+  return `${IMAGE_BASE_URL}/${num}.webp`;
+}
+
+const HABITAT_TINT = {
+  '사바나': '#FEF3C7',
+  '극지':   '#DBEAFE',
+  '해양':   '#CFFAFE',
+  '숲':     '#DCFCE7',
+};
+
+const ATTR_ICON = {
+  '육식': '🥩', '초식': '🌿',
+  '사바나': '☀️', '극지': '❄️', '해양': '🌊', '숲': '🌲',
+  'male': '♂', 'female': '♀',
+};
+
+const DIM_LABEL = {
+  'habitat': '서식지',
+  'diet': '식성',
+  'gender': '성별',
+};
+
+const VALUE_LABEL = {
+  '사바나': '사바나', '극지': '극지', '해양': '해양', '숲': '숲',
+  '육식': '육식', '초식': '초식',
+  'male': '수컷', 'female': '암컷',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Difficulty Configs V2 — Q1-Q4 design reflected
+// ─────────────────────────────────────────────────────────────────────────────
+const DIFFICULTY_CONFIGS = {
+  Sprout: {
+    n: 4, k: 3, forbiddenCount: 0,
+    animalPoolRestriction: 'same_habitat',
+    ruleCount: [2, 2],
+    ruleDimensions: ['habitat'],
+    countCoverage: [6, 7],           // 8 lines, 75-87%
+    fixedTileCount: [2, 3],
+    maxSolutions: 1,                  // Strict
+    totalBudgetMs: 6000,
+    verifyTimeLimitMs: 800,
+    maxAttempts: 500,
+    label: '새싹', glyph: '🌱',
+    subtitle: '인접과 서식지를 익혀봅니다',
+  },
+  Easy: {
+    n: 5, k: 5, forbiddenCount: [1, 3],
+    animalPoolRestriction: 'any',
+    ruleCount: [2, 3],
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [8, 9],           // 10 lines, 80-90%
+    fixedTileCount: [3, 4],          // increased for symmetry breaking
+    maxSolutions: 10,                 // Loose (≤10) — realistic for k=5
+    totalBudgetMs: 20000,
+    verifyTimeLimitMs: 3000,
+    maxAttempts: 1000,
+    label: '기초', glyph: '🌿',
+    subtitle: '서식지와 식성이 교차합니다',
+  },
+  Medium: {
+    n: 6, k: 7, forbiddenCount: [2, 4],
+    animalPoolRestriction: 'any',
+    ruleCount: [3, 4],
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [12, 12],         // 12 lines, 100% — eliminates info-shortage bottleneck
+    fixedTileCount: [3, 4],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 1,                 // Loose (≤20)
+    totalBudgetMs: 20000,
+    verifyTimeLimitMs: 2500,
+    maxAttempts: 2000,
+    label: '중급', glyph: '🌳',
+    subtitle: '규약이 느슨해 추론의 여지가 큽니다',
+  },
+  MediumPlus: {
+    n: 6, k: 9, forbiddenCount: [2, 4],
+    animalPoolRestriction: 'any',
+    ruleCount: [5,5],                // one more rule on average
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [12, 12],         // 12 lines, 100%
+    fixedTileCount: [5, 5],           // ≥ ruleCount max to anchor all rules
+    maxSolutions: 1,                 // Loose (≤25)
+    totalBudgetMs: 30000,
+    verifyTimeLimitMs: 5000,
+    maxAttempts: 2500,
+    label: '중상급', glyph: '🌲',
+    subtitle: '규약 4-5개가 교차합니다',
+  },
+  Hard: {
+    n: 7, k: 11, forbiddenCount: [3, 5],
+    animalPoolRestriction: 'any',
+    ruleCount: [8,8],                // +2 rules compared to previous [5,6]
+    ruleDimensions: ['habitat', 'diet'],
+    countCoverage: [14, 14],         // 14 lines, 100% — eliminates info-shortage bottleneck
+    fixedTileCount: [9, 9],           // ≥ ruleCount max to anchor every rule
+    maxSolutions: 1,                 // Loose (≤30)
+    totalBudgetMs: 40000,
+    verifyTimeLimitMs: 10000,
+    maxAttempts: 35500,
+    label: '상급', glyph: '🏔',
+    subtitle: '규약 8개가 촘촘하게 얽힙니다',
+  },
+};
+
+// =============================================================================
+// SECTION 2 — ENGINE UTILS
+// =============================================================================
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function isAdjacent(c1, c2) {
+  return Math.max(Math.abs(c1.row - c2.row), Math.abs(c1.col - c2.col)) === 1;
+}
+
+function getPartnerToken(tokenId, pairs) {
+  for (const [t1, t2] of pairs) {
+    if (t1 === tokenId) return t2;
+    if (t2 === tokenId) return t1;
+  }
+  return null;
+}
+
+function getTokensInRow(r, tokens) { return tokens.filter(t => t.row === r); }
+function getTokensInCol(c, tokens) { return tokens.filter(t => t.col === c); }
+
+function animalById(id) { return ANIMALS.find(a => a.id === id); }
+
+// =============================================================================
+// SECTION 3 — 4-STAGE GENERATION PIPELINE
+// =============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE A: Design Rule Template — Constraint-First Generation
+// ─────────────────────────────────────────────────────────────────────────────
+function designRuleTemplate(config, animals) {
+  const targetCount = randInt(config.ruleCount[0], config.ruleCount[1]);
+  const dims = config.ruleDimensions;
+  const n = config.n;
+
+  // Enumerate all possible rules
+  const allRules = [];
+  for (let i = 0; i < n; i++) {
+    for (const isRow of [true, false]) {
+      for (const dim of dims) {
+        if (dim === 'habitat') {
+          for (const val of ['사바나', '극지', '해양', '숲']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        } else if (dim === 'diet') {
+          for (const val of ['육식', '초식']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        } else if (dim === 'gender') {
+          for (const val of ['male', 'female']) {
+            allRules.push({ isRow, idx: i, dim, val });
+          }
+        }
+      }
+    }
+  }
+
+  // Try random combinations
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const candidate = shuffle(allRules).slice(0, targetCount);
+
+    // Check line uniqueness (no two rules on same line)
+    const lines = new Set();
+    let valid = true;
+    for (const r of candidate) {
+      const key = `${r.isRow ? 'r' : 'c'}${r.idx}`;
+      if (lines.has(key)) { valid = false; break; }
+      lines.add(key);
+    }
+    if (!valid) continue;
+
+    // Check cross-cell feasibility
+    if (!crossCellsFeasible(candidate, animals)) continue;
+
+    return candidate.map((r, i) => ({ ...r, id: `rule-${i}` }));
+  }
+  return null;
+}
+
+function crossCellsFeasible(rules, animals) {
+  // For row rule vs col rule pairs, check if their cross cell can hold any animal
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = i + 1; j < rules.length; j++) {
+      const r1 = rules[i], r2 = rules[j];
+      if (r1.isRow === r2.isRow) continue;
+
+      // They cross at one cell; compute compatible animals
+      const compatible = animals.filter(a => {
+        if (r1.dim !== 'gender' && a[r1.dim] !== r1.val) return false;
+        if (r2.dim !== 'gender' && a[r2.dim] !== r2.val) return false;
+        return true;
+      });
+      // Gender rules don't restrict species; always feasible for species
+      // But if both are species dim (habitat/diet), need at least one compatible animal
+      if (r1.dim !== 'gender' && r2.dim !== 'gender' && compatible.length === 0) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE B: Constrained Adjacent Placement
+// ─────────────────────────────────────────────────────────────────────────────
+function constrainedAdjacentPlacement(config, ruleTemplate, forbiddenCells, animals) {
+  const n = config.n;
+  const k = config.k;
+  const forbidden = new Set(forbiddenCells.map(([r, c]) => `${r},${c}`));
+
+  // Build cell domains (which animals can be placed at each cell, given habitat/diet rules)
+  const cellDomains = {};
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const key = `${r},${c}`;
+      if (forbidden.has(key)) continue;
+
+      let allowed = new Set(animals.map(a => a.id));
+      for (const rule of ruleTemplate) {
+        if (rule.dim === 'gender') continue; // gender rules applied post-placement
+        const inLine = rule.isRow ? (rule.idx === r) : (rule.idx === c);
+        if (inLine) {
+          allowed = new Set([...allowed].filter(id => animalById(id)[rule.dim] === rule.val));
+        }
+      }
+      if (allowed.size > 0) cellDomains[key] = allowed;
+    }
+  }
+
+  // For animal pool restriction
+  let animalPool = animals;
+  if (config.animalPoolRestriction === 'same_habitat') {
+    const habitats = ['사바나', '극지', '해양', '숲'];
+    const viableHabitats = habitats.filter(h => animals.filter(a => a.habitat === h).length >= k);
+    if (viableHabitats.length === 0) return null;
+    const h = viableHabitats[randInt(0, viableHabitats.length - 1)];
+    animalPool = animals.filter(a => a.habitat === h);
+  }
+
+  // Compute per-animal options (list of adjacent cell pairs this animal can occupy)
+  const animalOptions = {};
+  for (const animal of animalPool) {
+    const options = [];
+    const cellsForAnimal = Object.entries(cellDomains)
+      .filter(([_, dom]) => dom.has(animal.id))
+      .map(([key]) => {
+        const [r, c] = key.split(',').map(Number);
+        return { row: r, col: c, key };
+      });
+
+    for (const c1 of cellsForAnimal) {
+      for (const c2 of cellsForAnimal) {
+        if (c1.key >= c2.key) continue; // dedupe
+        if (!isAdjacent(c1, c2)) continue;
+        options.push([c1, c2]);
+      }
+    }
+    animalOptions[animal.id] = options;
+  }
+
+  // Viable animals: those with at least one option
+  const viable = animalPool.filter(a => animalOptions[a.id].length > 0);
+  if (viable.length < k) return null;
+
+  // Try selecting k animals and placing them
+  for (let selAttempt = 0; selAttempt < 20; selAttempt++) {
+    const selected = shuffle(viable).slice(0, k);
+    // Sort by fewest options (MRV)
+    selected.sort((a, b) => animalOptions[a.id].length - animalOptions[b.id].length);
+
+    const used = new Set();
+    const result = [];
+
+    function place(idx) {
+      if (idx === k) return true;
+      const animal = selected[idx];
+      const opts = shuffle(animalOptions[animal.id]);
+      for (const [c1, c2] of opts) {
+        if (used.has(c1.key) || used.has(c2.key)) continue;
+        used.add(c1.key); used.add(c2.key);
+        result.push([animal, c1, c2]);
+        if (place(idx + 1)) return true;
+        result.pop();
+        used.delete(c1.key); used.delete(c2.key);
+      }
+      return false;
+    }
+
+    if (place(0)) {
+      // Convert to tokens/pairs
+      const tokens = [], pairs = [];
+      for (let i = 0; i < result.length; i++) {
+        const [animal, c1, c2] = result[i];
+        const t1 = `t${i * 2}`, t2 = `t${i * 2 + 1}`;
+        tokens.push({ id: t1, animalId: animal.id, row: c1.row, col: c1.col });
+        tokens.push({ id: t2, animalId: animal.id, row: c2.row, col: c2.col });
+        pairs.push([t1, t2]);
+      }
+      return { tokens, pairs };
+    }
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gender Assignment Respecting Gender Rules
+// ─────────────────────────────────────────────────────────────────────────────
+function assignGendersWithRules(pairs, tokens, lineRules) {
+  const genderRules = lineRules.filter(r => r.dim === 'gender');
+
+  // Compute forced genders for tokens in gender-rule lines
+  const forcedGender = {};
+  for (const rule of genderRules) {
+    const lineTokens = rule.isRow
+      ? tokens.filter(t => t.row === rule.idx)
+      : tokens.filter(t => t.col === rule.idx);
+    for (const t of lineTokens) {
+      if (forcedGender[t.id] && forcedGender[t.id] !== rule.val) {
+        return null; // conflict
+      }
+      forcedGender[t.id] = rule.val;
+    }
+  }
+
+  // Assign genders respecting forced and pair-constraint
+  const marks = {};
+  for (const [t1, t2] of pairs) {
+    const f1 = forcedGender[t1];
+    const f2 = forcedGender[t2];
+
+    if (f1 && f2) {
+      if (f1 === f2) return null; // pair can't have same gender
+      marks[t1] = f1; marks[t2] = f2;
+    } else if (f1) {
+      marks[t1] = f1; marks[t2] = f1 === 'male' ? 'female' : 'male';
+    } else if (f2) {
+      marks[t2] = f2; marks[t1] = f2 === 'male' ? 'female' : 'male';
+    } else {
+      if (Math.random() < 0.5) { marks[t1] = 'male'; marks[t2] = 'female'; }
+      else { marks[t1] = 'female'; marks[t2] = 'male'; }
+    }
+  }
+  return marks;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE C: Auxiliary Hints — Count hints + Fixed tiles
+// ─────────────────────────────────────────────────────────────────────────────
+function addAuxiliaryHints(placement, config, solution, lineRules, forbiddenCells) {
+  const n = config.n;
+  const tokens = placement.tokens;
+
+  // Identify rule lines (these must have # hints for synergy)
+  const ruleLineKeys = new Set(
+    lineRules.map(r => `${r.isRow ? 'r' : 'c'}${r.idx}`)
+  );
+
+  // All lines
+  const allLines = [];
+  for (let i = 0; i < n; i++) {
+    allLines.push({ isRow: true, idx: i });
+    allLines.push({ isRow: false, idx: i });
+  }
+
+  // Priority: rule lines first, then others
+  const priorityLines = allLines.filter(l =>
+    ruleLineKeys.has(`${l.isRow ? 'r' : 'c'}${l.idx}`)
+  );
+  const otherLines = allLines.filter(l =>
+    !ruleLineKeys.has(`${l.isRow ? 'r' : 'c'}${l.idx}`)
+  );
+
+  // Target count coverage
+  const targetCount = randInt(config.countCoverage[0], config.countCoverage[1]);
+  // Ensure priority lines all included
+  const neededFromOthers = Math.max(0, targetCount - priorityLines.length);
+  const selectedOthers = shuffle(otherLines).slice(0, neededFromOthers);
+  const selectedLines = [...priorityLines, ...selectedOthers];
+
+  // Build # hints (total + optional H1 gender count)
+  const countHints = [];
+  for (let i = 0; i < selectedLines.length; i++) {
+    const line = selectedLines[i];
+    const lineTokens = line.isRow
+      ? getTokensInRow(line.idx, tokens)
+      : getTokensInCol(line.idx, tokens);
+    countHints.push({
+      id: `cnt-${line.isRow ? 'r' : 'c'}${line.idx}`,
+      type: 'total',
+      row: line.isRow ? line.idx : null,
+      col: line.isRow ? null : line.idx,
+      value: lineTokens.length,
+    });
+    // H1 (male count) — adds critical information for pair permutation disambiguation
+    // Skip when line already has gender-only rule (redundant) or empty
+    const hasGenderRule = lineRules.some(r =>
+      r.dim === 'gender' && r.isRow === line.isRow && r.idx === line.idx
+    );
+    if (lineTokens.length > 0 && !hasGenderRule) {
+      const males = lineTokens.filter(t => solution[t.id] === 'male').length;
+      countHints.push({
+        id: `h1-${line.isRow ? 'r' : 'c'}${line.idx}`,
+        type: 'H1',
+        row: line.isRow ? line.idx : null,
+        col: line.isRow ? null : line.idx,
+        value: males,
+      });
+    }
+  }
+
+  // Fixed tiles — simple random selection.
+  // (We deliberately do NOT prioritize rule lines; rule lines that get fully filled
+  // with fixed tiles become "dead" lines with no player deductive work. The Stage D
+  // validation in tryOneGeneration rejects such puzzles, retrying with different
+  // fixed tiles until a valid layout is found.)
+  const fixedCount = randInt(config.fixedTileCount[0], config.fixedTileCount[1]);
+  const fixedTokens = shuffle(tokens).slice(0, fixedCount);
+  const fixedCells = fixedTokens.map(t => ({
+    row: t.row, col: t.col, animalId: t.animalId, gender: solution[t.id],
+  }));
+  const preMarks = Object.fromEntries(fixedTokens.map(t => [t.id, solution[t.id]]));
+
+  return {
+    n: config.n,
+    forbiddenCells,
+    tokens,
+    pairs: placement.pairs,
+    lineRules,
+    countHints,
+    fixedCells,
+    preMarks,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STAGE D: Timeboxed Solution Enumeration
+// ─────────────────────────────────────────────────────────────────────────────
+function enumerateSolutions(instance, animals, maxSolutions, timeLimitMs) {
+  const startTime = performance.now();
+  const n = instance.n;
+  const pairs = instance.pairs;
+  const tokens = instance.tokens;
+  const k = pairs.length;
+
+  const forbidden = new Set(instance.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  const rowRules = {}, colRules = {};
+  for (const r of instance.lineRules) {
+    if (r.isRow) (rowRules[r.idx] = rowRules[r.idx] || []).push(r);
+    else (colRules[r.idx] = colRules[r.idx] || []).push(r);
+  }
+  const fixedByKey = {};
+  for (const ft of instance.fixedCells) fixedByKey[`${ft.row},${ft.col}`] = ft;
+  const rowHints = {}, colHints = {};
+  for (const h of instance.countHints) {
+    if (h.row !== null) (rowHints[h.row] = rowHints[h.row] || []).push(h);
+    else (colHints[h.col] = colHints[h.col] || []).push(h);
+  }
+
+  function cellOk(row, col, animalId, gender) {
+    const key = `${row},${col}`;
+    if (forbidden.has(key)) return false;
+    const ft = fixedByKey[key];
+    if (ft) {
+      if (ft.animalId !== animalId) return false;
+      if (ft.gender !== gender) return false;
+    }
+    const animal = animalById(animalId);
+    const rules = [...(rowRules[row] || []), ...(colRules[col] || [])];
+    for (const rule of rules) {
+      if (rule.dim === 'gender') {
+        if (gender !== rule.val) return false;
+      } else {
+        if (animal[rule.dim] !== rule.val) return false;
+      }
+    }
+    return true;
+  }
+
+  // Per-pair candidates (fixed in advance to speed up)
+  const pairSpecies = pairs.map(([t1]) => tokens.find(t => t.id === t1).animalId);
+
+  const pairCandidates = pairs.map((pair, pairIdx) => {
+    const animalId = pairSpecies[pairIdx];
+    const candidates = [];
+
+    const fixedForSpecies = instance.fixedCells.filter(ft => ft.animalId === animalId);
+
+    if (fixedForSpecies.length === 2) {
+      const [a, b] = fixedForSpecies;
+      if (isAdjacent(a, b) && a.gender !== b.gender) {
+        candidates.push({
+          c1key: `${a.row},${a.col}`, c2key: `${b.row},${b.col}`,
+          c1row: a.row, c1col: a.col, c2row: b.row, c2col: b.col,
+          g1: a.gender, g2: b.gender,
+        });
+      }
+    } else if (fixedForSpecies.length === 1) {
+      const ft = fixedForSpecies[0];
+      const otherG = ft.gender === 'male' ? 'female' : 'male';
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const r2 = ft.row + dr, c2 = ft.col + dc;
+          if (r2 < 0 || r2 >= n || c2 < 0 || c2 >= n) continue;
+          if (!cellOk(r2, c2, animalId, otherG)) continue;
+          candidates.push({
+            c1key: `${ft.row},${ft.col}`, c2key: `${r2},${c2}`,
+            c1row: ft.row, c1col: ft.col, c2row: r2, c2col: c2,
+            g1: ft.gender, g2: otherG,
+          });
+        }
+      }
+    } else {
+      for (let r1 = 0; r1 < n; r1++) {
+        for (let c1 = 0; c1 < n; c1++) {
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const r2 = r1 + dr, c2 = c1 + dc;
+              if (r2 < 0 || r2 >= n || c2 < 0 || c2 >= n) continue;
+              const k1 = `${r1},${c1}`, k2 = `${r2},${c2}`;
+              if (k1 >= k2) continue;
+              for (const [g1, g2] of [['male', 'female'], ['female', 'male']]) {
+                if (!cellOk(r1, c1, animalId, g1)) continue;
+                if (!cellOk(r2, c2, animalId, g2)) continue;
+                candidates.push({
+                  c1key: k1, c2key: k2,
+                  c1row: r1, c1col: c1, c2row: r2, c2col: c2,
+                  g1, g2,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    return candidates;
+  });
+
+  // Early termination if any pair has no candidates
+  for (const cc of pairCandidates) {
+    if (cc.length === 0) return { solutions: [], timedOut: false };
+  }
+
+  // MRV: order pairs by ascending candidate count
+  const pairOrder = pairs.map((_, i) => i).sort((a, b) =>
+    pairCandidates[a].length - pairCandidates[b].length
+  );
+
+  const used = new Set();
+  const assignment = {};  // pairIdx -> candidate
+  const solutions = [];
+  let timedOut = false;
+
+  function computeCounts(asgn) {
+    const rowOcc = {}, rowMale = {}, rowFemale = {};
+    const colOcc = {}, colMale = {}, colFemale = {};
+    for (const pairIdx in asgn) {
+      const a = asgn[pairIdx];
+      rowOcc[a.c1row] = (rowOcc[a.c1row] || 0) + 1;
+      rowOcc[a.c2row] = (rowOcc[a.c2row] || 0) + 1;
+      colOcc[a.c1col] = (colOcc[a.c1col] || 0) + 1;
+      colOcc[a.c2col] = (colOcc[a.c2col] || 0) + 1;
+      const mk1 = a.g1 === 'male' ? rowMale : rowFemale;
+      mk1[a.c1row] = (mk1[a.c1row] || 0) + 1;
+      const mk2 = a.g2 === 'male' ? rowMale : rowFemale;
+      mk2[a.c2row] = (mk2[a.c2row] || 0) + 1;
+      const ck1 = a.g1 === 'male' ? colMale : colFemale;
+      ck1[a.c1col] = (ck1[a.c1col] || 0) + 1;
+      const ck2 = a.g2 === 'male' ? colMale : colFemale;
+      ck2[a.c2col] = (ck2[a.c2col] || 0) + 1;
+    }
+    return { rowOcc, rowMale, rowFemale, colOcc, colMale, colFemale };
+  }
+
+  function checkHintsInProgress(asgn) {
+    const c = computeCounts(asgn);
+    for (const h of instance.countHints) {
+      const isRow = h.row !== null;
+      const idx = isRow ? h.row : h.col;
+      let count;
+      if (h.type === 'total') count = isRow ? (c.rowOcc[idx] || 0) : (c.colOcc[idx] || 0);
+      else if (h.type === 'H1') count = isRow ? (c.rowMale[idx] || 0) : (c.colMale[idx] || 0);
+      else if (h.type === 'H2') count = isRow ? (c.rowFemale[idx] || 0) : (c.colFemale[idx] || 0);
+      else count = 0;
+      if (count > h.value) return false;
+    }
+    return true;
+  }
+
+  function checkHintsFinal(asgn) {
+    const c = computeCounts(asgn);
+    for (const h of instance.countHints) {
+      const isRow = h.row !== null;
+      const idx = isRow ? h.row : h.col;
+      let count;
+      if (h.type === 'total') count = isRow ? (c.rowOcc[idx] || 0) : (c.colOcc[idx] || 0);
+      else if (h.type === 'H1') count = isRow ? (c.rowMale[idx] || 0) : (c.colMale[idx] || 0);
+      else if (h.type === 'H2') count = isRow ? (c.rowFemale[idx] || 0) : (c.colFemale[idx] || 0);
+      else count = 0;
+      if (count !== h.value) return false;
+    }
+    return true;
+  }
+
+  function backtrack(depth) {
+    if (timedOut) return;
+    if (performance.now() - startTime > timeLimitMs) { timedOut = true; return; }
+    if (solutions.length >= maxSolutions + 1) return; // found one more than needed
+
+    if (depth === k) {
+      if (checkHintsFinal(assignment)) {
+        solutions.push({ ...assignment });
+      }
+      return;
+    }
+
+    const pairIdx = pairOrder[depth];
+    const candidates = pairCandidates[pairIdx];
+
+    for (const cand of candidates) {
+      if (used.has(cand.c1key) || used.has(cand.c2key)) continue;
+      used.add(cand.c1key); used.add(cand.c2key);
+      assignment[pairIdx] = cand;
+
+      if (checkHintsInProgress(assignment)) {
+        backtrack(depth + 1);
+      }
+
+      delete assignment[pairIdx];
+      used.delete(cand.c1key); used.delete(cand.c2key);
+
+      if (timedOut || solutions.length > maxSolutions) return;
+    }
+  }
+
+  backtrack(0);
+  return { solutions, timedOut };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Try one generation attempt — returns puzzle object or null
+// ─────────────────────────────────────────────────────────────────────────────
+function tryOneGeneration(levelKey, config, currentMaxSolutions, verifyTimeLimit) {
+  // Stage A
+  const ruleTemplate = designRuleTemplate(config, ANIMALS);
+  if (!ruleTemplate) return null;
+
+  // Forbidden cells
+  const forbiddenCount = Array.isArray(config.forbiddenCount)
+    ? randInt(config.forbiddenCount[0], config.forbiddenCount[1])
+    : config.forbiddenCount;
+  const allCells = [];
+  for (let r = 0; r < config.n; r++)
+    for (let c = 0; c < config.n; c++) allCells.push([r, c]);
+  const forbiddenCells = shuffle(allCells).slice(0, forbiddenCount);
+
+  // Stage B
+  const placement = constrainedAdjacentPlacement(config, ruleTemplate, forbiddenCells, ANIMALS);
+  if (!placement) return null;
+
+  // Validate rule line coverage: every rule line must have ≥1 token
+  // This prevents the confusing "#0 + line rule" combination
+  for (const rule of ruleTemplate) {
+    const tokensInLine = rule.isRow
+      ? placement.tokens.filter(t => t.row === rule.idx)
+      : placement.tokens.filter(t => t.col === rule.idx);
+    if (tokensInLine.length === 0) return null; // retry
+  }
+
+  // Gender assignment respecting rules
+  const solution = assignGendersWithRules(placement.pairs, placement.tokens, ruleTemplate);
+  if (!solution) return null;
+
+  // Stage C
+  const instance = addAuxiliaryHints(placement, config, solution, ruleTemplate, forbiddenCells);
+
+  // Validate rule lines have ≥1 NON-FIXED token.
+  // A rule line is meaningful for the player only if they have to place at least one
+  // tile there to satisfy it. If all tokens on a rule line are fixed tiles, the rule
+  // is already satisfied before play begins — the line is effectively "#0" from the
+  // player's perspective and the rule has no deductive function.
+  const fixedTokenIds = new Set(Object.keys(instance.preMarks || {}));
+  for (const rule of ruleTemplate) {
+    const tokensInLine = rule.isRow
+      ? placement.tokens.filter(t => t.row === rule.idx)
+      : placement.tokens.filter(t => t.col === rule.idx);
+    const nonFixedInLine = tokensInLine.filter(t => !fixedTokenIds.has(t.id));
+    if (nonFixedInLine.length === 0) return null; // retry — no player action required on this line
+  }
+
+  // Stage D
+  const { solutions, timedOut } = enumerateSolutions(
+    instance, ANIMALS, currentMaxSolutions, verifyTimeLimit
+  );
+
+  const solutionCount = solutions.length;
+
+  // Timeout with 0 solutions found: canonical is structurally valid but couldn't be
+  // verified in time. Accept as flexible — at least canonical solution exists.
+  if (solutionCount === 0) {
+    if (!timedOut) return null; // genuine infeasibility (should be rare)
+    return {
+      ...instance,
+      solution,
+      level: levelKey,
+      uniqueness: 'flexible',
+      solutionCount: 0, // unknown; canonical is at least one
+      timedOut: true,
+    };
+  }
+
+  // Too many solutions — reject
+  if (solutionCount > currentMaxSolutions) return null;
+
+  // Classify uniqueness
+  let uniqueness;
+  if (timedOut) {
+    // Found some solutions but didn't fully enumerate — classify as flexible
+    uniqueness = 'flexible';
+  } else if (solutionCount === 1) {
+    uniqueness = 'strict';
+  } else if (solutionCount <= 3) {
+    uniqueness = 'loose';
+  } else {
+    uniqueness = 'flexible';
+  }
+
+  return {
+    ...instance,
+    solution,
+    level: levelKey,
+    uniqueness,
+    solutionCount,
+    timedOut,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Generator — Async with Progressive Relaxation
+// ─────────────────────────────────────────────────────────────────────────────
+async function generatePuzzleAsync(level, onProgress) {
+  const config = DIFFICULTY_CONFIGS[level];
+  const startTime = performance.now();
+  const BUDGET = config.totalBudgetMs;
+  const MAX = config.maxSolutions;
+
+  let attempt = 0;
+  let bestResult = null;
+
+  while (attempt < config.maxAttempts) {
+    const elapsed = performance.now() - startTime;
+    if (elapsed > BUDGET) break;
+
+    // Progressive relaxation: start strict, escalate to full maxSolutions over time
+    // Strict (1) attempts get priority in early budget; we relax as time runs out
+    const pct = elapsed / BUDGET;
+    let currentMaxSol;
+    if (pct < 0.15) currentMaxSol = Math.min(1, MAX);
+    else if (pct < 0.40) currentMaxSol = Math.min(3, MAX);
+    else if (pct < 0.65) currentMaxSol = Math.min(10, MAX);
+    else if (pct < 0.85) currentMaxSol = Math.min(20, MAX);
+    else currentMaxSol = MAX;
+
+    attempt++;
+
+    if (attempt % 3 === 0) {
+      onProgress && onProgress({
+        attempts: attempt,
+        elapsed,
+        budget: BUDGET,
+        currentMaxSolutions: currentMaxSol,
+        level,
+      });
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    let result;
+    try {
+      result = tryOneGeneration(level, config, currentMaxSol, config.verifyTimeLimitMs);
+    } catch (e) {
+      console.error('Generation error:', e);
+      continue;
+    }
+
+    if (!result) continue;
+
+    // Strict (exactly 1 solution) — exit immediately, best possible
+    if (result.solutionCount === 1 && !result.timedOut) {
+      result.generationTime = performance.now() - startTime;
+      result.attemptCount = attempt;
+      return result;
+    }
+
+    // Compare results for bestResult (prefer lower solutionCount, but >0 beats 0)
+    const betterThanBest = (() => {
+      if (!bestResult) return true;
+      // A non-zero count is better than 0 (which is "unknown/canonical only")
+      if (result.solutionCount > 0 && bestResult.solutionCount === 0) return true;
+      if (result.solutionCount === 0 && bestResult.solutionCount > 0) return false;
+      // Both non-zero or both zero: prefer lower count
+      return result.solutionCount < bestResult.solutionCount;
+    })();
+    if (betterThanBest) bestResult = result;
+
+    // Early exit: if we have a Loose result (≤3) after 25% budget, accept
+    if (bestResult && bestResult.solutionCount > 0 && bestResult.solutionCount <= 3 && elapsed > BUDGET * 0.25) {
+      break;
+    }
+    // Early exit: if we have a Flexible result (≤10) after 50% budget, accept
+    if (bestResult && bestResult.solutionCount > 0 && bestResult.solutionCount <= 10 && elapsed > BUDGET * 0.5) {
+      break;
+    }
+    // Early exit: canonical-only (timedOut, solutionCount=0) is valid — accept after 50% budget
+    if (bestResult && bestResult.solutionCount === 0 && elapsed > BUDGET * 0.5) {
+      break;
+    }
+    // Early exit: if we have any valid result after 75% budget, accept
+    if (bestResult && elapsed > BUDGET * 0.75) {
+      break;
+    }
+  }
+
+  if (bestResult) {
+    bestResult.generationTime = performance.now() - startTime;
+    bestResult.attemptCount = attempt;
+    return bestResult;
+  }
+
+  // Last resort: fallback
+  return loadFallback(level);
+}
+
+// =============================================================================
+// SECTION 4 — RUNTIME VALIDATION (Constraint-Based Win)
+// =============================================================================
+
+function evaluateLineRuleRuntime(rule, placements, tokens, marks) {
+  const inLine = (cell) => rule.isRow ? cell.row === rule.idx : cell.col === rule.idx;
+  const placedTokenEntries = Object.entries(placements).filter(([_, cell]) => inLine(cell));
+  if (placedTokenEntries.length === 0) return true; // empty line auto-satisfied
+
+  return placedTokenEntries.every(([tid, _]) => {
+    const t = tokens.find(t => t.id === tid);
+    if (!t) return false;
+    if (rule.dim === 'gender') {
+      return marks[tid] === rule.val;
+    }
+    const animal = animalById(t.animalId);
+    return animal[rule.dim] === rule.val;
+  });
+}
+
+// Returns 'empty' | 'partial' | 'bad' (some token violates rule) | 'satisfied-rule-only'
+// 'satisfied-rule-only' means: line is non-empty AND every placed token in this
+// line matches the rule. This is NOT enough to highlight green — green requires
+// ALL line count hints in the same line to also be ok (handled at caller).
+function evaluateLineRuleStatus(rule, placements, tokens, marks) {
+  const inLine = (cell) => rule.isRow ? cell.row === rule.idx : cell.col === rule.idx;
+  const placedTokenEntries = Object.entries(placements).filter(([_, cell]) => inLine(cell));
+  if (placedTokenEntries.length === 0) return 'empty';
+
+  const checkToken = (tid) => {
+    const t = tokens.find(t => t.id === tid);
+    if (!t) return false;
+    if (rule.dim === 'gender') {
+      return marks[tid] === rule.val;
+    }
+    const animal = animalById(t.animalId);
+    return animal[rule.dim] === rule.val;
+  };
+
+  // Gender rule: a token's gender is "?", treat as not-yet-conflicting (partial),
+  // but if any placed token has gender set and it doesn't match → bad.
+  if (rule.dim === 'gender') {
+    let hasViolation = false;
+    let allMarked = true;
+    for (const [tid, _] of placedTokenEntries) {
+      const m = marks[tid];
+      if (!m) { allMarked = false; continue; }
+      if (m !== rule.val) { hasViolation = true; break; }
+    }
+    if (hasViolation) return 'bad';
+    if (!allMarked) return 'partial';
+    return 'satisfied-rule-only';
+  }
+
+  // habitat / diet rule: animal species is fixed at placement, so every placed
+  // token's attribute is immediately known. Any mismatch = bad.
+  for (const [tid, _] of placedTokenEntries) {
+    if (!checkToken(tid)) return 'bad';
+  }
+  return 'satisfied-rule-only';
+}
+
+function evaluateCountHintRuntime(hint, placements, tokens, marks) {
+  const lineTokens = Object.entries(placements).filter(([_, cell]) =>
+    hint.row !== null ? cell.row === hint.row : cell.col === hint.col
+  );
+  if (hint.type === 'total') return lineTokens.length === hint.value;
+  if (hint.type === 'H1') return lineTokens.filter(([tid]) => marks[tid] === 'male').length === hint.value;
+  if (hint.type === 'H2') return lineTokens.filter(([tid]) => marks[tid] === 'female').length === hint.value;
+  return true;
+}
+
+function checkAllPairsAdjacent(pairs, placements) {
+  for (const [t1, t2] of pairs) {
+    const p1 = placements[t1], p2 = placements[t2];
+    if (!p1 || !p2) return false;
+    if (!isAdjacent(p1, p2)) return false;
+  }
+  return true;
+}
+
+function checkWinV2(puzzle, placements, marks) {
+  if (!puzzle) return false;
+  const tokens = puzzle.tokens;
+
+  if (Object.keys(placements).length !== tokens.length) return false;
+  if (Object.keys(marks).length !== tokens.length) return false;
+
+  // Pair gender constraint
+  for (const [t1, t2] of puzzle.pairs) {
+    if (!marks[t1] || !marks[t2]) return false;
+    if (marks[t1] === marks[t2]) return false;
+  }
+
+  // Adjacency
+  if (!checkAllPairsAdjacent(puzzle.pairs, placements)) return false;
+
+  // Forbidden cells
+  const fset = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  for (const cell of Object.values(placements)) {
+    if (fset.has(`${cell.row},${cell.col}`)) return false;
+  }
+
+  // Line rules (evaluated at current placement, not canonical)
+  for (const rule of (puzzle.lineRules || [])) {
+    if (!evaluateLineRuleRuntime(rule, placements, tokens, marks)) return false;
+  }
+
+  // Count hints
+  for (const hint of (puzzle.countHints || [])) {
+    if (!evaluateCountHintRuntime(hint, placements, tokens, marks)) return false;
+  }
+
+  // Fixed tiles must retain position + species + gender
+  for (const ft of (puzzle.fixedCells || [])) {
+    const tokenAtCell = Object.entries(placements).find(([_, p]) =>
+      p.row === ft.row && p.col === ft.col
+    );
+    if (!tokenAtCell) return false;
+    const [tid] = tokenAtCell;
+    const t = tokens.find(t => t.id === tid);
+    if (!t || t.animalId !== ft.animalId) return false;
+    if (marks[tid] !== ft.gender) return false;
+  }
+
+  return true;
+}
+
+// =============================================================================
+// SECTION 5 — FALLBACK PUZZLES (safety net)
+// =============================================================================
+
+const FALLBACK_PUZZLES = {
+  Sprout: {
+    n: 4,
+    forbiddenCells: [],
+    tokens: [
+      { id: 't0', animalId: 1, row: 0, col: 0 },
+      { id: 't1', animalId: 1, row: 1, col: 0 },
+      { id: 't2', animalId: 2, row: 2, col: 1 },
+      { id: 't3', animalId: 2, row: 2, col: 2 },
+      { id: 't4', animalId: 3, row: 0, col: 3 },
+      { id: 't5', animalId: 3, row: 1, col: 3 },
+    ],
+    pairs: [['t0', 't1'], ['t2', 't3'], ['t4', 't5']],
+    lineRules: [
+      { id: 'r0', isRow: true, idx: 2, dim: 'habitat', val: '사바나' },
+      { id: 'r1', isRow: false, idx: 3, dim: 'habitat', val: '사바나' },
+    ],
+    countHints: [
+      { id: 'c0', type: 'total', row: 0, col: null, value: 2 },
+      { id: 'c1', type: 'total', row: 1, col: null, value: 2 },
+      { id: 'c2', type: 'total', row: 2, col: null, value: 2 },
+      { id: 'c3', type: 'total', row: null, col: 0, value: 2 },
+      { id: 'c4', type: 'total', row: null, col: 3, value: 2 },
+      { id: 'c5', type: 'total', row: null, col: 1, value: 1 },
+    ],
+    fixedCells: [
+      { row: 0, col: 0, animalId: 1, gender: 'male' },
+      { row: 2, col: 1, animalId: 2, gender: 'female' },
+    ],
+    preMarks: { 't0': 'male', 't2': 'female' },
+    solution: { 't0': 'male', 't1': 'female', 't2': 'female', 't3': 'male', 't4': 'male', 't5': 'female' },
+    level: 'Sprout',
+    uniqueness: 'strict',
+    solutionCount: 1,
+    generationTime: 0,
+    attemptCount: 0,
+  },
+};
+
+function loadFallback(level) {
+  return FALLBACK_PUZZLES[level] || FALLBACK_PUZZLES.Sprout;
+}
+
+// =============================================================================
+// SECTION 6 — UI COMPONENTS
+// =============================================================================
+
+function Header({ onHelp, level, onChangeLevel, disabled, puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  // Display order: 새싹 → 기초 → Medium → MediumPlus → 상급.
+  // Internal keys are stable for save-state compatibility; the visible
+  // labels/glyphs are swapped via i18n and config so the user sees
+  // 중급 → 중상급 progression.
+  const levels = ['Sprout', 'Easy', 'Medium', 'MediumPlus', 'Hard'];
+  const t = useT();
+  const { lang } = useLang();
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: 'clamp(14px, 3vw, 20px) clamp(12px, 4vw, 40px) 10px',
+      borderBottom: '1px solid var(--border-soft)',
+      flexWrap: 'wrap',
+    }}>
+      {/* Brand — compressed, single line */}
+      <div className="font-display" style={{
+        fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 500, letterSpacing: '-0.02em',
+        color: 'var(--ink-primary)', lineHeight: 1, flexShrink: 0, marginRight: 4,
+      }}>
+        Zoologic<span style={{ color: 'var(--accent-gold)', fontStyle: 'italic', fontWeight: 400 }}>.</span>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 4 }} />
+
+      {/* Difficulty — horizontal segmented row, wraps cleanly on narrow screens */}
+      <div role="radiogroup" aria-label={t('header.difficulty')} style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 4,
+        opacity: disabled ? 0.5 : 1,
+      }}>
+        {levels.map((lv) => {
+          const c = DIFFICULTY_CONFIGS[lv];
+          const active = level === lv;
+          const lvLabel = t(`diff.${lv}.label`);
+          return (
+            <button
+              key={lv}
+              role="radio"
+              aria-checked={active}
+              disabled={disabled}
+              onClick={() => onChangeLevel(lv)}
+              className="font-body"
+              title={`${lvLabel} · ${c.n}×${c.n}`}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '7px 10px',
+                border: '1px solid',
+                borderColor: active ? 'var(--ink-primary)' : 'var(--border-medium)',
+                borderRadius: 4,
+                background: active ? 'var(--ink-primary)' : 'var(--bg-card)',
+                color: active ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+                cursor: disabled ? 'wait' : 'pointer',
+                fontSize: 12, fontWeight: active ? 600 : 500,
+                lineHeight: 1, whiteSpace: 'nowrap',
+                transition: 'background 140ms, color 140ms, border-color 140ms',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: 13 }} aria-hidden>{c.glyph}</span>
+              <span>{lvLabel}</span>
+              <span className="font-mono" style={{
+                fontSize: 10,
+                color: active ? 'rgba(254,252,248,0.65)' : 'var(--ink-tertiary)',
+                marginLeft: 1,
+              }}>{c.n}×{c.n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Language switcher */}
+      <LangSwitcher compact />
+
+      {/* Help */}
+      <button onClick={onHelp} aria-label={t('header.help')} style={{
+        width: 32, height: 32, borderRadius: 999, border: '1px solid var(--border-medium)',
+        background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--ink-secondary)', fontSize: 15, flexShrink: 0,
+      }} className="font-display">?</button>
+    </div>
+  );
+}
+
+// Progress strip — sits just above the grid, integrates subtitle + counters
+function PuzzleMeta({ puzzle, placedCount, totalTokens, genderedCount, adjacencyOk }) {
+  if (!puzzle) return null;
+  const t = useT();
+  const allPlaced = placedCount === totalTokens;
+  const allGendered = genderedCount === totalTokens;
+  return (
+    <div style={{
+      padding: '8px clamp(12px, 4vw, 40px) 6px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      gap: 10, flexWrap: 'wrap',
+    }}>
+      {/* Uniqueness badge on the left — the only essential meta */}
+      <UniquenessBadge uniqueness={puzzle.uniqueness} solutionCount={puzzle.solutionCount} />
+      {/* Three-chip progress — each with an icon (not color-only) */}
+      <div className="font-mono" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 2,
+        fontSize: 11, color: 'var(--ink-tertiary)',
+        border: '1px solid var(--border-soft)', borderRadius: 999,
+        padding: '3px 6px', background: 'var(--bg-card)',
+      }}>
+        <ProgressChip icon="▦" label={t('progress.placed')} current={placedCount} total={totalTokens} done={allPlaced} />
+        <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
+        <ProgressChip icon="⚥" label={t('progress.gender')} current={genderedCount} total={totalTokens} done={allGendered} />
+        <span style={{ color: 'var(--border-medium)', margin: '0 2px' }}>·</span>
+        <ProgressChip icon="↔" label={t('progress.adjacency')} current={adjacencyOk ? '✓' : '—'} total={null} done={adjacencyOk} bad={!adjacencyOk && allPlaced} />
+      </div>
+    </div>
+  );
+}
+
+function ProgressChip({ icon, label, current, total, done, bad }) {
+  const color = bad ? 'var(--danger)' : (done ? 'var(--accent-gold)' : 'var(--ink-primary)');
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px' }}>
+      <span style={{ color: 'var(--ink-tertiary)', fontSize: 11, fontFamily: 'system-ui' }} aria-hidden>{icon}</span>
+      <span style={{ color: 'var(--ink-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+      <strong style={{ color, fontWeight: 600 }}>
+        {total !== null ? `${current}/${total}` : current}
+      </strong>
+    </span>
+  );
+}
+
+function DifficultySelector(_props) { return null; /* replaced by Header's pill */ }
+
+function StatusBar(_props) { return null; /* replaced by PuzzleMeta (rendered below Header in App) */ }
+
+function UniquenessBadge({ uniqueness, solutionCount }) {
+  if (!uniqueness) return null;
+  const t = useT();
+  const configs = {
+    strict: {
+      icon: '✦',
+      label: t('uniq.strict.label'),
+      description: t('uniq.strict.desc'),
+      color: 'var(--ok-strict)',
+      bg: 'var(--success-soft)',
+    },
+    loose: {
+      icon: '✧',
+      label: t('uniq.loose.label', { n: solutionCount }),
+      description: t('uniq.loose.desc', { n: solutionCount }),
+      color: 'var(--ok-loose)',
+      bg: 'var(--bg-subtle)',
+    },
+    flexible: {
+      icon: '〜',
+      label: t('uniq.flex.label'),
+      description: t('uniq.flex.desc'),
+      color: 'var(--ok-flexible)',
+      bg: 'var(--bg-paper)',
+    },
+  };
+  const c = configs[uniqueness] || configs.flexible;
+  return (
+    <div title={c.description} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px',
+      border: `1px solid ${c.color}`, background: c.bg, color: c.color,
+      borderRadius: 2, fontSize: 10,
+      letterSpacing: '0.06em', textTransform: 'uppercase',
+    }} className="font-body">
+      <span style={{ fontSize: 11 }}>{c.icon}</span>
+      <span>{c.label}</span>
+    </div>
+  );
+}
+
+function BadgeTooltip({ show, text, anchorRef }) {
+  // Portal-rendered tooltip anchored via getBoundingClientRect — escapes any
+  // overflow clipping from parent containers and auto-flips when too close
+  // to the viewport top.
+  const [pos, setPos] = useState(null);
+  const tipBoxRef = useRef(null);
+  const [measuredW, setMeasuredW] = useState(0);
+  const [measuredH, setMeasuredH] = useState(0);
+  useEffect(() => {
+    if (!show || !anchorRef || !anchorRef.current) { setPos(null); return; }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      // If element is detached or zero-sized (just unmounted/remounted),
+      // skip — prevents pinning to (0,0) corner.
+      if (r.width === 0 && r.height === 0) return;
+      const vw = window.innerWidth;
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const preferredTop = r.top - 8;
+      const flipBelow = preferredTop < 40; // flip to below if too close to top
+      setPos({
+        cx, cy,
+        top: flipBelow ? r.bottom + 8 : r.top - 8,
+        flip: flipBelow,
+        anchorLeft: r.left,
+        anchorRight: r.right,
+        vw,
+      });
+    };
+    update();
+    // Also re-run on next frame in case anchor was just remounted —
+    // getBoundingClientRect can return stale values immediately after re-show.
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [show, anchorRef, text]);
+
+  // Measure actual rendered tooltip box AFTER mount so position is based on
+  // real dimensions, not the conservative max width.
+  useEffect(() => {
+    if (!show || !pos || !tipBoxRef.current) return;
+    const r = tipBoxRef.current.getBoundingClientRect();
+    if (r.width > 0 && Math.abs(r.width - measuredW) > 0.5) setMeasuredW(r.width);
+    if (r.height > 0 && Math.abs(r.height - measuredH) > 0.5) setMeasuredH(r.height);
+  }, [show, pos, text, measuredW, measuredH]);
+
+  if (!show || !pos) return null;
+  const EDGE = 8;
+  const MAX_TIP_W = Math.min(260, pos.vw - EDGE * 2);
+  const effectiveW = measuredW > 0 ? Math.min(measuredW, MAX_TIP_W) : MAX_TIP_W;
+  const halfW = effectiveW / 2;
+
+  // Decide placement based on the anchor's position in the viewport.
+  // If the anchor sits in the right 25% of the viewport, prefer 'left'
+  // placement (box extends leftward). Likewise for the left 25%.
+  // This produces predictable side-placement behavior independent of the
+  // tooltip text length, fixing the "tall narrow column" symptom that
+  // happened when the centered placement got squashed near the edge.
+  // The geometric overflow check is a fallback for extreme cases.
+  const SIDE_THRESHOLD = 0.25;
+  const anchorRatio = pos.cx / pos.vw;
+  const wouldOverflowRight = pos.cx + halfW > pos.vw - EDGE;
+  const wouldOverflowLeft = pos.cx - halfW < EDGE;
+  let placement;
+  if (anchorRatio > 1 - SIDE_THRESHOLD || wouldOverflowRight) {
+    // Right edge zone — prefer 'left' (box extends leftward from anchor)
+    if (wouldOverflowLeft && !wouldOverflowRight) {
+      // Edge case: box can't fit either side — fall back to top/bottom
+      placement = pos.flip ? 'bottom' : 'top';
+    } else {
+      placement = 'left';
+    }
+  } else if (anchorRatio < SIDE_THRESHOLD || wouldOverflowLeft) {
+    if (wouldOverflowRight && !wouldOverflowLeft) {
+      placement = pos.flip ? 'bottom' : 'top';
+    } else {
+      placement = 'right';
+    }
+  } else {
+    placement = pos.flip ? 'bottom' : 'top';
+  }
+
+  // Style by placement
+  let boxStyle = {};
+  let arrowStyle = {};
+  const halfH = (measuredH > 0 ? measuredH : 24) / 2;
+  if (placement === 'top' || placement === 'bottom') {
+    // Vertical placement (default)
+    const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
+    const rawOffset = pos.cx - clampedCx;
+    const ARROW_PAD = 6;
+    const maxArrowOffset = Math.max(0, halfW - ARROW_PAD);
+    const arrowOffset = Math.max(-maxArrowOffset, Math.min(maxArrowOffset, rawOffset));
+    boxStyle = {
+      left: clampedCx,
+      top: pos.top,
+      transform: placement === 'bottom' ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+    };
+    arrowStyle = {
+      [placement === 'bottom' ? 'bottom' : 'top']: '100%',
+      left: `calc(50% + ${arrowOffset}px)`,
+      transform: 'translateX(-50%)',
+      borderLeft: '5px solid transparent',
+      borderRight: '5px solid transparent',
+      ...(placement === 'bottom'
+        ? { borderBottom: '5px solid var(--ink-primary)' }
+        : { borderTop: '5px solid var(--ink-primary)' }),
+    };
+  } else {
+    // Side placement — box extends sideways from anchor
+    // Vertical center alignment with anchor; clamp inside viewport.
+    const vh = window.innerHeight;
+    const clampedCy = Math.max(EDGE + halfH, Math.min(vh - EDGE - halfH, pos.cy));
+    // Available horizontal space on the side we're rendering on, minus EDGE margin
+    if (placement === 'left') {
+      const sideMaxW = Math.max(60, pos.anchorLeft - 8 - EDGE);
+      // box is to the LEFT of anchor; right edge of box ~ 8px before anchor's left
+      boxStyle = {
+        left: pos.anchorLeft - 8,
+        top: clampedCy,
+        transform: 'translate(-100%, -50%)',
+        maxWidth: Math.min(MAX_TIP_W, sideMaxW),
+      };
+      arrowStyle = {
+        left: '100%',
+        top: `calc(50% + ${pos.cy - clampedCy}px)`,
+        transform: 'translateY(-50%)',
+        borderTop: '5px solid transparent',
+        borderBottom: '5px solid transparent',
+        borderLeft: '5px solid var(--ink-primary)',
+      };
+    } else { // 'right'
+      const sideMaxW = Math.max(60, pos.vw - pos.anchorRight - 8 - EDGE);
+      boxStyle = {
+        left: pos.anchorRight + 8,
+        top: clampedCy,
+        transform: 'translate(0, -50%)',
+        maxWidth: Math.min(MAX_TIP_W, sideMaxW),
+      };
+      arrowStyle = {
+        right: '100%',
+        top: `calc(50% + ${pos.cy - clampedCy}px)`,
+        transform: 'translateY(-50%)',
+        borderTop: '5px solid transparent',
+        borderBottom: '5px solid transparent',
+        borderRight: '5px solid var(--ink-primary)',
+      };
+    }
+  }
+
+  return ReactDOM.createPortal(
+    <div ref={tipBoxRef} role="tooltip" style={{
+      position: 'fixed',
+      zIndex: 1000,
+      background: 'var(--ink-primary)', color: 'var(--bg-paper)',
+      padding: '6px 10px', borderRadius: 4,
+      fontSize: 12, fontWeight: 500, lineHeight: 1.35,
+      letterSpacing: '0.01em',
+      maxWidth: MAX_TIP_W,
+      whiteSpace: 'normal', textAlign: 'center',
+      boxShadow: '0 4px 14px -4px rgba(0,0,0,0.25)',
+      animation: 'badgeTipFade 120ms cubic-bezier(0.4,0,0.2,1)',
+      pointerEvents: 'none',
+      // Hide until we've measured the box at least once — prevents the
+      // first-frame flash where the tooltip snaps from MAX_TIP_W-based
+      // position to its real position.
+      visibility: (measuredW > 0 && measuredH > 0) ? 'visible' : 'hidden',
+      // Box style overrides (placement-specific position + side maxWidth)
+      // applied LAST so they override the defaults above.
+      ...boxStyle,
+    }} className="font-body">
+      {text}
+      <span aria-hidden style={{
+        position: 'absolute',
+        width: 0, height: 0,
+        ...arrowStyle,
+      }} />
+    </div>,
+    document.body
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Global Tooltip Singleton — only ONE badge tooltip is open at a time.
+// Prevents stale/stacked tooltips when user rapidly taps multiple badges.
+// ─────────────────────────────────────────────────────────────────
+const __tooltipBus = (() => {
+  const listeners = new Set();
+  let activeId = null;
+  let nextId = 1;
+  let version = 0;  // monotonically increases on every state change
+  return {
+    register(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    claim() { return nextId++; },
+    open(id) {
+      version++;
+      activeId = id;
+      const v = version;
+      listeners.forEach(fn => fn(activeId, v));
+    },
+    close(id) {
+      if (activeId === id || id == null) {
+        version++;
+        activeId = null;
+        const v = version;
+        listeners.forEach(fn => fn(activeId, v));
+      }
+    },
+    getActive() { return activeId; },
+    getVersion() { return version; },
+  };
+})();
+
+// Global outside-tap listener — closes any open tooltip when user taps
+// something that isn't a badge. Installed once.
+if (typeof window !== 'undefined' && !window.__badgeTooltipGlobalInstalled) {
+  window.__badgeTooltipGlobalInstalled = true;
+  window.addEventListener('pointerdown', (ev) => {
+    // If the pointer lands on a badge element, that badge's own handler
+    // will claim the tip. Otherwise close whatever is open.
+    if (!(ev.target && ev.target.closest && ev.target.closest('[data-badge-tip="1"]'))) {
+      __tooltipBus.close(null);
+    }
+  }, { capture: true, passive: true });
+}
+
+// Global system-gesture suppression — installed once.
+// Prevents the platform's default reactions to long-press / right-click /
+// native drag (image save menu, context menu, drag-out-of-window). These
+// fight with the puzzle's own pointer-drag and long-press semantics.
+// Elements that should opt out (e.g. selectable text in a help dialog)
+// can carry data-selectable="1" — handled inline below.
+if (typeof window !== 'undefined' && !window.__zoologicGestureSuppressionInstalled) {
+  window.__zoologicGestureSuppressionInstalled = true;
+  // Right-click / long-press context menu
+  window.addEventListener('contextmenu', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('[data-selectable="1"]')) return; // allow on opted-in regions
+    ev.preventDefault();
+  }, { capture: true });
+  // Native HTML5 drag — we use pointer events for our own drag, so block
+  // browsers from initiating native drag (which would let users drag images
+  // out of the page).
+  window.addEventListener('dragstart', (ev) => {
+    ev.preventDefault();
+  }, { capture: true });
+  // Selection — suppress accidental text selection on long-press (especially
+  // affects element labels). Opt-in regions still allow selection via CSS.
+  window.addEventListener('selectstart', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('[data-selectable="1"]')) return;
+    ev.preventDefault();
+  }, { capture: true });
+}
+
+function useBadgeTooltip() {
+  const [open, setOpen] = useState(false);
+  const idRef = useRef(null);
+  const timerRef = useRef(null);
+  const activePointerRef = useRef(null);
+  const anchorRef = useRef(null);
+  // Replaces the 400ms touchFlowRef dwell. Stamps each touch flow with the
+  // bus version at the moment beginTouch was called. Subsequent showTimed
+  // calls compare against this stamp — if version has advanced (i.e. the
+  // touch flow has fully ended via hide()), showTimed proceeds normally.
+  const touchVersionRef = useRef(-1);
+
+  if (idRef.current == null) idRef.current = __tooltipBus.claim();
+
+  // Subscribe to bus — close this tip whenever another badge claims the bus.
+  // We also compare versions to ignore stale callbacks: only the latest event
+  // should drive state.
+  const lastSeenVersionRef = useRef(0);
+  useEffect(() => {
+    return __tooltipBus.register((activeId, version) => {
+      if (version < lastSeenVersionRef.current) return; // stale event
+      lastSeenVersionRef.current = version;
+      if (activeId !== idRef.current) {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        setOpen(false);
+        activePointerRef.current = null;
+      }
+    });
+  }, []);
+
+  const clearTimer = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
+
+  const hide = useCallback(() => {
+    clearTimer();
+    setOpen(false);
+    activePointerRef.current = null;
+    __tooltipBus.close(idRef.current);
+    // Mark touch flow as ended; any subsequent showTimed will be allowed
+    // since the version is now stale relative to the latest bus state.
+    touchVersionRef.current = -1;
+  }, []);
+
+  // Mouse hover path
+  const show = useCallback(() => {
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    setOpen(true);
+  }, []);
+
+  // Click / keyboard path — auto-dismiss. Bail only if a CURRENT touch flow
+  // (one whose version is still the latest) is in progress for this hook.
+  const showTimed = useCallback(() => {
+    const inActiveTouch = touchVersionRef.current > 0
+      && touchVersionRef.current === __tooltipBus.getVersion()
+      && __tooltipBus.getActive() === idRef.current;
+    if (inActiveTouch) return; // touch flow already showing this tip — don't restart
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    setOpen(true);
+    timerRef.current = setTimeout(() => {
+      setOpen(false);
+      __tooltipBus.close(idRef.current);
+      timerRef.current = null;
+    }, 2500);
+  }, []);
+
+  // Touch path — opens on pointerdown, closes on up/cancel OR when finger
+  // moves outside the anchor's bounding rect.
+  const beginTouch = useCallback((e, el) => {
+    anchorRef.current = el;
+    activePointerRef.current = e.pointerId;
+    try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+    clearTimer();
+    __tooltipBus.open(idRef.current);
+    // Stamp this touch flow with the version we just incremented to.
+    touchVersionRef.current = __tooltipBus.getVersion();
+    setOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open || activePointerRef.current == null) return;
+
+    const onMove = (ev) => {
+      if (ev.pointerId !== activePointerRef.current) return;
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const inside = ev.clientX >= r.left && ev.clientX <= r.right
+                   && ev.clientY >= r.top  && ev.clientY <= r.bottom;
+      if (!inside) hide();
+    };
+    const onEnd = (ev) => {
+      if (ev.pointerId !== activePointerRef.current) return;
+      hide();
+    };
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerup', onEnd, { passive: true });
+    window.addEventListener('pointercancel', onEnd, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+    };
+  }, [open, hide]);
+
+  useEffect(() => () => clearTimer(), []);
+  return { open, show, hide, showTimed, beginTouch };
+}
+
+function LineRuleBadge({ rule, ok, status, compact, iconOnly, slotW, slotH }) {
+  const t = useT();
+  let icon, label;
+  if (rule.dim === 'gender') {
+    icon = rule.val === 'male' ? '♂' : '♀';
+    label = t(rule.val === 'male' ? 'gender.male' : 'gender.female');
+  } else {
+    icon = ATTR_ICON[rule.val] || '•';
+    label = translateValue(rule.val, t);
+  }
+  const tip = useBadgeTooltip();
+  const anchorRef = useRef(null);
+  const tipText = t('linerule.tip', { label });
+  // Label visibility:
+  //   - Tiny phone (iconOnly): NEVER show label (emoji-only).
+  //   - Otherwise: show label for habitat AND diet (gender stays as ♂/♀ glyph).
+  // Adaptive sizing below will auto-fall-back to icon-only if text doesn't fit.
+  const showLabel = !iconOnly && (rule.dim === 'habitat' || rule.dim === 'diet');
+  // Slot footprint
+  const fallback = iconOnly ? 26 : (compact ? 28 : 32);
+  const W = slotW || fallback;
+  const H = slotH || fallback;
+  // Resolve effective state: prefer `status` (4-state) over legacy `ok` boolean
+  const effState = status || (ok ? 'satisfied' : 'empty');
+  // Style by effective state — green for satisfied, red for bad, neutral otherwise
+  const styleMap = (() => {
+    if (effState === 'satisfied') {
+      return { bg: 'rgba(22, 163, 74, 0.14)', border: '1px solid rgba(22, 163, 74, 0.65)', color: '#15803D', iconColor: '#15803D', weight: 600, shadow: '0 0 0 2px rgba(22, 163, 74, 0.08)' };
+    }
+    if (effState === 'bad') {
+      return { bg: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(220, 38, 38, 0.65)', color: 'var(--danger)', iconColor: 'var(--danger)', weight: 600, shadow: '0 0 0 2px rgba(220, 38, 38, 0.08)' };
+    }
+    // empty / partial → idle neutral
+    return { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-secondary)', iconColor: 'var(--ink-primary)', weight: 500, shadow: 'none' };
+  })();
+  // Adaptive text sizing: shrink label font when slot width is tight.
+  const textBudget = Math.max(0, W - 14 - 4 - 8);
+  const labelFontSize = showLabel
+    ? Math.max(9, Math.min(12, Math.floor(textBudget / Math.max(2, label.length) * 1.6)))
+    : 0;
+  const labelFits = !showLabel || (labelFontSize * label.length * 0.62 <= textBudget);
+  const showLabelFinal = showLabel && labelFits;
+  return (
+    <div
+      ref={anchorRef}
+      data-badge-tip="1"
+      role="button" tabIndex={0}
+      aria-label={t('linerule.aria', { tip: tipText, ok: effState === 'satisfied' })}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
+      onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
+      onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
+      style={{
+        width: W,
+        height: H,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: showLabelFinal ? 3 : 0,
+        padding: showLabelFinal ? '0 4px' : 0,
+        background: styleMap.bg, border: styleMap.border, borderRadius: 4,
+        color: styleMap.color,
+        transition: 'all 220ms cubic-bezier(0.4,0,0.2,1)',
+        position: 'relative', flexShrink: 0,
+        boxShadow: styleMap.shadow,
+        cursor: 'help',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+      }}>
+      <span style={{
+        fontSize: showLabelFinal
+          ? Math.max(12, Math.round(H * 0.5))
+          : Math.max(15, Math.round(H * 0.62)),
+        fontFamily: rule.dim === 'gender' ? "'Fraunces', serif" : 'inherit',
+        fontWeight: styleMap.weight,
+        color: styleMap.iconColor,
+        lineHeight: 1,
+        display: 'block',
+        flexShrink: 0,
+      }} aria-hidden>{icon}</span>
+      {showLabelFinal && (
+        <span className="font-display" style={{
+          fontSize: labelFontSize,
+          fontWeight: styleMap.weight,
+          color: styleMap.color,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>{label}</span>
+      )}
+      <BadgeTooltip show={tip.open} text={tipText} anchorRef={anchorRef} />
+    </div>
+  );
+}
+
+// Generic "one specimen" glyph used as the universal animal-count unit.
+// Replaces the localized "마리 / 只 / 匹 / ct" word AND the species-biased
+// pawprint. Drawn as an abstract head-on-body silhouette — neutral across
+// mammal / bird / reptile / fish / insect — to read as "one organism" without
+// implying any particular taxonomic class. `currentColor` so it inherits the
+// badge's state color (idle ink, gold for met, red for over).
+function CreatureIcon({ size = 12, style }) {
+  // viewBox tightened horizontally (4 → 20 instead of 0 → 24) so the glyph
+  // sits flush within its box, letting it align on the same optical rhythm
+  // as the ♂/♀ characters next to the count number.
+  return (
+    <svg
+      viewBox="4 0 16 24"
+      width={(size * 16) / 24}
+      height={size}
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', flexShrink: 0, ...style }}
+    >
+      {/* head — small circle, sits above-left for a hint of profile */}
+      <circle cx="12" cy="6.5" r="3.2" fill="currentColor" />
+      {/* body — rounded trapezoid / dome, anchors as a single being.
+          Wider at the bottom, narrows where it meets the head. */}
+      <path
+        d="M5.2 20.5
+           C 5.2 16.8, 7.8 11.5, 12 11.5
+           C 16.2 11.5, 18.8 16.8, 18.8 20.5
+           C 18.8 21.0, 18.4 21.3, 17.9 21.3
+           L 6.1 21.3
+           C 5.6 21.3, 5.2 21.0, 5.2 20.5 Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function CountHintBadge({ hint, currentValue, ok, over, compact, iconOnly, paired, pairedSize }) {
+  const t = useT();
+  const isTotal = hint.type === 'total';
+  const kind = isTotal ? null : (hint.type === 'H1' ? '♂' : '♀');
+  // Size strategy — RIGID across solo and paired states:
+  //   Whether one count badge is shown alone or two are paired side-by-side,
+  //   each individual badge uses the SAME compact dimensions and font sizes.
+  //   This keeps both rows (rule row + count row) aligned cell-for-cell.
+  //   `paired` arg is kept for backwards compat but no longer changes geometry.
+  const size = pairedSize
+    ? pairedSize
+    : (iconOnly ? 26 : (compact ? 28 : 32));
+  const widthPx = size;
+  const kindLabel = t(hint.type === 'total' ? 'count.kind.total' : hint.type === 'H1' ? 'count.kind.male' : 'count.kind.female');
+  const tip = useBadgeTooltip();
+  const anchorRef = useRef(null);
+  const tipText = t('count.tip', { kind: kindLabel, n: hint.value, over, ok });
+  const state = over ? 'over' : (ok ? 'ok' : 'idle');
+  const styleMap = {
+    over: { bg: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(220, 38, 38, 0.65)', color: 'var(--danger)', weight: 700, shadow: '0 0 0 2px rgba(220, 38, 38, 0.08)' },
+    ok:   { bg: 'rgba(22, 163, 74, 0.14)', border: '1px solid rgba(22, 163, 74, 0.65)', color: '#15803D', weight: 700, shadow: '0 0 0 2px rgba(22, 163, 74, 0.08)' },
+    idle: { bg: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--ink-primary)', weight: 600, shadow: 'none' },
+  }[state];
+  return (
+    <div
+      ref={anchorRef}
+      data-badge-tip="1"
+      role="button" tabIndex={0}
+      aria-label={t('count.aria', { kind: kindLabel, n: hint.value, ok, over })}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') tip.show(); }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') tip.hide(); }}
+      onPointerDown={(e) => { if (e.pointerType !== 'mouse') tip.beginTouch(e, e.currentTarget); }}
+      onClick={(e) => { if (!e.pointerType || e.pointerType === 'mouse') tip.showTimed(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tip.showTimed(); } }}
+      style={{
+        minWidth: size, width: widthPx, height: size,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+        background: styleMap.bg, border: styleMap.border, borderRadius: 4,
+        color: styleMap.color,
+        padding: '0 2px',
+        transition: 'all 220ms', position: 'relative', flexShrink: 0,
+        boxShadow: styleMap.shadow,
+        lineHeight: 1,
+        cursor: 'help',
+      }}>
+        <span className="font-mono" style={{
+          fontSize: iconOnly ? 13 : (compact ? 14 : 15),
+          fontWeight: styleMap.weight, lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+          display: 'block',
+        }}>{hint.value}</span>
+        {isTotal ? (
+          <CreatureIcon
+            size={iconOnly ? 14 : (compact ? 15 : 17)}
+            style={{ opacity: 0.82 }}
+          />
+        ) : kind && (
+          <span style={{
+            fontFamily: "'Fraunces', serif",
+            fontSize: iconOnly ? 11 : (compact ? 12 : 13),
+            fontWeight: styleMap.weight,
+            lineHeight: 1,
+            opacity: 0.9,
+            display: 'block',
+            position: 'relative',
+            top: -1,
+          }} aria-hidden>{kind}</span>
+        )}
+      <BadgeTooltip show={tip.open} text={tipText} anchorRef={anchorRef} />
+    </div>
+  );
+}
+
+function animalImgSrc(animalId, gender) {
+  const g = gender || 'male';
+  const num = (animalId - 1) * 2 + (g === 'male' ? 1 : 2);
+  return `${IMAGE_BASE_URL}/${num}.webp`;
+}
+
+function AttributeOverlay({ animal, cellSize, anchorRef }) {
+  // On very narrow mobile viewports (< 420px), render as a portal-based
+  // floating popover above/below the tile — the cell is too small to fit
+  // the full name without clipping. On wider viewports, fall back to the
+  // original inset overlay which sits inside the cell.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 420
+  );
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 420);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  if (isNarrow) return <AttributeOverlayFloating animal={animal} anchorRef={anchorRef} />;
+  return <AttributeOverlayInset animal={animal} cellSize={cellSize} />;
+}
+
+function AttributeOverlayFloating({ animal, anchorRef }) {
+  // Portal-rendered floating popover — positioned above the tile with
+  // automatic flip to below when near the top edge. Escapes cell overflow
+  // clipping so the animal name never gets cut off on narrow mobile.
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
+  const [pos, setPos] = useState(null);
+  useEffect(() => {
+    if (!anchorRef || !anchorRef.current) { setPos(null); return; }
+    const update = () => {
+      const el = anchorRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      // Skip detached anchors (zero-sized) — happens during fast remount/cleanup
+      if (r.width === 0 && r.height === 0) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const cx = r.left + r.width / 2;
+      const spaceAbove = r.top;
+      const spaceBelow = vh - r.bottom;
+      const flipBelow = spaceAbove < 90 && spaceBelow > spaceAbove;
+      setPos({ cx, top: flipBelow ? r.bottom + 6 : r.top - 6, flip: flipBelow, vw });
+    };
+    update();
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [anchorRef, animal.id]);  // include animal.id so the position recomputes when the underlying tile changes
+
+  if (!pos) return null;
+  const EDGE = 8;
+  const MAX_W = Math.min(200, pos.vw - EDGE * 2);
+  const halfW = MAX_W / 2;
+  const clampedCx = Math.max(EDGE + halfW, Math.min(pos.vw - EDGE - halfW, pos.cx));
+  const arrowOffset = pos.cx - clampedCx;
+
+  return ReactDOM.createPortal(
+    <div style={{
+      position: 'fixed',
+      left: clampedCx, top: pos.top,
+      transform: pos.flip ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+      zIndex: 1000, pointerEvents: 'none',
+      minWidth: 120, maxWidth: MAX_W,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg-paper)',
+      border: '1px solid var(--border-medium)',
+      borderRadius: 6, padding: '8px 10px',
+      boxShadow: '0 8px 24px -6px rgba(0,0,0,0.25)',
+      animation: 'badgeTipFade 160ms cubic-bezier(0.4,0,0.2,1)',
+    }} className="font-body">
+      <div className="font-display" style={{
+        fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)',
+        marginBottom: 6, letterSpacing: '-0.01em',
+        textAlign: 'center', lineHeight: 1.2,
+        maxWidth: '100%',
+      }}>{animalName}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch', width: '100%' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '3px 6px', borderRadius: 3,
+          background: HABITAT_TINT[animal.habitat],
+          border: '1px solid var(--border-soft)',
+          fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1.2,
+          justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.habitat]}</span>
+          <span>{translateValue(animal.habitat, t)}</span>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '3px 6px', borderRadius: 3,
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-soft)',
+          fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1.2,
+          justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 13 }}>{ATTR_ICON[animal.diet]}</span>
+          <span>{translateValue(animal.diet, t)}</span>
+        </div>
+      </div>
+      <span aria-hidden style={{
+        position: 'absolute',
+        [pos.flip ? 'bottom' : 'top']: '100%',
+        left: `calc(50% + ${arrowOffset}px)`,
+        transform: 'translateX(-50%)',
+        width: 0, height: 0,
+        borderLeft: '6px solid transparent', borderRight: '6px solid transparent',
+        ...(pos.flip
+          ? { borderBottom: '6px solid var(--border-medium)' }
+          : { borderTop: '6px solid var(--border-medium)' }),
+      }} />
+    </div>,
+    document.body
+  );
+}
+
+function AttributeOverlayInset({ animal, cellSize }) {
+  // Original in-cell overlay — shrinks type to fit small cells.
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
+  const habitatLabel = translateValue(animal.habitat, t);
+  const dietLabel = translateValue(animal.diet, t);
+  const tiny = cellSize < 52;
+  const nameSize = tiny ? Math.max(9, cellSize * 0.18) : Math.max(11, cellSize * 0.17);
+  const chipText = tiny ? Math.max(8, cellSize * 0.14) : Math.max(9, cellSize * 0.13);
+  const chipIcon = tiny ? Math.max(9, cellSize * 0.15) : Math.max(10, cellSize * 0.15);
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(255, 253, 247, 0.94)', backdropFilter: 'blur(2px)',
+      borderRadius: 4, zIndex: 10, padding: 2, overflow: 'hidden',
+      animation: 'fadeInUp 180ms cubic-bezier(0.4,0,0.2,1)',
+    }} className="font-body">
+      <div className="font-display" style={{
+        fontSize: nameSize,
+        fontWeight: 600,
+        color: 'var(--ink-primary)',
+        marginBottom: 2,
+        letterSpacing: '-0.01em',
+        textAlign: 'center', lineHeight: 1,
+        maxWidth: '100%',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>{animalName}</div>
+      {tiny ? (
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginTop: 3 }}>
+          <span title={habitatLabel} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2px 4px', borderRadius: 2,
+            background: HABITAT_TINT[animal.habitat],
+            border: '1px solid var(--border-soft)',
+            fontSize: chipIcon, lineHeight: 1,
+          }}>{ATTR_ICON[animal.habitat]}</span>
+          <span title={dietLabel} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: '2px 4px', borderRadius: 2,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-soft)',
+            fontSize: chipIcon, lineHeight: 1,
+          }}>{ATTR_ICON[animal.diet]}</span>
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
+          marginTop: 4, maxWidth: '100%',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '2px 5px', borderRadius: 2,
+            background: HABITAT_TINT[animal.habitat],
+            border: '1px solid var(--border-soft)',
+            fontSize: chipText, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+            maxWidth: '100%', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.habitat]}</span>
+            <span>{habitatLabel}</span>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 3,
+            padding: '2px 5px', borderRadius: 2,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-soft)',
+            fontSize: chipText, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+            maxWidth: '100%', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ fontSize: chipIcon }}>{ATTR_ICON[animal.diet]}</span>
+            <span>{dietLabel}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError, isSelected, isDraggingThis }) {
+  const t = useT();
+  const { lang } = useLang();
+  const animalName = getAnimalName(animal.id, lang) || animal.name;
+  const sym = gender === 'male' ? '♂' : gender === 'female' ? '♀' : '?';
+  const symColor = gender === 'male' ? '#1E3A8A' : gender === 'female' ? '#9D174D' : 'var(--ink-tertiary)';
+  const undecided = !gender;
+  const tint = HABITAT_TINT[animal.habitat];
+  const adjacencyBorder = isAdjacentToPartner === false ? '1.5px solid var(--danger)' : undefined;
+
+  // Hover + long-press state for attribute overlay.
+  // Each interaction (pointerdown / mouseenter) bumps the session counter;
+  // pending timers stamp the session they were created in and bail out if
+  // a newer session has started. This prevents stale timers from re-opening
+  // the overlay after a different interaction has cleaned up.
+  const [hoverActive, setHoverActive] = useState(false);   // only true after delay
+  const [longPressed, setLongPressed] = useState(false);
+  const hoverTimerRef = useRef(null);
+  const pressTimerRef = useRef(null);
+  const pressStartRef = useRef(null);
+  const overlayMaxTimerRef = useRef(null);
+  const sessionRef = useRef(0);
+  const LONG_PRESS_MS = 350;
+  const HOVER_DELAY_MS = 500;
+  const OVERLAY_MAX_MS = 4000; // hard ceiling — overlay can never persist longer than this
+
+  // Begin a new interaction; invalidates pending timers from previous sessions.
+  const bumpSession = useCallback(() => {
+    sessionRef.current++;
+    return sessionRef.current;
+  }, []);
+
+  const startHover = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    const mySession = bumpSession();
+    hoverTimerRef.current = setTimeout(() => {
+      hoverTimerRef.current = null;
+      // Bail if a newer session has started since this timer was scheduled
+      if (sessionRef.current !== mySession) return;
+      setHoverActive(true);
+    }, HOVER_DELAY_MS);
+  }, [bumpSession]);
+
+  const cancelHover = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoverActive(false);
+  }, []);
+
+  const startPress = useCallback(() => {
+    pressStartRef.current = Date.now();
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    const mySession = sessionRef.current; // session was just bumped by pointerdown
+    pressTimerRef.current = setTimeout(() => {
+      pressTimerRef.current = null;
+      if (sessionRef.current !== mySession) return; // stale
+      setLongPressed(true);
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const cancelPress = useCallback(() => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  }, []);
+
+  const endPress = useCallback((e) => {
+    cancelPress();
+    const duration = pressStartRef.current ? Date.now() - pressStartRef.current : 0;
+    pressStartRef.current = null;
+    // Only trigger click if press was short (normal click, not long-press) AND no drag occurred
+    if (duration < LONG_PRESS_MS && !longPressed && !draggedRef.current) {
+      if (onClick) onClick(e);
+    }
+    draggedRef.current = false;
+    setLongPressed(false);
+  }, [onClick, longPressed, cancelPress]);
+
+  // Track whether pointer movement since pointerdown exceeded drag threshold
+  const draggedRef = useRef(false);
+  const pressStartXY = useRef({ x: 0, y: 0 });
+  const DRAG_SUPPRESS_PX = 6;
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (overlayMaxTimerRef.current) clearTimeout(overlayMaxTimerRef.current);
+    };
+  }, []);
+
+  const showOverlay = hoverActive || longPressed;
+  const tileRef = useRef(null);
+
+  // SAFETY NET — global pointerup/cancel always clears the popup, even when
+  // the element's own handlers were missed (iOS mouse-emulation, drag commit,
+  // pointer capture transfer, etc).
+  useEffect(() => {
+    if (!showOverlay) return;
+    // Hard ceiling — auto-dismiss after OVERLAY_MAX_MS no matter what
+    if (overlayMaxTimerRef.current) clearTimeout(overlayMaxTimerRef.current);
+    overlayMaxTimerRef.current = setTimeout(() => {
+      sessionRef.current++;  // invalidate any timer that survived
+      setHoverActive(false);
+      setLongPressed(false);
+    }, OVERLAY_MAX_MS);
+    const cleanup = () => {
+      sessionRef.current++;  // invalidate any timer that survived
+      setHoverActive(false);
+      setLongPressed(false);
+      if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+      if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+    };
+    const onWinUp = () => cleanup();
+    const onWinCancel = () => cleanup();
+    // If user taps anywhere else, dismiss
+    const onWinDown = (ev) => {
+      const el = tileRef.current;
+      if (!el) { cleanup(); return; }
+      if (ev.target && el.contains(ev.target)) return; // tap on this tile — keep
+      cleanup();
+    };
+    window.addEventListener('pointerup', onWinUp, true);
+    window.addEventListener('pointercancel', onWinCancel, true);
+    window.addEventListener('pointerdown', onWinDown, true);
+    return () => {
+      window.removeEventListener('pointerup', onWinUp, true);
+      window.removeEventListener('pointercancel', onWinCancel, true);
+      window.removeEventListener('pointerdown', onWinDown, true);
+      if (overlayMaxTimerRef.current) { clearTimeout(overlayMaxTimerRef.current); overlayMaxTimerRef.current = null; }
+    };
+  }, [showOverlay]);
+
+  return (
+    <div
+      ref={tileRef}
+      onPointerDown={(e) => {
+        // Bump session FIRST so any pending timers from previous interactions
+        // (including hover from earlier mouseenter) are invalidated.
+        bumpSession();
+        // Also clear any orphan state from previous session immediately.
+        if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+        setHoverActive(false);
+        setLongPressed(false);
+        draggedRef.current = false;
+        pressStartXY.current = { x: e.clientX, y: e.clientY };
+        if (onDragStart) onDragStart(e); // parent begins pointer drag
+        startPress();
+      }}
+      onPointerMove={(e) => {
+        if (draggedRef.current) return;
+        const dx = e.clientX - pressStartXY.current.x;
+        const dy = e.clientY - pressStartXY.current.y;
+        if (Math.hypot(dx, dy) > DRAG_SUPPRESS_PX) {
+          draggedRef.current = true;
+          cancelPress();
+          setLongPressed(false);
+        }
+      }}
+      onMouseEnter={startHover}
+      onMouseLeave={() => { cancelHover(); cancelPress(); setLongPressed(false); }}
+      onPointerUp={endPress}
+      onPointerCancel={() => { cancelPress(); setLongPressed(false); draggedRef.current = false; }}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault();
+          onClick(e);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={t('tile.aria', {
+        name: animalName,
+        gender: gender ? t(gender === 'male' ? 'gender.male' : 'gender.female') : '',
+        fixed: isFixed,
+        bad: isAdjacentToPartner === false,
+      })}
+      style={{
+        width: cellSize, height: cellSize, borderRadius: 4,
+        background: isFixed ? 'var(--bg-fixed)' : 'var(--bg-card)',
+        border: isSelected
+          ? '2px solid var(--accent-gold)'
+          : (isAdjacentToPartner === false ? '1.5px dashed var(--danger)' : (isRecent ? '1.5px solid var(--ink-primary)' : '1px solid var(--border-soft)')),
+        boxShadow: isSelected ? '0 0 0 3px rgba(180,83,9,0.25)' : (isPartnerPulse ? '0 0 0 4px rgba(180,83,9,0.22)' : '0 1px 2px rgba(0,0,0,0.04)'),
+        cursor: isFixed ? 'default' : 'grab',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative', overflow: 'hidden', userSelect: 'none',
+        transition: 'box-shadow 300ms, border 180ms',
+        animation: isRecent ? 'cellResolve 320ms cubic-bezier(0.4,0,0.2,1)' : 'none',
+        opacity: isDraggingThis ? 0.35 : 1,
+        touchAction: 'none',
+      }}
+    >
+      <div style={{ position: 'absolute', inset: 0, background: tint, opacity: 0.22, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', width: '82%', height: '82%', opacity: undecided ? 0.5 : 1, filter: undecided ? 'grayscale(0.7)' : 'none', transition: 'opacity 220ms, filter 220ms', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img
+          src={animalImgSrc(animal.id, gender)}
+          alt={animalName}
+          draggable={false}
+          onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
+        />
+        <div style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', fontSize: cellSize * 0.48 }}>
+          {animal.emoji}
+        </div>
+      </div>
+      {undecided && !showOverlay && (
+        <div className="font-display" style={{ position: 'absolute', fontSize: cellSize * 0.38, color: 'var(--accent-gold)', fontWeight: 500, fontStyle: 'italic', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>?</div>
+      )}
+      {gender && !showOverlay && (
+        <div className="font-display" style={{
+          position: 'absolute', bottom: 3, right: 4, fontSize: cellSize * 0.22, color: symColor,
+          background: 'var(--bg-card)', borderRadius: 2,
+          width: cellSize * 0.26, height: cellSize * 0.26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500,
+        }}>{sym}</div>
+      )}
+      {isFixed && !showOverlay && (
+        <>
+          {/* Subtle hatch — even fainter so the fixed tile reads as "natural", not striped */}
+          <svg aria-hidden width="100%" height="100%" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.035 }}>
+            <defs>
+              <pattern id={`fixedHatch-${token.id}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="6" stroke="#78716C" strokeWidth="1.2" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#fixedHatch-${token.id})`} />
+          </svg>
+          {/* Top-left red dot — subtle "locked" indicator */}
+          <div title={t('tile.fixed')} aria-hidden style={{
+            position: 'absolute', top: 4, left: 4,
+            width: 6, height: 6, borderRadius: 999,
+            background: '#DC2626',
+            boxShadow: '0 0 0 1.5px rgba(255,255,255,0.85)',
+          }} />
+        </>
+      )}
+      {showOverlay && <AttributeOverlay animal={animal} cellSize={cellSize} anchorRef={tileRef} />}
+    </div>
+  );
+}
+
+function ForbiddenCell({ size }) {
+  return (
+    <div style={{ width: size, height: size, background: 'var(--forbidden)', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+        <defs>
+          <pattern id="hatchpat" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#D6D3D1" strokeWidth="2" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hatchpat)" />
+      </svg>
+    </div>
+  );
+}
+
+function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
+  const { lang } = useLang();
+  // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
+  const dim = Math.ceil(Math.sqrt(capacity));
+  // Mini-cell size: fit within parent cell with padding
+  const padding = Math.max(6, cellSize * 0.10);
+  const gap = 2;
+  const innerSize = cellSize - padding * 2;
+  const miniCellSize = (innerSize - gap * (dim - 1)) / dim;
+  // Build cells array of length `capacity`, filled with {animalId, gender} or null
+  const slots = new Array(capacity).fill(null);
+  for (let i = 0; i < candidates.length && i < capacity; i++) slots[i] = candidates[i];
+  return (
+    <div style={{
+      position: 'absolute', inset: padding, zIndex: 4,
+      display: 'grid',
+      gridTemplateColumns: `repeat(${dim}, 1fr)`,
+      gridTemplateRows: `repeat(${dim}, 1fr)`,
+      gap: `${gap}px`,
+      pointerEvents: 'none',
+      opacity: opacity !== undefined ? opacity : 0.6,
+    }}>
+      {slots.map((slot, i) => {
+        if (!slot) {
+          return (
+            <div key={i} style={{
+              background: 'rgba(255,255,255,0.4)',
+              border: '1px dashed rgba(120,113,108,0.45)',
+              borderRadius: 2,
+            }} />
+          );
+        }
+        const animal = animalById(slot.animalId);
+        const gender = slot.gender || 'male';
+        const genderSym = gender === 'male' ? '♂' : '♀';
+        const genderColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
+        return (
+          <div key={i} style={{
+            background: 'rgba(255,255,255,0.75)',
+            border: '1px solid rgba(120,113,108,0.5)',
+            borderRadius: 2,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', position: 'relative',
+          }}>
+            <img
+              src={animalImgSrc(animal.id, gender)}
+              alt={getAnimalName(animal.id, lang) || animal.name}
+              draggable={false}
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+              style={{ width: '86%', height: '86%', objectFit: 'contain', pointerEvents: 'none' }}
+            />
+            <div style={{
+              display: 'none', width: '100%', height: '100%',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: miniCellSize * 0.55,
+            }}>{animal.emoji}</div>
+            <div className="font-display" style={{
+              position: 'absolute', bottom: 0, right: 1,
+              fontSize: Math.max(8, miniCellSize * 0.24),
+              color: genderColor, fontWeight: 600, lineHeight: 1,
+              textShadow: '0 0 2px rgba(255,255,255,0.9)',
+            }}>{genderSym}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
+  // Unified overlay: renders over either empty Q-cell or Q-cell with placed tile.
+  // Opacity values (higher = more opaque/visible):
+  //   - empty Q-cell: candidates 0.8 (prominent, full note-card feel), "?" 0.3 (visible but secondary)
+  //   - tile-occupied Q-cell: candidates 0.3 (faint, so real tile remains primary),
+  //                           "?" 0.2 (subtle watermark), actual tile image stays at full opacity.
+  // Layer order (low → high):
+  //   1. (parent background or placed tile, outside this component)
+  //   2. candidate mini-grid (zIndex 4)
+  //   3. big "?" symbol (zIndex 5, topmost)
+  const candidatesOpacity = hasPlacedTile ? 0.3 : 0.8;
+  const questionOpacity = hasPlacedTile ? 0.2 : 0.3;
+  return (
+    <>
+      <QCandidateGrid candidates={candidates || []} capacity={capacity || 4} cellSize={cellSize} opacity={candidatesOpacity} />
+      <div className="font-display" style={{
+        position: 'absolute', inset: 0, zIndex: 5,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: cellSize * 0.72, fontStyle: 'italic', fontWeight: 600,
+        color: 'var(--accent-gold)', opacity: questionOpacity,
+        pointerEvents: 'none', userSelect: 'none', lineHeight: 1,
+        textShadow: '0 0 8px rgba(255, 253, 247, 0.8)',
+      }}>?</div>
+    </>
+  );
+}
+
+function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onClick }) {
+  const isX = markState === 'X';
+  const isQ = markState === 'Q';
+
+  let bg, border;
+  if (isX) {
+    bg = isDropTarget ? 'rgba(185,28,28,0.1)' : 'rgba(120,113,108,0.12)';
+    border = isDropTarget ? '1.5px dashed var(--danger)' : '1px solid var(--border-medium)';
+  } else if (isQ) {
+    bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'rgba(180,83,9,0.04)';
+    border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px solid rgba(180,83,9,0.35)';
+  } else {
+    bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'var(--bg-subtle)';
+    border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px dashed var(--border-medium)';
+  }
+
+  return (
+    <div
+      data-drop-cell={`${row},${col}`}
+      onClick={onClick}
+      role="button"
+      style={{
+        width: size, height: size, background: bg, borderRadius: 4, border,
+        transition: 'all 140ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', position: 'relative', overflow: 'hidden',
+      }}
+    >
+      {isX && (
+        <svg width={size * 0.44} height={size * 0.44} viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+          <line x1="5" y1="5" x2="19" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
+          <line x1="19" y1="5" x2="5" y2="19" stroke="#78716C" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      )}
+      {isQ && (
+        <QMarkOverlay candidates={qCandidates} capacity={qCapacity} cellSize={size} hasPlacedTile={false} />
+      )}
+      {!isX && !isQ && (
+        <div style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--border-medium)' }} />
+      )}
+    </div>
+  );
+}
+
+function PairAdjacencyLine({ from, to, cellSize, gap, valid }) {
+  const cx = (c) => c * (cellSize + gap) + cellSize / 2;
+  const cy = (r) => r * (cellSize + gap) + cellSize / 2;
+  const x1 = cx(from.col), y1 = cy(from.row);
+  const x2 = cx(to.col), y2 = cy(to.row);
+  return (
+    <line x1={x1} y1={y1} x2={x2} y2={y2}
+      stroke={valid ? '#16A34A' : 'var(--danger)'}
+      strokeWidth="2" strokeDasharray="3 3" opacity="0.7" strokeLinecap="round" />
+  );
+}
+
+function useViewportWidth() {
+  const [w, setW] = React.useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  React.useEffect(() => {
+    const onR = () => setW(window.innerWidth);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  return w;
+}
+
+// ============================================================================
+// UNIFIED POINTER DRAG SYSTEM (mouse + touch + pen)
+// Replaces HTML5 Drag & Drop API, which does not work on mobile touch.
+//
+// Model:
+//   - Any tile (hand or placed) becomes a drag source via onPointerDown on it.
+//   - A drag doesn't "commit" until pointer moves more than DRAG_THRESHOLD px.
+//     Before threshold, releasing counts as a TAP (selects the tile).
+//   - Drop targets are identified by data-drop-cell="r,c" or data-drop-hand="1".
+//     On pointermove we use elementFromPoint to find them.
+//   - Selected tile (via tap) can be placed by tapping a valid target.
+//
+// Exposes: DragProvider (wraps app), useDrag() -> { startPointerDrag,
+//   selectedTokenId, selectTile, clearSelection, draggingTokenId,
+//   ghostStyle, overTarget }
+// ============================================================================
+
+const DragContext = React.createContext(null);
+
+function DragProvider({ children, onPlace, onReturnToHand, onTapTile, onSelectionChange }) {
+  const [draggingTokenId, setDraggingTokenId] = useState(null);
+  const [selectedTokenId, setSelectedTokenIdRaw] = useState(null);
+  const selectedRef = useRef(null);
+  const setSelectedTokenId = useCallback((id) => {
+    selectedRef.current = id;
+    setSelectedTokenIdRaw(id);
+    if (onSelectionChange) onSelectionChange(id);
+  }, [onSelectionChange]);
+  const [overTarget, setOverTarget] = useState(null);
+  const [ghostPos, setGhostPos] = useState({ x: 0, y: 0 });
+  const [ghostVisible, setGhostVisible] = useState(false);
+  const [ghostToken, setGhostToken] = useState(null); // { animalId, gender }
+
+  // refs carry live state inside move/up handlers
+  const stateRef = useRef({
+    pointerId: null,
+    tokenId: null,
+    gender: null,
+    startX: 0, startY: 0,
+    moved: false,
+    source: null, // 'hand' | 'board'
+  });
+  const DRAG_THRESHOLD = 6; // px
+
+  const clearGhost = useCallback(() => {
+    setGhostVisible(false);
+    setGhostToken(null);
+    setDraggingTokenId(null);
+    setOverTarget(null);
+  }, []);
+
+  // Begin a pointer interaction on a tile. Does NOT start a drag yet — waits for threshold.
+  const beginPointerPress = useCallback((e, { tokenId, gender, source, animalId }) => {
+    // Ignore non-primary pointer buttons for mouse
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const s = stateRef.current;
+    s.pointerId = e.pointerId;
+    s.tokenId = tokenId;
+    s.gender = gender;
+    s.animalId = animalId;
+    s.startX = e.clientX;
+    s.startY = e.clientY;
+    s.moved = false;
+    s.source = source;
+    // Capture pointer so moves keep coming even if finger leaves element
+    try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    // Don't preventDefault yet — preserve taps / scrolls until threshold
+  }, []);
+
+  // Global pointermove + pointerup listeners
+  useEffect(() => {
+    function findDropTarget(x, y) {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const cell = el.closest && el.closest('[data-drop-cell]');
+      if (cell) {
+        const [r, c] = cell.getAttribute('data-drop-cell').split(',').map(Number);
+        return { kind: 'cell', row: r, col: c, key: `cell:${r},${c}` };
+      }
+      const hand = el.closest && el.closest('[data-drop-hand]');
+      if (hand) return { kind: 'hand', key: 'hand' };
+      return null;
+    }
+
+    function onMove(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      const dx = e.clientX - s.startX;
+      const dy = e.clientY - s.startY;
+      if (!s.moved) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        // Threshold crossed — start drag
+        s.moved = true;
+        setDraggingTokenId(s.tokenId);
+        setSelectedTokenId(null); // dragging supersedes tap-selection
+        setGhostToken({ animalId: s.animalId, gender: s.gender });
+        setGhostVisible(true);
+      }
+      setGhostPos({ x: e.clientX, y: e.clientY });
+      const tgt = findDropTarget(e.clientX, e.clientY);
+      setOverTarget(tgt);
+      // Prevent page scroll while dragging on touch
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function onUp(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      const { tokenId, moved, source } = s;
+      s.pointerId = null;
+
+      if (!moved) {
+        // TAP — decide: select, deselect, toggle, or place/return-to-hand.
+        // If another tile was already selected AND this tap is on a different
+        // tile, treat it as "switch selection" (don't trigger place).
+        const prevSelected = selectedRef.current;
+        if (source === 'hand') {
+          // Hand tap → select / deselect
+          if (prevSelected === tokenId) setSelectedTokenId(null);
+          else setSelectedTokenId(tokenId);
+        } else {
+          // Board tap
+          if (prevSelected && prevSelected !== tokenId) {
+            // Switch selection to this tile
+            setSelectedTokenId(tokenId);
+          } else if (prevSelected === tokenId) {
+            // Tap same tile → deselect + toggle mark
+            setSelectedTokenId(null);
+            if (onTapTile) onTapTile({ tokenId, source });
+          } else {
+            // Nothing selected → toggle gender mark
+            if (onTapTile) onTapTile({ tokenId, source });
+          }
+        }
+        return;
+      }
+
+      // Drag ended — resolve drop. Clear any tap-selection.
+      setSelectedTokenId(null);
+      const tgt = findDropTarget(e.clientX, e.clientY);
+      clearGhost();
+      if (!tgt) return; // dropped on nothing — cancel
+      if (tgt.kind === 'cell') {
+        if (onPlace) onPlace({ tokenId, row: tgt.row, col: tgt.col });
+      } else if (tgt.kind === 'hand') {
+        if (source === 'board' && onReturnToHand) onReturnToHand({ tokenId });
+      }
+    }
+
+    function onCancel(e) {
+      const s = stateRef.current;
+      if (s.pointerId == null || e.pointerId !== s.pointerId) return;
+      s.pointerId = null;
+      clearGhost();
+    }
+
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+    };
+  }, [onPlace, onReturnToHand, onTapTile, clearGhost]);
+
+  const ctx = useMemo(() => ({
+    beginPointerPress,
+    selectedTokenId, setSelectedTokenId,
+    draggingTokenId, overTarget,
+    ghostVisible, ghostPos, ghostToken,
+  }), [beginPointerPress, selectedTokenId, draggingTokenId, overTarget, ghostVisible, ghostPos, ghostToken]);
+
+  return (
+    <DragContext.Provider value={ctx}>
+      {children}
+      {ghostVisible && ghostToken && (
+        <div style={{
+          position: 'fixed', left: 0, top: 0,
+          transform: `translate(${ghostPos.x - 30}px, ${ghostPos.y - 30}px) scale(1.05)`,
+          width: 60, height: 60, pointerEvents: 'none', zIndex: 9999,
+          background: 'var(--bg-card)', border: '1.5px solid var(--accent-gold)', borderRadius: 4,
+          boxShadow: '0 8px 24px -6px rgba(0,0,0,0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          transition: 'transform 60ms linear',
+        }}>
+          <img src={animalImgSrc(ghostToken.animalId, ghostToken.gender)}
+               alt="" draggable={false}
+               style={{ width: '82%', height: '82%', objectFit: 'contain' }} />
+        </div>
+      )}
+    </DragContext.Provider>
+  );
+}
+
+function useDrag() {
+  const ctx = React.useContext(DragContext);
+  if (!ctx) throw new Error('useDrag must be used within DragProvider');
+  return ctx;
+}
+
+function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState }) {
+  const drag = useDrag();
+  const n = puzzle.n;
+  const vw = useViewportWidth();
+  const isMobile = vw < 640;
+  const isTiny = vw < 400;
+  // Aggressive padding reduction on mobile so the board grabs every available pixel.
+  const pagePad = isMobile ? (isTiny ? 4 : 8) : 40;
+  // boardPad — extra thick for Sprout (small board, padding visible);
+  // compact for other levels so cells get max area.
+  const boardPad = puzzle.level === 'Sprout'
+    ? (isMobile ? (isTiny ? 8 : 12) : 20)
+    : (isMobile ? (isTiny ? 4 : 8) : 20);
+  const gap = isMobile ? 3 : 6;
+
+  const forbiddenSet = new Set(puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+  const placedMap = {};
+  for (const [tokenId, cell] of Object.entries(placements)) {
+    if (cell) placedMap[`${cell.row},${cell.col}`] = tokenId;
+  }
+
+  const rowRules = {}, colRules = {};
+  for (const r of (puzzle.lineRules || [])) {
+    if (r.isRow) (rowRules[r.idx] = rowRules[r.idx] || []).push(r);
+    else (colRules[r.idx] = colRules[r.idx] || []).push(r);
+  }
+  const rowCountHints = {}, colCountHints = {};
+  for (const h of (puzzle.countHints || [])) {
+    if (h.row !== null) (rowCountHints[h.row] = rowCountHints[h.row] || []).push(h);
+    else (colCountHints[h.col] = colCountHints[h.col] || []).push(h);
+  }
+
+  // Compute max badge slot rows/columns. Each line rule + the count-hint group
+  // (paired side-by-side) each occupy ONE slot row (in column header) or
+  // ONE slot row stacked vertically (in row header).
+  let maxRowSlots = 0, maxColSlots = 0;
+  for (let i = 0; i < n; i++) {
+    const rRules = (rowRules[i] || []).length;
+    const rCounts = (rowCountHints[i] || []).length > 0 ? 1 : 0;
+    const cRules = (colRules[i] || []).length;
+    const cCounts = (colCountHints[i] || []).length > 0 ? 1 : 0;
+    if (rRules + rCounts > maxRowSlots) maxRowSlots = rRules + rCounts;
+    if (cRules + cCounts > maxColSlots) maxColSlots = cRules + cCounts;
+  }
+  if (maxRowSlots === 0) maxRowSlots = 1;
+  if (maxColSlots === 0) maxColSlots = 1;
+
+  // Responsive badge sizing
+  const compact = isMobile;
+  const iconOnly = isTiny;
+  const hintGap = isMobile ? 2 : 4;
+
+  // ────────────────────────────────────────────────────────────────────
+  // Cell-first sizing: on mobile, the grid cells claim the most space.
+  // The badge slot width/height are then DERIVED from the cell size so
+  // every column header slot is as wide as the cell beneath it, and every
+  // row header is exactly one cell-tall (stacked vertically inside).
+  // ────────────────────────────────────────────────────────────────────
+  // Step 1: pick a target row-header gutter width.
+  //   - On mobile: compact gutter — just enough for one count-pair badge,
+  //     since multiple badges can stack vertically inside.
+  //   - On desktop: vertical stacking too (one slot wide), so gutter is compact.
+  //     Multiple rules + count hints stack vertically inside the cell-tall row.
+  let rowHintWidth;
+  if (isMobile) {
+    // Smallest reasonable gutter: width of one paired-count group (two small badges).
+    rowHintWidth = isTiny ? 56 : 64;
+  } else {
+    // Desktop: same vertical-stack philosophy. One paired-count slot wide
+    // (~80px) is enough for two count badges side-by-side or for a single
+    // habitat label badge. Multiple rules stack vertically inside.
+    rowHintWidth = 84;
+  }
+
+  // Step 2: derive cellSize from available width.
+  const availableW = vw - pagePad * 2 - boardPad * 2 - rowHintWidth - gap;
+  // Sprout (n=4) is small enough that hitting the default maxCell pushes the
+  // board against the viewport edges. Cap it lower so left/right margins
+  // stay visually relaxed. Other levels keep the larger cap since they pack
+  // edge-to-edge anyway.
+  const maxCell = puzzle.level === 'Sprout'
+    ? (isMobile ? 60 : 76)
+    : (isMobile ? 72 : 86);
+  const cellSize = Math.max(32, Math.floor(Math.min((availableW - (n - 1) * gap) / n, maxCell)));
+
+  // Step 3: now derive badge slot dimensions from cellSize.
+  // Column header slot width = cellSize (matches cell beneath, edge-to-edge).
+  // Row header slot height = cellSize (matches cell beside).
+  // Slot height for column header rule: a fraction of cellSize, capped.
+  const slotH = Math.max(22, Math.min(36, Math.round(cellSize * 0.46)));
+  // Column header total height = N slot rows + gaps between them
+  const colHintHeight = slotH * maxColSlots + hintGap * Math.max(0, maxColSlots - 1) + 8;
+  // Slot width for column header: full cell width
+  const slotW = cellSize;
+  // Paired count badge size (used inside a single slot — two side by side)
+  const pairedCountH = slotH;
+  const pairedCountW = Math.max(20, Math.floor((cellSize - 2) / 2)); // half of cell, minus 2px gap
+
+  // Evaluate rules & counts runtime
+  const ruleOk = {};
+  for (const r of (puzzle.lineRules || [])) {
+    ruleOk[r.id] = evaluateLineRuleRuntime(r, placements, puzzle.tokens, marks);
+  }
+  // Compute count-hint state — both immediate (current vs target) and structural
+  // (can future placements / gender toggles ever satisfy this?). A count badge
+  // is highlighted red if it's already over OR if it's now physically
+  // impossible to satisfy given the current line state.
+  const countOk = {}, countOver = {};
+  // Group hints by line for cross-checking gender vs total
+  const hintsByLine = {};
+  for (const h of (puzzle.countHints || [])) {
+    const key = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    (hintsByLine[key] = hintsByLine[key] || []).push(h);
+  }
+  for (const h of (puzzle.countHints || [])) {
+    const lineEntries = Object.entries(placements).filter(([_, cell]) =>
+      h.row !== null ? cell.row === h.row : cell.col === h.col
+    );
+    const T_now = lineEntries.length;
+    const M_now = lineEntries.filter(([tid]) => marks[tid] === 'male').length;
+    const F_now = lineEntries.filter(([tid]) => marks[tid] === 'female').length;
+    const Q_now = T_now - M_now - F_now; // unmarked
+
+    // Find sibling total hint on same line (if any)
+    const lineKey = h.row !== null ? `r${h.row}` : `c${h.col}`;
+    const totalHint = (hintsByLine[lineKey] || []).find(x => x.type === 'total');
+    const T_target = totalHint ? totalHint.value : null;
+    // Capacity = how many tokens this line will eventually contain
+    const capacity = T_target !== null ? T_target : T_now;
+    const remaining = Math.max(0, capacity - T_now); // tokens still to be placed in this line
+
+    let current, target = h.value;
+    let isImpossible = false;
+    if (h.type === 'total') {
+      current = T_now;
+    } else if (h.type === 'H1') {
+      current = M_now;
+      // Reachable max = current ♂ + (Q's that could be flipped to ♂) + (future tokens that could be ♂)
+      const M_max = M_now + Q_now + remaining;
+      // Min reachable = M_now (cannot un-mark) — over check below handles M_now > target
+      if (target > M_max) isImpossible = true;
+    } else if (h.type === 'H2') {
+      current = F_now;
+      const F_max = F_now + Q_now + remaining;
+      if (target > F_max) isImpossible = true;
+    }
+    countOk[h.id] = current === target;
+    // Red highlight when: already over, OR impossible to ever reach target.
+    // Also: if line is full (capacity reached) and target is still unreachable
+    // because complementary slots are taken (e.g. ♂ + ♀ marked exceed remaining).
+    countOver[h.id] = current > target || isImpossible;
+  }
+
+  // Compute final ruleStatus: 'empty' | 'partial' | 'bad' | 'satisfied'
+  // 'satisfied' (green) requires BOTH (a) every placed token in line matches the rule
+  // AND (b) every count hint on that same line is also ok.
+  const ruleStatus = {};
+  for (const r of (puzzle.lineRules || [])) {
+    const baseStatus = evaluateLineRuleStatus(r, placements, puzzle.tokens, marks);
+    if (baseStatus !== 'satisfied-rule-only') {
+      ruleStatus[r.id] = baseStatus; // empty / partial / bad
+      continue;
+    }
+    // Rule itself is satisfied — now check count hints on same line
+    const lineCountHints = (puzzle.countHints || []).filter(h =>
+      r.isRow ? h.row === r.idx : h.col === r.idx
+    );
+    const allCountOk = lineCountHints.length === 0
+      ? true   // no count hints on this line — rule alone counts as satisfied
+      : lineCountHints.every(h => countOk[h.id]);
+    ruleStatus[r.id] = allCountOk ? 'satisfied' : 'partial';
+  }
+
+  const pairAdj = {};
+  for (const [t1, t2] of puzzle.pairs) {
+    const p1 = placements[t1], p2 = placements[t2];
+    if (p1 && p2) pairAdj[t1] = pairAdj[t2] = isAdjacent(p1, p2);
+  }
+
+  const cellContent = (r, c, idx) => {
+    const key = `${r},${c}`;
+    if (forbiddenSet.has(key)) return <ForbiddenCell size={cellSize} />;
+    const tid = placedMap[key];
+    const isDropTarget = drag.overTarget && drag.overTarget.kind === 'cell' && drag.overTarget.row === r && drag.overTarget.col === c;
+    if (tid) {
+      const tok = puzzle.tokens.find(t => t.id === tid);
+      const animal = animalById(tok.animalId);
+      const isRecent = recentTokenId === tok.id;
+      const isPartnerPulse = partnerTokenId === tok.id;
+      const isFixed = !!(puzzle.preMarks && puzzle.preMarks[tok.id]);
+      const adj = pairAdj[tok.id];
+      const cellIsQ = cellMarks && cellMarks[key] === 'Q';
+      const cellQCands = cellIsQ && qCandidates ? qCandidates[key] : undefined;
+      const isSelected = drag.selectedTokenId === tok.id;
+      const isDraggingThis = drag.draggingTokenId === tok.id;
+      return (
+        <div
+          data-drop-cell={`${r},${c}`}
+          style={{
+            animation: winAnimating ? `celebrationWave 700ms cubic-bezier(0.4,0,0.2,1) ${idx * 55}ms both` : 'none',
+            position: 'relative',
+            boxShadow: isDropTarget ? '0 0 0 2px var(--accent-gold)' : 'none',
+            borderRadius: 4,
+            transition: 'box-shadow 140ms',
+          }}
+        >
+          <PlacedTile
+            token={tok} animal={animal} gender={marks[tok.id] || null}
+            onClick={() => onCellClick(tok.id)}
+            onDragStart={(e) => {
+              if (isFixed) return;
+              drag.beginPointerPress(e, {
+                tokenId: tok.id,
+                gender: marks[tok.id] || 'male',
+                animalId: tok.animalId,
+                source: 'board',
+              });
+            }}
+            isRecent={isRecent} isPartnerPulse={isPartnerPulse}
+            isFixed={isFixed} cellSize={cellSize}
+            isAdjacentToPartner={adj}
+            isSelected={isSelected}
+            isDraggingThis={isDraggingThis}
+          />
+          {cellIsQ && (
+            <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} />
+          )}
+        </div>
+      );
+    }
+    const markState = cellMarks ? cellMarks[key] : undefined;
+    const qCands = qCandidates ? qCandidates[key] : undefined;
+    return (
+      <DropCell
+        size={cellSize} row={r} col={c}
+        isDropTarget={isDropTarget}
+        markState={markState}
+        qCandidates={qCands}
+        qCapacity={qMarkCapacity}
+        onClick={() => onEmptyCellClick && onEmptyCellClick(r, c)}
+      />
+    );
+  };
+
+  const rowsArr = Array.from({ length: n }, (_, i) => i);
+  const colsArr = Array.from({ length: n }, (_, i) => i);
+
+  // Sprout (n=4) renders smaller than viewport on phones, leaving the leftmost
+  // badge visually kissing the white edge. Apply extra outer padding only to
+  // Sprout — other levels already pack the board edge-to-edge so additional
+  // padding would just shrink cellSize.
+  const isSprout = puzzle.level === 'Sprout';
+  const outerPadX = isSprout ? 'clamp(12px, 3vw, 40px)' : 'clamp(2px, 1vw, 40px)';
+
+  return (
+    <div style={{ padding: `4px ${outerPadX} 20px`, display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+      <div style={{
+        position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
+        border: '1px solid var(--border-soft)', borderRadius: 3,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 12px 32px -16px rgba(60, 50, 30, 0.15)',
+      }}>
+        {/* Column headers */}
+        <div style={{ display: 'flex', gap, marginBottom: gap, paddingLeft: rowHintWidth + gap, minHeight: colHintHeight }}>
+          {colsArr.map(c => {
+            const ch = colCountHints[c] || [];
+            return (
+              <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap' }}>
+                {(colRules[c] || []).map(r => (
+                  <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} status={ruleStatus[r.id]} compact={compact} iconOnly={iconOnly} slotW={slotW} slotH={slotH} />
+                ))}
+                {ch.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: 2, justifyContent: 'center', alignItems: 'center', maxWidth: '100%' }}>
+                    {ch.map(h => (
+                      <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={pairedCountW} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {rowsArr.map(r => {
+          const rh = rowCountHints[r] || [];
+          const rRules = rowRules[r] || [];
+          // Row header inner stacks vertically: each rule on its own line,
+          // count hints on their own line. This lets the row gutter stay
+          // narrow (one slot wide) while still showing every badge.
+          // Total stacked items = rule count + (1 if count hints exist)
+          const stackedItems = rRules.length + (rh.length > 0 ? 1 : 0);
+          // Each stacked item gets ~equal share of cellSize, capped at slotH
+          const rowSlotH = Math.max(20, Math.min(slotH, Math.floor((cellSize - hintGap * Math.max(0, stackedItems - 1)) / Math.max(1, stackedItems))));
+          // Width matching: a paired count-hint group is (2 × rowSlotH + 2) wide.
+          // Make line-rule badges the SAME width so both badge types
+          // align flush at their left edge under right-justify.
+          const rowRuleBadgeW = rh.length >= 2
+            ? rowSlotH * 2 + 2
+            : Math.min(rowHintWidth - 8, rowSlotH * 2 + 2);
+          return (
+          <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
+            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: isSprout ? 8 : (isMobile ? 2 : 6), paddingRight: 4, overflow: 'visible' }}>
+              {rRules.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: hintGap, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+                  {rRules.map(rr => (
+                    <LineRuleBadge key={rr.id} rule={rr} ok={ruleOk[rr.id]} status={ruleStatus[rr.id]} compact={compact} iconOnly={iconOnly} slotW={rowRuleBadgeW} slotH={rowSlotH} />
+                  ))}
+                </div>
+              )}
+              {rh.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 2, alignItems: 'center', justifyContent: 'flex-end' }}>
+                  {rh.map(h => (
+                    <CountHintBadge key={h.id} hint={h} ok={countOk[h.id]} over={countOver[h.id]} compact={compact} iconOnly={iconOnly} paired={true} pairedSize={rowSlotH} />
+                  ))}
+                </div>
+              )}
+            </div>
+            {colsArr.map(c => (<div key={c}>{cellContent(r, c, r * n + c)}</div>))}
+          </div>
+          );
+        })}
+        {/* Adjacency SVG overlay */}
+        <svg style={{
+          position: 'absolute',
+          left: boardPad + rowHintWidth + gap,
+          top: boardPad + colHintHeight + gap,
+          width: n * cellSize + (n - 1) * gap,
+          height: n * cellSize + (n - 1) * gap,
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}>
+          {puzzle.pairs.map(([t1, t2]) => {
+            const p1 = placements[t1], p2 = placements[t2];
+            if (!p1 || !p2) return null;
+            const valid = isAdjacent(p1, p2);
+            return (
+              <PairAdjacencyLine key={t1} from={p1} to={p2} cellSize={cellSize} gap={gap} valid={valid} />
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, dragState, onHandTapReturn }) {
+  const drag = useDrag();
+  const tStr = useT();
+  const { lang } = useLang();
+  if (!puzzle) return null;
+  const unplaced = puzzle.tokens.filter(t => !placements[t.id]);
+  const groups = {};
+  for (const t of unplaced) { (groups[t.animalId] = groups[t.animalId] || []).push(t); }
+  const entries = Object.entries(groups);
+
+  const overHand = drag.overTarget && drag.overTarget.kind === 'hand';
+
+  return (
+    <div
+      data-drop-hand="1"
+      onClick={(e) => {
+        // Only handle bare-hand taps (not clicks on child tiles which fire their own)
+        if (e.target === e.currentTarget && onHandTapReturn) onHandTapReturn();
+      }}
+      style={{
+        margin: '0 clamp(12px, 4vw, 40px) 20px', padding: 'clamp(12px, 3vw, 18px) clamp(12px, 3vw, 20px)', minHeight: 100,
+        background: overHand ? 'rgba(180,83,9,0.05)' : 'var(--bg-subtle)',
+        border: overHand ? '1px dashed var(--accent-gold)' : '1px solid var(--border-soft)',
+        borderRadius: 3, transition: 'all 160ms',
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <div className="font-body" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-tertiary)', fontWeight: 500 }}>
+          {tStr('hand.title')}
+        </div>
+        <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>
+          {unplaced.length > 0 ? tStr('hand.waiting', { n: unplaced.length }) : tStr('hand.allPlaced')}
+        </div>
+      </div>
+      {unplaced.length === 0 ? (
+        <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: 13, fontStyle: 'italic' }} className="font-display">
+          {tStr('hand.hint')}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+          {entries.map(([aid, toks]) => {
+            const animal = animalById(parseInt(aid));
+            return (
+              <div key={aid} style={{
+                display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card)',
+                padding: '8px 10px', border: '1px solid var(--border-soft)', borderRadius: 3,
+              }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {toks.map((t, i) => {
+                    // Determine display gender (priority order):
+                    //   1. If this token has an explicit mark, use it
+                    //   2. If partner has a mark, show OPPOSITE
+                    //   3. Both tokens in hand, no marks: fall back to index (0→♂, 1→♀)
+                    //   4. Otherwise default male
+                    let gender;
+                    if (marks[t.id]) {
+                      gender = marks[t.id];
+                    } else {
+                      const partnerId = getPartnerToken(t.id, puzzle.pairs);
+                      const partnerMark = partnerId && marks[partnerId];
+                      if (partnerMark) {
+                        gender = partnerMark === 'male' ? 'female' : 'male';
+                      } else if (toks.length === 2) {
+                        gender = i === 0 ? 'male' : 'female';
+                      } else {
+                        gender = 'male';
+                      }
+                    }
+                    const sym = gender === 'male' ? '♂' : '♀';
+                    const symColor = gender === 'male' ? '#1E3A8A' : '#9D174D';
+                    const isSelected = drag.selectedTokenId === t.id;
+                    const isDraggingThis = drag.draggingTokenId === t.id;
+                    return (
+                      <div key={t.id}
+                        onPointerDown={(e) => {
+                          drag.beginPointerPress(e, {
+                            tokenId: t.id,
+                            gender,
+                            animalId: animal.id,
+                            source: 'hand',
+                          });
+                        }}
+                        style={{
+                          width: 58, height: 58, background: 'var(--bg-card)',
+                          border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-medium)',
+                          boxShadow: isSelected ? '0 0 0 3px rgba(180,83,9,0.25)' : 'none',
+                          borderRadius: 4,
+                          cursor: 'grab', position: 'relative',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'transform 180ms, box-shadow 180ms, border 180ms',
+                          opacity: isDraggingThis ? 0.35 : 1,
+                          touchAction: 'none',
+                          userSelect: 'none',
+                        }}>
+                        <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: 0.22, borderRadius: 4 }} />
+                        <img src={animalImgSrc(animal.id, gender)} alt={getAnimalName(animal.id, lang) || animal.name} draggable={false}
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                          style={{ width: '80%', height: '80%', objectFit: 'contain', position: 'relative' }} />
+                        <div style={{ display: 'none', fontSize: 26, position: 'relative' }}>
+                          {animal.emoji}
+                        </div>
+                        <div className="font-display" style={{
+                          position: 'absolute', bottom: 1, right: 2, fontSize: 10, color: symColor,
+                          background: 'var(--bg-card)', borderRadius: 2,
+                          width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500,
+                        }}>{sym}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div className="font-display" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{getAnimalName(animal.id, lang) || animal.name}</div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    <span title={translateValue(animal.habitat, tStr)} className="font-body" style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 6px', borderRadius: 2,
+                      background: HABITAT_TINT[animal.habitat],
+                      border: '1px solid var(--border-soft)',
+                      fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+                    }}>
+                      <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.habitat]}</span>
+                      <span>{translateValue(animal.habitat, tStr)}</span>
+                    </span>
+                    <span title={translateValue(animal.diet, tStr)} className="font-body" style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      padding: '2px 6px', borderRadius: 2,
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-soft)',
+                      fontSize: 10, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+                    }}>
+                      <span aria-hidden style={{ fontSize: 11 }}>{ATTR_ICON[animal.diet]}</span>
+                      <span>{translateValue(animal.diet, tStr)}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Controls({ onNew, onReset, onHint, disabled }) {
+  const t = useT();
+  const btn = (label, icon, onClick, primary) => (
+    <button onClick={onClick} disabled={disabled} className="font-body" style={{
+      padding: 'clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px)', background: primary ? 'var(--ink-primary)' : 'var(--bg-card)',
+      color: primary ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+      border: primary ? '1px solid var(--ink-primary)' : '1px solid var(--border-medium)',
+      borderRadius: 2, cursor: disabled ? 'wait' : 'pointer', fontSize: 13, fontWeight: 500,
+      display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '0.02em',
+      opacity: disabled ? 0.5 : 1, transition: 'all 160ms',
+    }}>
+      <span style={{ fontSize: 14 }}>{icon}</span>{label}
+    </button>
+  );
+  return (
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', padding: '8px clamp(12px, 4vw, 40px) 20px', flexWrap: 'wrap' }}>
+      {btn(t('btn.new'), '🎲', onNew, true)}
+      {btn(t('btn.reset'), '↺', onReset)}
+      {btn(t('btn.hint'), '◉', onHint)}
+    </div>
+  );
+}
+
+function Legend({ collapsed, onToggle }) {
+  const t = useT();
+  const strictLabel = (<span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>);
+  const looseLabel = (<span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.loose.label', { n: 'N' })}</span>);
+  return (
+    <div style={{ padding: '0 clamp(12px, 4vw, 40px) 32px', maxWidth: 760, margin: '0 auto' }}>
+      <button onClick={onToggle} className="font-body" style={{
+        background: 'transparent', border: 'none', color: 'var(--ink-tertiary)',
+        cursor: 'pointer', fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 0',
+      }}>
+        {collapsed ? t('help.open') : t('help.close')}
+      </button>
+      {!collapsed && (
+        <div data-selectable="1" style={{
+          marginTop: 10, padding: 16, background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-soft)', borderRadius: 2,
+          animation: 'fadeInUp 260ms',
+        }} className="font-body">
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.global.label')}</strong> {t('help.rule.global.body')}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.count.label')}</strong> {t('help.rule.count.body')}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.line.label')}</strong> {t('help.rule.line.body')}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.fixed.label')}</strong> {t('help.rule.fixed.body')}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.uniq.label')}</strong> {t('help.rule.uniq.body', { strict: <span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>, loose: <span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.flex.label')}</span> })}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.65 }}>
+            <strong style={{ color: 'var(--ink-primary)' }}>{t('help.rule.flow.label')}</strong> {t('help.rule.flow.body')}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LoadingOverlay({ show, level, progress }) {
+  if (!show) return null;
+  const t = useT();
+  const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
+  const pct = progress ? Math.min(100, Math.round((progress.elapsed / progress.budget) * 100)) : 0;
+  const sec = progress ? (progress.elapsed / 1000).toFixed(1) : '0.0';
+  const budgetSec = progress ? (progress.budget / 1000).toFixed(0) : '—';
+  const relaxHint = progress && progress.currentMaxSolutions > 1
+    ? t('loading.loose', { n: progress.currentMaxSolutions })
+    : t('loading.strict');
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(250,247,240,0.9)', backdropFilter: 'blur(3px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 40, animation: 'fadeInUp 200ms',
+    }}>
+      <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }} className="font-display">
+        <div style={{ fontSize: 12, color: 'var(--ink-tertiary)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }} className="font-body">
+          {t('loading.generating')}
+        </div>
+        <div style={{ fontSize: 36, fontStyle: 'italic', color: 'var(--ink-primary)', fontWeight: 400, marginBottom: 24 }}>
+          {cfg?.glyph} {t(`diff.${level}.label`)}
+        </div>
+
+        {/* Progress bar */}
+        <div style={{
+          width: 320, height: 4, background: 'var(--border-soft)',
+          borderRadius: 2, overflow: 'hidden', margin: '0 auto', position: 'relative',
+        }}>
+          <div style={{
+            width: `${pct}%`, height: '100%', background: 'var(--accent-gold)',
+            transition: 'width 200ms', position: 'relative',
+            backgroundImage: 'linear-gradient(90deg, var(--accent-gold) 0%, var(--accent-gold-soft) 50%, var(--accent-gold) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'progressShimmer 2s linear infinite',
+          }} />
+        </div>
+
+        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', width: 320, margin: '14px auto 0' }} className="font-mono">
+          <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
+            {sec}s / {budgetSec}s
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em' }}>
+            {progress ? t('loading.attempts', { n: progress.attempts }) : ''}
+          </span>
+        </div>
+
+        {progress && progress.elapsed > 2000 && (
+          <div style={{ marginTop: 18, fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', fontStyle: 'italic' }} className="font-body">
+            {relaxHint}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RulesModal({ show, onClose }) {
+  if (!show) return null;
+  const t = useT();
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 24, animation: 'fadeInUp 200ms',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        maxWidth: 620, background: 'var(--bg-paper)', padding: '36px 40px',
+        border: '1px solid var(--border-medium)', borderRadius: 3,
+        boxShadow: '0 24px 60px -20px rgba(0,0,0,0.3)',
+        maxHeight: '88vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+          <div>
+            <div className="font-display" style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.02em' }}>
+              {t('legend.rules')}<span style={{ color: 'var(--accent-gold)' }}>.</span>
+            </div>
+            <div className="font-body" style={{ fontSize: 12, color: 'var(--ink-tertiary)', marginTop: 4, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              {t('legend.how')}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink-tertiary)' }}>×</button>
+        </div>
+        <ol className="font-body" style={{ paddingLeft: 18, color: 'var(--ink-secondary)', fontSize: 13.5, lineHeight: 1.75 }}>
+          <li style={{ marginBottom: 10 }}>
+            <strong>{t('help.rule.global.label')}</strong> {t('help.rule.global.body')}
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>{t('help.rule.count.label')}</strong> {t('help.rule.count.body')}
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>{t('help.rule.line.label')}</strong> {t('help.rule.line.body')}
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>{t('help.rule.fixed.label')}</strong> {t('help.rule.fixed.body')}
+          </li>
+          <li style={{ marginBottom: 10 }}>
+            <strong>{t('help.rule.uniq.label')}</strong> {t('help.rule.uniq.body', {
+              strict: <span style={{ color: 'var(--ok-strict)' }}>✦ {t('uniq.strict.label')}</span>,
+              loose: <span style={{ color: 'var(--ok-loose)' }}>✧ {t('uniq.flex.label')}</span>,
+            })}
+          </li>
+          <li>
+            <strong>{t('help.rule.flow.label')}</strong> {t('help.rule.flow.body')}
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+function WinDialog({ show, level, uniqueness, solutionCount, onNext, onClose }) {
+  if (!show) return null;
+  const t = useT();
+  const cfg = DIFFICULTY_CONFIGS[level] || DIFFICULTY_CONFIGS.Sprout;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24, animation: 'fadeInUp 320ms',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        maxWidth: 440, width: '100%', background: 'var(--bg-paper)', padding: 40,
+        border: '1px solid var(--border-medium)', borderRadius: 3, textAlign: 'center',
+        boxShadow: '0 24px 60px -20px rgba(0,0,0,0.3)',
+      }}>
+        <div className="font-body" style={{ fontSize: 11, color: 'var(--accent-gold)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>
+          ✦ Solved ✦
+        </div>
+        <div className="font-display" style={{ fontSize: 40, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--ink-primary)', lineHeight: 1.1 }}>
+          {t('win.headline1')}<br /><span style={{ fontStyle: 'italic', color: 'var(--accent-gold)' }}>{t('win.headline2')}</span>
+        </div>
+        <div className="font-body" style={{ marginTop: 18, color: 'var(--ink-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+          {t('win.subtitle', { glyph: cfg?.glyph, label: t(`diff.${level}.label`) })}
+        </div>
+        {uniqueness === 'loose' && (
+          <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
+            {t('win.desc.loose', { n: solutionCount })}
+          </div>
+        )}
+        {uniqueness === 'flexible' && (
+          <div className="font-body" style={{ marginTop: 10, color: 'var(--ink-tertiary)', fontSize: 12, fontStyle: 'italic' }}>
+            {t('win.desc.flex')}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 28 }}>
+          <button onClick={onNext} className="font-body" style={{
+            padding: '12px 22px', background: 'var(--ink-primary)', color: 'var(--bg-paper)',
+            border: 'none', borderRadius: 2, cursor: 'pointer', fontSize: 13, fontWeight: 500, letterSpacing: '0.02em',
+          }}>{t('win.next')}</button>
+          <button onClick={onClose} className="font-body" style={{
+            padding: '12px 22px', background: 'transparent', color: 'var(--ink-secondary)',
+            border: '1px solid var(--border-medium)', borderRadius: 2, cursor: 'pointer', fontSize: 13,
+          }}>{t('win.more')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// SECTION 7 — APP STATE (Reducer)
+// =============================================================================
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'PUZZLE_READY': {
+      const placements = {};
+      const preMarks = action.puzzle.preMarks || {};
+      for (const t of action.puzzle.tokens) {
+        if (preMarks[t.id]) placements[t.id] = { row: t.row, col: t.col };
+      }
+      return {
+        ...state, puzzle: action.puzzle, placements, marks: { ...preMarks },
+        cellMarks: {}, qCandidates: {},
+        isGenerating: false, isSolved: false,
+        recentTokenId: null, partnerTokenId: null, showWin: false,
+        level: action.level ?? state.level,
+        generationProgress: null,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'START_GENERATING':
+      return { ...state, isGenerating: true, level: action.level ?? state.level, generationProgress: null };
+    case 'GENERATION_PROGRESS':
+      return { ...state, generationProgress: action.progress };
+    case 'CYCLE_CELL_MARK': {
+      // 3-state cycle: empty → X → Q → empty
+      const key = `${action.row},${action.col}`;
+      const cur = state.cellMarks[key]; // undefined | 'X' | 'Q'
+      const next = cur === undefined ? 'X' : cur === 'X' ? 'Q' : undefined;
+      const newMarks = { ...state.cellMarks };
+      if (next === undefined) delete newMarks[key];
+      else newMarks[key] = next;
+      // Reset Q candidates when entering Q state or leaving Q state
+      const newQCandidates = { ...state.qCandidates };
+      if (cur === 'Q' || next === 'Q') delete newQCandidates[key];
+      return { ...state, cellMarks: newMarks, qCandidates: newQCandidates };
+    }
+    case 'ENQUEUE_Q_CANDIDATE': {
+      // Add a {animalId, gender} pair to Q-mark cell's FIFO candidate list.
+      // Male and female of same species are tracked as independent entries
+      // (24 distinct candidates: 12 species × 2 genders).
+      const key = `${action.row},${action.col}`;
+      if (state.cellMarks[key] !== 'Q') return state;
+      const cur = state.qCandidates[key] || [];
+      const gender = action.gender || 'male';
+      // Dedup on (animalId, gender) pair
+      if (cur.some(c => c.animalId === action.animalId && c.gender === gender)) return state;
+      const QCAP = state.qMarkCapacity || 4;
+      const next = [...cur, { animalId: action.animalId, gender }];
+      // FIFO: if exceeds cap, drop oldest
+      while (next.length > QCAP) next.shift();
+      return { ...state, qCandidates: { ...state.qCandidates, [key]: next } };
+    }
+    case 'TOGGLE_MARK': {
+      if (state.isSolved) return state;
+      if (!state.placements[action.tokenId]) return state;
+      if (state.puzzle.preMarks && state.puzzle.preMarks[action.tokenId]) return state;
+      // If partner is a fixed tile with a forced gender, this token's gender is also locked
+      const partnerId = getPartnerToken(action.tokenId, state.puzzle.pairs);
+      const partnerIsFixed = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+      if (partnerIsFixed) return state; // cannot toggle — gender is determined by fixed partner
+      const cur = state.marks[action.tokenId] || null;
+      const next = cur === null ? 'male' : cur === 'male' ? 'female' : null;
+      const newMarks = { ...state.marks };
+      // Update partner gender in sync regardless of whether partner is on board or in hand.
+      // This ensures the hand-pool visual gender instantly mirrors the grid tile's toggle.
+      const partnerEditable = partnerId && !partnerIsFixed;
+      if (next === null) {
+        delete newMarks[action.tokenId];
+        if (partnerEditable) delete newMarks[partnerId];
+      } else {
+        newMarks[action.tokenId] = next;
+        if (partnerEditable) {
+          newMarks[partnerId] = next === 'male' ? 'female' : 'male';
+        }
+      }
+      return {
+        ...state, marks: newMarks, recentTokenId: action.tokenId,
+        partnerTokenId: (partnerId && state.placements[partnerId]) ? partnerId : null,
+      };
+    }
+    case 'DRAG_START': {
+      const newState = { ...state, dragState: { ...state.dragState, tokenId: action.tokenId } };
+      // If the drag originated from hand with an explicit gender hint, confirm it on the token
+      // AND on the partner (as opposite gender). Do not overwrite existing marks.
+      if (action.assignGender && !state.marks[action.tokenId]) {
+        const newMarks = { ...state.marks };
+        newMarks[action.tokenId] = action.assignGender;
+        // Auto-assign opposite gender to partner if partner is placed and has no mark yet
+        const partnerId = getPartnerToken(action.tokenId, state.puzzle.pairs);
+        const partnerIsFixed = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+        if (partnerId && state.placements[partnerId] && !newMarks[partnerId] && !partnerIsFixed) {
+          newMarks[partnerId] = action.assignGender === 'male' ? 'female' : 'male';
+        }
+        newState.marks = newMarks;
+      }
+      return newState;
+    }
+    case 'DRAG_OVER_CELL':
+      return { ...state, dragState: { ...state.dragState, over: `${action.row},${action.col}` } };
+    case 'DRAG_LEAVE_CELL':
+      if (state.dragState.over === `${action.row},${action.col}`) {
+        return { ...state, dragState: { ...state.dragState, over: null } };
+      }
+      return state;
+    case 'DRAG_OVER_HAND':
+      return { ...state, dragState: { ...state.dragState, overHand: true } };
+    case 'DRAG_LEAVE_HAND':
+      return { ...state, dragState: { ...state.dragState, overHand: false } };
+    case 'DRAG_END':
+      return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+    case 'PLACE_TOKEN': {
+      const { tokenId, row, col } = action;
+      if (!tokenId) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      const forbidden = new Set(state.puzzle.forbiddenCells.map(([r, c]) => `${r},${c}`));
+      if (forbidden.has(`${row},${col}`)) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      // Block drop on X-marked cells
+      const destKey = `${row},${col}`;
+      if (state.cellMarks[destKey] === 'X') {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const occupant = Object.entries(state.placements).find(([, p]) => p && p.row === row && p.col === col);
+      if (occupant && state.puzzle.preMarks && state.puzzle.preMarks[occupant[0]]) {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const newPlacements = { ...state.placements };
+      let displaced = null;
+      for (const [tid, cell] of Object.entries(newPlacements)) {
+        if (cell && cell.row === row && cell.col === col) { displaced = tid; break; }
+      }
+      const prev = newPlacements[tokenId];
+      newPlacements[tokenId] = { row, col };
+      if (displaced) {
+        if (prev) newPlacements[displaced] = prev;
+        else delete newPlacements[displaced];
+      }
+      // If partner is a fixed tile, auto-assign opposite gender to this token
+      const newMarks = { ...state.marks };
+      const partnerId = getPartnerToken(tokenId, state.puzzle.pairs);
+      const partnerFixedGender = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+      if (partnerFixedGender && !newMarks[tokenId]) {
+        newMarks[tokenId] = partnerFixedGender === 'male' ? 'female' : 'male';
+      }
+
+      // Q-mark candidate tracking:
+      //  - If destination is Q-marked, enqueue this token's {animalId, gender}
+      //  - If displaced to source (swap), enqueue the displaced token's {animalId, gender} at source if source is Q-marked
+      //  - Male and female of same species are tracked as independent entries
+      //  - Tokens without a confirmed gender ("?" state) are NOT registered
+      const newQCandidates = { ...state.qCandidates };
+      const QCAP = state.qMarkCapacity || 4;
+      const droppedAnimal = state.puzzle.tokens.find(t => t.id === tokenId);
+      const droppedGender = newMarks[tokenId]; // only register if gender is confirmed
+      if (state.cellMarks[destKey] === 'Q' && droppedAnimal && droppedGender) {
+        const curList = newQCandidates[destKey] || [];
+        const alreadyExists = curList.some(c => c.animalId === droppedAnimal.animalId && c.gender === droppedGender);
+        if (!alreadyExists) {
+          const nextList = [...curList, { animalId: droppedAnimal.animalId, gender: droppedGender }];
+          while (nextList.length > QCAP) nextList.shift();
+          newQCandidates[destKey] = nextList;
+        }
+      }
+      // Swap case: if displaced tile was moved to `prev` cell, and that cell is Q-marked,
+      // register displaced animal (with its gender) there — only if gender confirmed
+      if (displaced && prev) {
+        const prevKey = `${prev.row},${prev.col}`;
+        if (state.cellMarks[prevKey] === 'Q') {
+          const dispAnimal = state.puzzle.tokens.find(t => t.id === displaced);
+          const dispGender = state.marks[displaced]; // only register if confirmed
+          if (dispAnimal && dispGender) {
+            const curList = newQCandidates[prevKey] || [];
+            const alreadyExists = curList.some(c => c.animalId === dispAnimal.animalId && c.gender === dispGender);
+            if (!alreadyExists) {
+              const nextList = [...curList, { animalId: dispAnimal.animalId, gender: dispGender }];
+              while (nextList.length > QCAP) nextList.shift();
+              newQCandidates[prevKey] = nextList;
+            }
+          }
+        }
+      }
+
+      return {
+        ...state, placements: newPlacements, marks: newMarks,
+        qCandidates: newQCandidates,
+        dragState: { tokenId: null, over: null, overHand: false },
+        recentTokenId: tokenId,
+      };
+    }
+    case 'RETURN_TO_HAND': {
+      const { tokenId } = action;
+      if (!tokenId) return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      if (state.puzzle.preMarks && state.puzzle.preMarks[tokenId]) {
+        return { ...state, dragState: { tokenId: null, over: null, overHand: false } };
+      }
+      const newPlacements = { ...state.placements };
+      const newMarks = { ...state.marks };
+      delete newPlacements[tokenId];
+      delete newMarks[tokenId];
+      return {
+        ...state, placements: newPlacements, marks: newMarks,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'RESET': {
+      const placements = {};
+      const preMarks = state.puzzle.preMarks || {};
+      for (const t of state.puzzle.tokens) {
+        if (preMarks[t.id]) placements[t.id] = { row: t.row, col: t.col };
+      }
+      return {
+        ...state, placements, marks: { ...preMarks },
+        cellMarks: {}, qCandidates: {},
+        recentTokenId: null, partnerTokenId: null, isSolved: false, showWin: false,
+        dragState: { tokenId: null, over: null, overHand: false },
+      };
+    }
+    case 'SHOW_SOLUTION': {
+      const placements = {};
+      for (const t of state.puzzle.tokens) placements[t.id] = { row: t.row, col: t.col };
+      return { ...state, placements, marks: { ...state.puzzle.solution } };
+    }
+    case 'SOLVED': return { ...state, isSolved: true };
+    case 'SHOW_WIN': return { ...state, showWin: true };
+    case 'CLOSE_WIN': return { ...state, showWin: false };
+    case 'SHOW_RULES': return { ...state, showRules: true };
+    case 'CLOSE_RULES': return { ...state, showRules: false };
+    case 'TOGGLE_LEGEND': return { ...state, legendCollapsed: !state.legendCollapsed };
+    case 'CLEAR_PULSE': return { ...state, partnerTokenId: null, recentTokenId: null };
+    default: return state;
+  }
+}
+
+const initialState = {
+  level: 'Sprout', puzzle: null, placements: {}, marks: {},
+  recentTokenId: null, partnerTokenId: null,
+  isGenerating: true, isSolved: false,
+  showRules: false, showWin: false, legendCollapsed: true,
+  cellMarks: {},       // {"r,c": 'X' | 'Q'}
+  qCandidates: {},     // {"r,c": [animalId1, ...]} FIFO list of animal IDs
+  qMarkCapacity: 4,    // 2x2 grid (can be 9 for 3x3)
+  generationProgress: null,
+  dragState: { tokenId: null, over: null, overHand: false },
+};
+
+// =============================================================================
+// SECTION 8 — MAIN APP
+// =============================================================================
+
+function ZoologicApp() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const generate = useCallback(async (level) => {
+    dispatch({ type: 'START_GENERATING', level });
+    await new Promise(r => setTimeout(r, 60));
+    try {
+      const p = await generatePuzzleAsync(level, (progress) => {
+        dispatch({ type: 'GENERATION_PROGRESS', progress });
+      });
+      if (p) dispatch({ type: 'PUZZLE_READY', puzzle: p, level });
+      else dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+    } catch (e) {
+      console.error('generate failed', e);
+      dispatch({ type: 'PUZZLE_READY', puzzle: loadFallback(level), level });
+    }
+  }, []);
+
+  useEffect(() => {
+    generate('Sprout');
+  }, []);
+
+  const handleNewPuzzle = useCallback(() => { generate(state.level); }, [state.level, generate]);
+  const handleLevelChange = useCallback((lv) => {
+    if (lv === state.level || state.isGenerating) return;
+    generate(lv);
+  }, [state.level, state.isGenerating, generate]);
+
+  const handleCellClick = useCallback((tokenId) => {
+    dispatch({ type: 'TOGGLE_MARK', tokenId });
+  }, []);
+
+  const handleTokenDragStart = useCallback((e, tokenId, assignGender) => {
+    try { e.dataTransfer.setData('text/plain', tokenId); e.dataTransfer.effectAllowed = 'move'; } catch (_) { }
+    dispatch({ type: 'DRAG_START', tokenId, assignGender });
+  }, []);
+
+  const handleCellDrop = useCallback((phase, row, col) => {
+    if (phase === 'over') {
+      dispatch({ type: 'DRAG_OVER_CELL', row, col });
+      // If dragging a tile over a Q-marked cell, register its {animalId, gender} as candidate.
+      // BUT only if the tile has a confirmed gender — tiles in "?" state (gender undecided)
+      // must NOT be registered, because male vs female are treated as independent candidates.
+      const tid = state.dragState.tokenId;
+      if (tid && state.puzzle) {
+        const key = `${row},${col}`;
+        if (state.cellMarks && state.cellMarks[key] === 'Q') {
+          const tok = state.puzzle.tokens.find(t => t.id === tid);
+          const gender = state.marks[tid]; // must be explicitly 'male' or 'female'
+          if (tok && gender) {
+            dispatch({ type: 'ENQUEUE_Q_CANDIDATE', row, col, animalId: tok.animalId, gender });
+          }
+        }
+      }
+    }
+    else if (phase === 'leave') dispatch({ type: 'DRAG_LEAVE_CELL', row, col });
+    else if (phase === 'drop') dispatch({ type: 'PLACE_TOKEN', tokenId: state.dragState.tokenId, row, col });
+  }, [state.dragState.tokenId, state.cellMarks, state.puzzle, state.marks]);
+
+  const handleDropToHand = useCallback((phase) => {
+    if (phase === 'over') dispatch({ type: 'DRAG_OVER_HAND' });
+    else if (phase === 'leave') dispatch({ type: 'DRAG_LEAVE_HAND' });
+    else if (phase === 'drop') {
+      const tid = state.dragState.tokenId;
+      if (tid && state.placements[tid]) dispatch({ type: 'RETURN_TO_HAND', tokenId: tid });
+      else dispatch({ type: 'DRAG_END' });
+    }
+  }, [state.dragState.tokenId, state.placements]);
+
+  useEffect(() => {
+    if (state.partnerTokenId || state.recentTokenId) {
+      const t = setTimeout(() => dispatch({ type: 'CLEAR_PULSE' }), 500);
+      return () => clearTimeout(t);
+    }
+  }, [state.partnerTokenId, state.recentTokenId]);
+
+  // V2 Win check — constraint-based, not canonical-position-based
+  useEffect(() => {
+    if (!state.puzzle || state.isSolved) return;
+    if (checkWinV2(state.puzzle, state.placements, state.marks)) {
+      dispatch({ type: 'SOLVED' });
+      setTimeout(() => dispatch({ type: 'SHOW_WIN' }), 1400);
+    }
+  }, [state.marks, state.placements, state.puzzle, state.isSolved]);
+
+  const placedCount = Object.keys(state.placements).length;
+  const totalTokens = state.puzzle ? state.puzzle.tokens.length : 0;
+  const genderedCount = Object.keys(state.marks).length;
+  const adjacencyOk = state.puzzle ? state.puzzle.pairs.every(([t1, t2]) => {
+    const p1 = state.placements[t1], p2 = state.placements[t2];
+    if (!p1 || !p2) return true;
+    return isAdjacent(p1, p2);
+  }) : false;
+
+  // ──────────────────────────────────────────────────────────
+  // Unified drag callbacks — drive reducer from pointer events.
+  // Selection state lives inside DragProvider; app exposes a ref
+  // via onSelectionChange so cell-click handlers can see it.
+  // ──────────────────────────────────────────────────────────
+  const selectionRef = useRef(null);
+  const handleSelectionChange = useCallback((id) => { selectionRef.current = id; }, []);
+
+  const handleDragPlace = useCallback(({ tokenId, row, col }) => {
+    const tok = state.puzzle && state.puzzle.tokens.find(t => t.id === tokenId);
+    if (!tok) return;
+    let gender = state.marks[tokenId];
+    if (!gender) {
+      // Priority 1: if partner already has a confirmed gender (board or hand),
+      // the gender of this token is fully determined as the opposite.
+      const partnerId = getPartnerToken(tokenId, state.puzzle.pairs);
+      const partnerMark = partnerId && state.marks[partnerId];
+      if (partnerMark) {
+        gender = partnerMark === 'male' ? 'female' : 'male';
+      } else {
+        // Priority 2: both tokens of pair are unmarked — assign by index in the
+        // unplaced group of this animal so each pair shows ♂/♀ pre-pickup.
+        const group = state.puzzle.tokens.filter(t => t.animalId === tok.animalId && !state.placements[t.id]);
+        if (group.length === 2) {
+          const i = group.findIndex(t => t.id === tokenId);
+          gender = i === 0 ? 'male' : 'female';
+        }
+      }
+    }
+    dispatch({ type: 'DRAG_START', tokenId, assignGender: gender });
+    dispatch({ type: 'PLACE_TOKEN', tokenId, row, col });
+  }, [state.puzzle, state.placements, state.marks]);
+
+  const handleDragReturnToHand = useCallback(({ tokenId }) => {
+    if (!tokenId) return;
+    if (state.placements[tokenId]) {
+      dispatch({ type: 'DRAG_START', tokenId });
+      dispatch({ type: 'RETURN_TO_HAND', tokenId });
+    }
+  }, [state.placements]);
+
+  // Tap on a tile — toggle gender mark if board tile, else handled by provider (select)
+  const handleTapTile = useCallback(({ tokenId, source }) => {
+    if (!tokenId || !state.puzzle) return;
+    if (source !== 'board') return; // hand taps handled by provider (select)
+    const isFixed = !!(state.puzzle.preMarks && state.puzzle.preMarks[tokenId]);
+    if (!isFixed) dispatch({ type: 'TOGGLE_MARK', tokenId });
+  }, [state.puzzle]);
+
+  // Tap on empty cell — if a tile is selected, place it; else cycle cell mark
+  const handleEmptyCellClickWrapped = useCallback((r, c) => {
+    const tid = selectionRef.current;
+    if (tid) {
+      handleDragPlace({ tokenId: tid, row: r, col: c });
+      return;
+    }
+    dispatch({ type: 'CYCLE_CELL_MARK', row: r, col: c });
+  }, [handleDragPlace]);
+
+  // Tap on hand area — if a board tile is selected, return to hand
+  const handleHandTapReturn = useCallback(() => {
+    const tid = selectionRef.current;
+    if (tid && state.placements[tid]) {
+      handleDragReturnToHand({ tokenId: tid });
+    }
+  }, [state.placements, handleDragReturnToHand]);
+
+  return (
+    <DragProvider
+      onPlace={handleDragPlace}
+      onReturnToHand={handleDragReturnToHand}
+      onTapTile={handleTapTile}
+      onSelectionChange={handleSelectionChange}
+    >
+    <div style={{ minHeight: '100vh', background: 'var(--bg-paper)', position: 'relative' }}>
+      <div aria-hidden style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 0.5,
+        backgroundImage: `radial-gradient(circle at 25% 15%, rgba(180,83,9,0.03) 0%, transparent 40%), radial-gradient(circle at 85% 80%, rgba(28,25,23,0.025) 0%, transparent 40%)`,
+      }} />
+      <div style={{ position: 'relative', maxWidth: 960, margin: '0 auto', overflowX: 'hidden' }}>
+        <Header
+          onHelp={() => dispatch({ type: 'SHOW_RULES' })}
+          level={state.level}
+          onChangeLevel={handleLevelChange}
+          disabled={state.isGenerating}
+        />
+        {state.puzzle && (
+          <>
+            <PuzzleMeta puzzle={state.puzzle} placedCount={placedCount} totalTokens={totalTokens}
+              genderedCount={genderedCount} adjacencyOk={adjacencyOk} />
+            <Grid puzzle={state.puzzle} placements={state.placements} marks={state.marks}
+              cellMarks={state.cellMarks} qCandidates={state.qCandidates} qMarkCapacity={state.qMarkCapacity}
+              onCellClick={handleCellClick}
+              onEmptyCellClick={handleEmptyCellClickWrapped}
+              onCellDrop={handleCellDrop} onTokenDragStart={handleTokenDragStart}
+              recentTokenId={state.recentTokenId} partnerTokenId={state.partnerTokenId}
+              winAnimating={state.isSolved} dragState={state.dragState} />
+            <HandPool puzzle={state.puzzle} placements={state.placements} marks={state.marks}
+              onTokenDragStart={handleTokenDragStart} onDropToHand={handleDropToHand}
+              dragState={state.dragState} onHandTapReturn={handleHandTapReturn} />
+            <Controls onNew={handleNewPuzzle} onReset={() => dispatch({ type: 'RESET' })}
+              onHint={() => dispatch({ type: 'SHOW_SOLUTION' })} disabled={state.isGenerating} />
+            <Legend collapsed={state.legendCollapsed} onToggle={() => dispatch({ type: 'TOGGLE_LEGEND' })} />
+            <div style={{ textAlign: 'center', padding: '16px 40px 40px', fontSize: 11, color: 'var(--ink-tertiary)', letterSpacing: '0.12em', textTransform: 'uppercase' }} className="font-body">
+              adjacency · line rules · count hints · graceful N2
+            </div>
+          </>
+        )}
+      </div>
+      <LoadingOverlay show={state.isGenerating} level={state.level} progress={state.generationProgress} />
+      <RulesModal show={state.showRules} onClose={() => dispatch({ type: 'CLOSE_RULES' })} />
+      <WinDialog
+        show={state.showWin}
+        level={state.level}
+        uniqueness={state.puzzle ? state.puzzle.uniqueness : null}
+        solutionCount={state.puzzle ? state.puzzle.solutionCount : null}
+        onNext={() => { dispatch({ type: 'CLOSE_WIN' }); handleNewPuzzle(); }}
+        onClose={() => dispatch({ type: 'CLOSE_WIN' })}
+      />
+    </div>
+    </DragProvider>
+  );
+}
+
+// =============================================================================
+// BOOT
+// =============================================================================
+
+// Read persisted language — falls back to KO (main language per design spec).
+// EDITMODE block exposes the key for Tweak panel + host-side persistence.
+const __TWEAKS_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "lang": "ko"
+}/*EDITMODE-END*/;
+
+function getInitialLang() {
+  try {
+    const stored = localStorage.getItem('zoologic.lang');
+    if (stored && ['ko','en','zh','ja'].includes(stored)) return stored;
+  } catch (e) {}
+  return __TWEAKS_DEFAULTS.lang || 'ko';
+}
+
+function Root() {
+  return (
+    <LangProvider initialLang={getInitialLang()}>
+      <ZoologicApp />
+    </LangProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Root />);
+</script>
+</body>
+</html>
