@@ -8369,6 +8369,7 @@ const ZG = (window.ZG = window.ZG || {});
   const DEFAULTS = {
     v13Panel: true,        // ① V13 고급생성 패널
     metricBadges: true,    // ⑤ 그리드 상단 메트릭 배지/테이블
+    tileAnim: true,        // 배치 타일 idle GIF 애니메이션 — 세부는 ZG.tileAnim.* (코어 상주)
     ztsScore: true,        // ⑤' ZTS 배지 — 코어 상주(전 빌드 표시, 런타임 토글만) · 분 표시=정지기반 원시분
     solverLab: true,       // ② 솔버 풀이 버튼 & 창
     hfsLab: true,          // ③ 인간형 풀이 버튼 & 창
@@ -30787,6 +30788,146 @@ function animalImgSrc(animalId, gender) {
   return `${IMAGE_BASE_URL}/${num}.webp`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ZG 타일 애니메이션 시스템 — 배치 타일 idle GIF (사용자 지시)
+// ═══════════════════════════════════════════════════════════════════════════
+// 대상: 그리드 패널에 배치된 동물 타일(고정 포함)만. 핸드풀·드래그 고스트 제외,
+//   드래그 중인 원위치 타일도 일시정지. 타일별 독립 랜덤 타이밍(기본 8~15s)마다
+//   imgsrc/{state}/{번호}.gif 존재 시(1회 프로브 후 캐시) playMs 동안 재생 → PNG 복귀.
+// 전 파라미터 옵셔너블 — 콘솔에서 ZG.tileAnim.* 로 즉시 조정:
+//   states/stateWeights   추후 다상태(yawn/wink) 풀·가중치
+//   intervalMode          'random'(min~max) | 'fixed'(fixedMs)
+//   syncMode              'independent' | 'synchronized'(전 타일 동시, syncPeriodMs 주기)
+//   playMs                재생 시간 (gif 1루프 길이와 일치 권장)
+// ※ syncMode 변경은 새 퍼즐/재배치부터 적용(마운트 시 구독 결정).
+const ZG_TILE_ANIM = {
+  enabled: true,
+  states: ['idle'],
+  stateWeights: null,          // 예: { idle: 3, yawn: 1 } — null이면 균등
+  playMs: 6000,
+  intervalMode: 'random',      // 'random' | 'fixed'
+  intervalMinMs: 8000,
+  intervalMaxMs: 15000,
+  intervalFixedMs: 10000,
+  syncMode: 'independent',     // 'independent' | 'synchronized'
+  syncPeriodMs: 12000,
+  probeTimeoutMs: 4000,        // 파일 존재 프로브 상한 (미응답 환경 방어)
+};
+if (typeof window !== 'undefined' && window.ZG) { window.ZG.tileAnim = ZG_TILE_ANIM; }
+
+// gif 존재 프로브 — (state,번호)당 1회, 결과 영구 캐시 (없는 파일은 이후 시도 없음)
+const __gifAvail = new Map();
+if (typeof window !== 'undefined' && window.ZG) { window.ZG.tileAnim._avail = __gifAvail; }
+function zgGifUrl(state, num) { return `${IMAGE_BASE_URL}/${state}/${num}.gif`; }
+function zgProbeGif(state, num) {
+  const key = state + ':' + num;
+  const hit = __gifAvail.get(key);
+  if (hit === true || hit === false) return Promise.resolve(hit);
+  if (hit && typeof hit.then === 'function') return hit;
+  const p = new Promise((resolve) => {
+    let done = false;
+    const fin = (ok) => { if (done) return; done = true; __gifAvail.set(key, ok); resolve(ok); };
+    try {
+      const img = new Image();
+      img.onload = () => fin(true);
+      img.onerror = () => fin(false);
+      img.src = zgGifUrl(state, num);
+      setTimeout(() => fin(false), ZG_TILE_ANIM.probeTimeoutMs);
+    } catch (e) { fin(false); }
+  });
+  __gifAvail.set(key, p);
+  return p;
+}
+
+// 간격/상태 선택 — 순수 함수 (유닛 검증 대상)
+function zgPickInterval(cfg) {
+  if (cfg.intervalMode === 'fixed') return cfg.intervalFixedMs;
+  const lo = cfg.intervalMinMs, hi = Math.max(cfg.intervalMaxMs, lo);
+  return lo + Math.random() * (hi - lo);
+}
+function zgPickState(cfg) {
+  const states = (cfg.states && cfg.states.length) ? cfg.states : ['idle'];
+  if (states.length === 1) return states[0];
+  const w = cfg.stateWeights;
+  if (!w) return states[Math.floor(Math.random() * states.length)];
+  let tot = 0; for (const st of states) tot += (w[st] > 0 ? w[st] : 0);
+  if (tot <= 0) return states[0];
+  let r = Math.random() * tot;
+  for (const st of states) { r -= (w[st] > 0 ? w[st] : 0); if (r <= 0) return st; }
+  return states[states.length - 1];
+}
+
+// 동기 모드 버스 — 단일 타이머가 전 구독 타일에 재생 신호 브로드캐스트
+const __tileAnimBus = {
+  subs: new Set(), timer: null,
+  subscribe(fn) {
+    this.subs.add(fn);
+    if (!this.timer) {
+      const tick = () => {
+        this.subs.forEach((f) => { try { f(); } catch (e) {} });
+        this.timer = setTimeout(tick, ZG_TILE_ANIM.syncPeriodMs);
+      };
+      this.timer = setTimeout(tick, ZG_TILE_ANIM.syncPeriodMs);
+    }
+    return () => {
+      this.subs.delete(fn);
+      if (this.subs.size === 0 && this.timer) { clearTimeout(this.timer); this.timer = null; }
+    };
+  },
+};
+
+// 배치 타일용 훅 — 반환: null | { src } (gif 재생 중)
+function useTileAnim(animalId, gender, active) {
+  const [play, setPlay] = React.useState(null);
+  React.useEffect(() => {
+    const cfg = ZG_TILE_ANIM;
+    const flagOn = !(window.ZG && window.ZG.FEATURES && window.ZG.FEATURES.tileAnim === false);
+    if (!active || !cfg.enabled || !flagOn || animalId == null) { setPlay(null); return; }
+    const num = (animalId - 1) * 2 + ((gender || 'male') === 'male' ? 1 : 2);
+    let dead = false, tNext = null, tStop = null, playing = false;
+    // 의미론: 반환 프라미스는 "재생 종료 시" 해소 — 독립 모드의 간격은 종료 기준.
+    //   재생 중 재진입은 무시(동기 모드에서 syncPeriod < playMs여도 중첩 없음).
+    const playOnce = () => new Promise((resolve) => {
+      if (playing) { resolve('busy'); return; }
+      (async () => {
+        const st = zgPickState(cfg);
+        let ok = await zgProbeGif(st, num), useSt = st;
+        if (!ok && st !== 'idle' && cfg.states.indexOf('idle') >= 0) {
+          ok = await zgProbeGif('idle', num); useSt = 'idle';
+        }
+        if (dead || !ok) { resolve(ok); return; }
+        playing = true;
+        setPlay({ src: zgGifUrl(useSt, num) });
+        tStop = setTimeout(() => {
+          playing = false;
+          if (!dead) setPlay(null);
+          resolve(true);
+        }, cfg.playMs);
+      })();
+    });
+    let unsub = null;
+    if (cfg.syncMode === 'synchronized') {
+      unsub = __tileAnimBus.subscribe(() => { playOnce(); });
+    } else {
+      const loop = () => {
+        tNext = setTimeout(async () => {
+          const ok = await playOnce();
+          if (dead) return;
+          if (ok === false) {
+            // 구성된 상태 전부 부재 → 이 타일은 영구 스킵 (타이머 종료)
+            const anyLeft = cfg.states.some((st) => __gifAvail.get(st + ':' + num) !== false);
+            if (!anyLeft) return;
+          }
+          loop();
+        }, zgPickInterval(cfg));
+      };
+      loop();
+    }
+    return () => { dead = true; clearTimeout(tNext); clearTimeout(tStop); if (unsub) unsub(); };
+  }, [animalId, gender, active]);
+  return play;
+}
+
 function AttributeOverlay({ animal, cellSize, anchorRef }) {
   // On very narrow mobile viewports (< 420px), render as a portal-based
   // floating popover above/below the tile — the cell is too small to fit
@@ -30987,6 +31128,8 @@ function AttributeOverlayInset({ animal, cellSize }) {
 }
 
 function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError, isSelected, isDraggingThis }) {
+  // ★ 타일 애니메이션: 배치 타일 전용(고정 포함). 드래그 중(원위치 반투명)엔 일시정지.
+  const tileAnim = useTileAnim(animal && animal.id, gender, !isDraggingThis);
   const t = useT();
   const { lang } = useLang();
   const animalName = getAnimalName(animal.id, lang) || animal.name;
@@ -31185,10 +31328,16 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
       <div style={{ position: 'absolute', inset: 0, background: tint, opacity: 0.22, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', width: '82%', height: '82%', opacity: undecided ? 0.5 : 1, filter: undecided ? 'grayscale(0.7)' : 'none', transition: 'opacity 220ms, filter 220ms', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={animalImgSrc(animal.id, gender)}
+          src={tileAnim ? tileAnim.src : animalImgSrc(animal.id, gender)}
           alt={animalName}
           draggable={false}
-          onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+          onError={(e) => {
+            // gif 재생 중 오류(희귀 레이스)면 png로 즉시 복귀 — 숨김 폴백은 png 오류에만
+            if (tileAnim && e.target.src && e.target.src.indexOf('.gif') >= 0) {
+              e.target.src = animalImgSrc(animal.id, gender); return;
+            }
+            e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex';
+          }}
           style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
         />
         <div style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', fontSize: cellSize * 0.48 }}>
