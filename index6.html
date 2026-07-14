@@ -30804,7 +30804,11 @@ const ZG_TILE_ANIM = {
   enabled: true,
   states: ['idle'],
   stateWeights: null,          // 예: { idle: 3, yawn: 1 } — null이면 균등
-  playMs: 6000,
+  playMode: 'gifOnce',         // ★ 기본값 'gifOnce': gif 파일 자체의 1루프 길이만큼 재생
+                               //   (바이너리 파싱으로 프레임 지연 합산). 'fixed': playMs 고정.
+  playMs: 6000,                // fixed 모드 재생시간 겸, gifOnce 파싱 실패 시 폴백
+                               //   (file:// 등 fetch 불가 환경 — 설계상 gif가 6s라 폴백≈정답)
+  durationOverrides: null,     // 예: { 'idle:5': 5400 } — 수동 길이 지정 (파싱보다 우선)
   intervalMode: 'random',      // 'random' | 'fixed'
   intervalMinMs: 8000,
   intervalMaxMs: 15000,
@@ -30819,6 +30823,59 @@ if (typeof window !== 'undefined' && window.ZG) { window.ZG.tileAnim = ZG_TILE_A
 const __gifAvail = new Map();
 if (typeof window !== 'undefined' && window.ZG) { window.ZG.tileAnim._avail = __gifAvail; }
 function zgGifUrl(state, num) { return `${IMAGE_BASE_URL}/${state}/${num}.gif`; }
+
+// GIF 바이너리 파싱 — 프레임 지연(GCE, 1/100s) 합산으로 1루프 길이(ms) 산출.
+// 브라우저 관례에 맞춰 delay<2(≤10ms)는 100ms로 클램프. 실패 시 null.
+function zgParseGifDurationMs(buf) {
+  try {
+    const b = new Uint8Array(buf);
+    if (b.length < 14 || b[0] !== 0x47 || b[1] !== 0x49 || b[2] !== 0x46) return null; // 'GIF'
+    let p = 13;                                        // 헤더(6) + LSD(7)
+    if (b[10] & 0x80) p += 3 * (2 << (b[10] & 0x07));  // 전역 색상표
+    let total = 0, frames = 0;
+    while (p < b.length) {
+      const id = b[p++];
+      if (id === 0x3B) break;                          // trailer
+      if (id === 0x21) {                               // extension
+        const label = b[p++];
+        let first = true;
+        while (p < b.length) {                         // 서브블록 열
+          const sz = b[p++]; if (sz === 0) break;
+          if (label === 0xF9 && first && sz >= 4) {    // GCE: [flags, delayLo, delayHi, transp]
+            let d = b[p + 1] | (b[p + 2] << 8);
+            if (d < 2) d = 10;
+            total += d * 10; frames++;
+          }
+          first = false; p += sz;
+        }
+      } else if (id === 0x2C) {                        // image descriptor
+        p += 8; const f = b[p++];
+        if (f & 0x80) p += 3 * (2 << (f & 0x07));      // 지역 색상표
+        p++;                                           // LZW min code size
+        while (p < b.length) { const sz = b[p++]; if (sz === 0) break; p += sz; }
+      } else { break; }                                // 알 수 없는 블록 → 확보분으로 종료
+    }
+    return frames > 0 ? total : null;
+  } catch (e) { return null; }
+}
+
+// (상태,번호)별 1루프 길이 캐시 해상 — overrides > 파싱 > null(→playMs 폴백).
+// 부수효과: fetch가 gif를 브라우저 캐시에 예열해 첫 재생이 매끄러움.
+const __gifDur = new Map();
+if (typeof window !== 'undefined' && window.ZG && window.ZG.tileAnim) { window.ZG.tileAnim._dur = __gifDur; }
+async function zgGifDurationMs(state, num) {
+  const key = state + ':' + num;
+  const ov = ZG_TILE_ANIM.durationOverrides;
+  if (ov && ov[key] > 0) return ov[key];
+  if (__gifDur.has(key)) { const v = __gifDur.get(key); return v > 0 ? v : null; }
+  try {
+    const res = await fetch(zgGifUrl(state, num));
+    if (!res || !res.ok) throw new Error('http');
+    const ms = zgParseGifDurationMs(await res.arrayBuffer());
+    __gifDur.set(key, ms > 0 ? ms : 0);
+    return ms > 0 ? ms : null;
+  } catch (e) { __gifDur.set(key, 0); return null; }   // file:// 등 — 영구 폴백 표시
+}
 function zgProbeGif(state, num) {
   const key = state + ':' + num;
   const hit = __gifAvail.get(key);
@@ -30896,13 +30953,20 @@ function useTileAnim(animalId, gender, active) {
           ok = await zgProbeGif('idle', num); useSt = 'idle';
         }
         if (dead || !ok) { resolve(ok); return; }
+        // ★ gifOnce(기본): 파일 자체 1루프 길이 — 파싱 실패/차단 환경은 playMs 폴백
+        let dur = cfg.playMs;
+        if (cfg.playMode === 'gifOnce') {
+          const d = await zgGifDurationMs(useSt, num);
+          if (dead) { resolve('busy'); return; }
+          if (d != null) dur = d;
+        }
         playing = true;
         setPlay({ src: zgGifUrl(useSt, num) });
         tStop = setTimeout(() => {
           playing = false;
           if (!dead) setPlay(null);
           resolve(true);
-        }, cfg.playMs);
+        }, dur);
       })();
     });
     let unsub = null;
