@@ -30933,13 +30933,27 @@ const __tileAnimBus = {
   },
 };
 
-// 배치 타일용 훅 — 반환: null | { src } (gif 재생 중)
+// ★ 정체성 방어 B (최종 게이트): 재생 페이로드의 num이 "지금 이 타일"의
+//   동물·성별에서 계산된 num과 일치할 때만 gif src를 승인. 어떤 경로로든
+//   stale 상태가 살아남아도 다른 캐릭터의 gif가 화면에 닿는 것을 원천 차단.
+function zgAnimSrcFor(play, animalId, gender) {
+  if (!play || !play.src || animalId == null) return null;
+  const num = (animalId - 1) * 2 + ((gender || 'male') === 'male' ? 1 : 2);
+  return play.num === num ? play.src : null;
+}
+
+// 배치 타일용 훅 — 반환: null | { src, num } (gif 재생 중)
 function useTileAnim(animalId, gender, active) {
   const [play, setPlay] = React.useState(null);
   React.useEffect(() => {
     const cfg = ZG_TILE_ANIM;
     const flagOn = !(window.ZG && window.ZG.FEATURES && window.ZG.FEATURES.tileAnim === false);
-    if (!active || !cfg.enabled || !flagOn || animalId == null) { setPlay(null); return; }
+    // ★ 정체성 방어 A: deps(animalId/gender) 변경으로 effect가 재실행되면 — React가
+    //   같은 셀 위치의 컴포넌트 인스턴스를 재사용하는 새 게임/재배치 상황 — 이전
+    //   동물의 재생 중이던 gif 상태를 즉시 소거한다. (기존엔 타이머만 정리되고
+    //   play 상태가 잔존해 "다른 캐릭터의 gif" 표시 버그 유발)
+    setPlay(null);
+    if (!active || !cfg.enabled || !flagOn || animalId == null) { return; }
     const num = (animalId - 1) * 2 + ((gender || 'male') === 'male' ? 1 : 2);
     let dead = false, tNext = null, tStop = null, playing = false;
     // 의미론: 반환 프라미스는 "재생 종료 시" 해소 — 독립 모드의 간격은 종료 기준.
@@ -30961,7 +30975,7 @@ function useTileAnim(animalId, gender, active) {
           if (d != null) dur = d;
         }
         playing = true;
-        setPlay({ src: zgGifUrl(useSt, num) });
+        setPlay({ src: zgGifUrl(useSt, num), num: num });
         tStop = setTimeout(() => {
           playing = false;
           if (!dead) setPlay(null);
@@ -31193,7 +31207,9 @@ function AttributeOverlayInset({ animal, cellSize }) {
 
 function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isPartnerPulse, isFixed, cellSize, isAdjacentToPartner, onImgError, isSelected, isDraggingThis }) {
   // ★ 타일 애니메이션: 배치 타일 전용(고정 포함). 드래그 중(원위치 반투명)엔 일시정지.
+  //   animGifSrc = 정체성 게이트 통과분만 — 현 동물·성별과 불일치하는 stale gif 차단.
   const tileAnim = useTileAnim(animal && animal.id, gender, !isDraggingThis);
+  const animGifSrc = zgAnimSrcFor(tileAnim, animal && animal.id, gender);
   const t = useT();
   const { lang } = useLang();
   const animalName = getAnimalName(animal.id, lang) || animal.name;
@@ -31392,12 +31408,12 @@ function PlacedTile({ token, animal, gender, onClick, onDragStart, isRecent, isP
       <div style={{ position: 'absolute', inset: 0, background: tint, opacity: 0.22, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', width: '82%', height: '82%', opacity: undecided ? 0.5 : 1, filter: undecided ? 'grayscale(0.7)' : 'none', transition: 'opacity 220ms, filter 220ms', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={tileAnim ? tileAnim.src : animalImgSrc(animal.id, gender)}
+          src={animGifSrc || animalImgSrc(animal.id, gender)}
           alt={animalName}
           draggable={false}
           onError={(e) => {
             // gif 재생 중 오류(희귀 레이스)면 png로 즉시 복귀 — 숨김 폴백은 png 오류에만
-            if (tileAnim && e.target.src && e.target.src.indexOf('.gif') >= 0) {
+            if (animGifSrc && e.target.src && e.target.src.indexOf('.gif') >= 0) {
               e.target.src = animalImgSrc(animal.id, gender); return;
             }
             e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex';
