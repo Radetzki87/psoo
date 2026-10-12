@@ -162,6 +162,55 @@
     }
   }
 
+  /* 2.3 플레이 도구: 할 수 없는 손동작의 작은 흔들림, 짝 맺음(선 그리기, 고리, 기울기),
+     줄이 닫히는 순간의 빛, 떠 있는 창 */
+  @keyframes zgNope {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  @keyframes zgNopeB {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  @keyframes zgPairLean {
+    0% { transform: translate(0, 0) scale(1); }
+    45% { transform: translate(var(--lx, 0px), var(--ly, 0px)) scale(1.03); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+  @keyframes zgBondDraw {
+    0% { stroke-dashoffset: var(--len); opacity: 0.95; }
+    60% { stroke-dashoffset: 0; opacity: 0.95; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes zgBondDashIn {
+    0%, 55% { opacity: 0; }
+    100% { opacity: 0.7; }
+  }
+  @keyframes zgBondSpark {
+    0% { transform: scale(0.3); opacity: 0.9; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+  @keyframes zgSweepX {
+    0% { transform: translateX(-100%); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+  @keyframes zgSweepY {
+    0% { transform: translateY(-100%); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translateY(100%); opacity: 0; }
+  }
+  @keyframes zgPopIn {
+    0% { opacity: 0; transform: translateY(4px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* 2.3: 본문 상자의 가로 넘침 자르기. clip은 스크롤 상자를 만들지 않아 도구 막대의 sticky가 화면 기준으로 작동한다 */
+  .zg-main { overflow-x: hidden; }
+  @supports (overflow-x: clip) { .zg-main { overflow-x: clip; } }
+
   /* Accessibility: respect reduced-motion preference */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -8232,6 +8281,326 @@ const STRINGS = {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// 2.3 플레이 도구 문자열 (펜 팔레트, 도구 막대, 칸 창, 가정, 도구 설정)
+// ─────────────────────────────────────────────────────────────────
+Object.assign(STRINGS, {
+  'menu.tools': { ko: '플레이 도구', en: 'Play tools', es: 'Herramientas', pt: 'Ferramentas', fr: 'Outils de jeu', de: 'Spielwerkzeuge', ru: 'Инструменты', zh: '游戏工具', ja: 'プレイツール' },
+  'menu.tools.desc': {
+    ko: '펜, 되돌리기, 가정 켜고 끄기', en: 'Turn pens, undo and more on or off', es: 'Activa o desactiva lápices, deshacer y más',
+    pt: 'Ative ou desative canetas, desfazer e mais', fr: 'Activer stylos, annuler et plus', de: 'Stifte, Rückgängig und mehr ein- oder ausschalten',
+    ru: 'Ручки, отмена и другое', zh: '开关画笔、撤销等', ja: 'ペン、元に戻すなどのオンオフ',
+  },
+  'tools.title': { ko: '플레이 도구', en: 'Play tools', es: 'Herramientas', pt: 'Ferramentas', fr: 'Outils de jeu', de: 'Spielwerkzeuge', ru: 'Инструменты', zh: '游戏工具', ja: 'プレイツール' },
+  'tools.desc': {
+    ko: '손에 맞는 도구만 켜 두세요. 설정은 이 기기에 저장돼요.',
+    en: 'Keep only the tools that suit your hand. Settings are saved on this device.',
+    es: 'Deja activas solo las herramientas que te sirvan. Se guardan en este dispositivo.',
+    pt: 'Deixe ativas só as ferramentas que combinam com você. Fica salvo neste aparelho.',
+    fr: 'Gardez seulement les outils qui vous conviennent. Réglages enregistrés sur cet appareil.',
+    de: 'Lass nur die Werkzeuge an, die dir liegen. Wird auf diesem Gerät gespeichert.',
+    ru: 'Оставьте только удобные инструменты. Настройки сохраняются на этом устройстве.',
+    zh: '只开启顺手的工具。设置保存在本设备上。',
+    ja: '手に合う道具だけをオンに。設定はこの端末に保存されます。',
+  },
+  'tools.close': { ko: '닫기', en: 'Close', es: 'Cerrar', pt: 'Fechar', fr: 'Fermer', de: 'Schließen', ru: 'Закрыть', zh: '关闭', ja: '閉じる' },
+  'tools.done': { ko: '완료', en: 'Done', es: 'Listo', pt: 'Pronto', fr: 'Terminé', de: 'Fertig', ru: 'Готово', zh: '完成', ja: '完了' },
+  'tools.allOff': { ko: '모두 끄기', en: 'Turn all off', es: 'Desactivar todo', pt: 'Desativar tudo', fr: 'Tout désactiver', de: 'Alle aus', ru: 'Выключить всё', zh: '全部关闭', ja: 'すべてオフ' },
+  'tools.allOn': { ko: '모두 켜기', en: 'Turn all on', es: 'Activar todo', pt: 'Ativar tudo', fr: 'Tout activer', de: 'Alle an', ru: 'Включить всё', zh: '全部开启', ja: 'すべてオン' },
+  'tools.group.mark': { ko: '표시하기', en: 'Marking', es: 'Marcar', pt: 'Marcar', fr: 'Annoter', de: 'Markieren', ru: 'Пометки', zh: '标记', ja: 'しるし' },
+  'tools.group.place': { ko: '놓기와 되돌리기', en: 'Placing and undo', es: 'Colocar y deshacer', pt: 'Colocar e desfazer', fr: 'Placer et annuler', de: 'Setzen und Rückgängig', ru: 'Размещение и отмена', zh: '放置与撤销', ja: '配置と元に戻す' },
+  'tools.group.board': { ko: '보드 반응', en: 'Board feedback', es: 'Respuesta del tablero', pt: 'Resposta do tabuleiro', fr: 'Réactions du plateau', de: 'Brett-Rückmeldung', ru: 'Отклик поля', zh: '棋盘反馈', ja: '盤の反応' },
+  'tools.pens': { ko: '펜 팔레트', en: 'Pen palette', es: 'Paleta de lápices', pt: 'Paleta de canetas', fr: 'Palette de stylos', de: 'Stiftpalette', ru: 'Палитра ручек', zh: '画笔面板', ja: 'ペンパレット' },
+  'tools.pens.desc': {
+    ko: '없음 X, 있음 (?), ♂, ♀, 지움 중 하나를 들고 칸을 누르면 바로 적혀요. 같은 표시를 다시 누르면 지워져요.',
+    en: 'Pick None X, Animal (?), ♂, ♀ or Erase, then tap cells to write it. Tap the same mark again to remove it.',
+    es: 'Elige Nada X, Animal (?), ♂, ♀ o Borrar y toca casillas para anotarlo. Toca la misma marca otra vez para quitarla.',
+    pt: 'Escolha Nada X, Animal (?), ♂, ♀ ou Apagar e toque nas casas para anotar. Toque a mesma marca de novo para tirar.',
+    fr: 'Choisissez Vide X, Animal (?), ♂, ♀ ou Gomme, puis touchez les cases. Retouchez la même marque pour l’enlever.',
+    de: 'Wähle Leer X, Tier (?), ♂, ♀ oder Löschen und tippe Felder an. Dieselbe Markierung erneut tippen entfernt sie.',
+    ru: 'Выберите Пусто X, Есть (?), ♂, ♀ или Ластик и касайтесь клеток. Повторное касание той же пометки убирает её.',
+    zh: '选择 无 X、有 (?)、♂、♀ 或 擦除，点格子即可写上。再点同一标记即可去掉。',
+    ja: 'なし X、あり (?)、♂、♀、消す から選び、マスをタップで記入。同じしるしをもう一度で消えます。',
+  },
+  'tools.dragPaint': { ko: '끌어 칠하기', en: 'Drag to paint', es: 'Arrastrar para marcar', pt: 'Arrastar para marcar', fr: 'Glisser pour marquer', de: 'Ziehen zum Markieren', ru: 'Протянуть пометку', zh: '拖动涂写', ja: 'なぞって記入' },
+  'tools.dragPaint.desc': {
+    ko: '펜을 든 채 줄을 따라 끌면 지나간 칸에 같은 표시가 들어가요. 마우스는 펜 없이도 순환 표시를 끌 수 있어요.',
+    en: 'With a pen, drag along a row or column to mark every cell you pass. With a mouse you can also drag the cycle mark.',
+    es: 'Con un lápiz, arrastra por una fila o columna para marcar cada casilla. Con ratón también puedes arrastrar la marca cíclica.',
+    pt: 'Com uma caneta, arraste por linha ou coluna para marcar cada casa. Com mouse também dá para arrastar a marca cíclica.',
+    fr: 'Stylo en main, glissez le long d’une ligne ou colonne pour marquer chaque case. À la souris, la marque cyclique aussi.',
+    de: 'Mit Stift entlang Zeile oder Spalte ziehen markiert jedes Feld. Mit der Maus geht auch die Wechselmarkierung.',
+    ru: 'С ручкой протяните вдоль строки или столбца, чтобы пометить все клетки. Мышью можно тянуть и циклическую пометку.',
+    zh: '拿着画笔沿行或列拖动，经过的格子都会写上。用鼠标时不拿笔也能拖动循环标记。',
+    ja: 'ペンを持ったまま行や列をなぞると通ったマスに同じしるし。マウスならペンなしで循環しるしもなぞれます。',
+  },
+  'tools.candSplit': { ko: '후보 분리', en: 'Separate candidates', es: 'Candidatos aparte', pt: 'Candidatos à parte', fr: 'Candidats séparés', de: 'Kandidaten getrennt', ru: 'Отдельные кандидаты', zh: '候选分离', ja: '候補を分ける' },
+  'tools.candSplit.desc': {
+    ko: '칸을 길게 눌러 동물 후보를 적어요. 타일을 놓지 않아요. 순환에서는 후보칸 대신 있음 (?)이 들어가요.',
+    en: 'Long-press a cell to note candidate animals without placing tiles. In the cycle, Animal (?) replaces the Maybe cell.',
+    es: 'Mantén pulsada una casilla para anotar animales candidatos sin colocar fichas. En el ciclo, Animal (?) sustituye a Quizá.',
+    pt: 'Segure uma casa para anotar animais candidatos sem colocar peças. No ciclo, Animal (?) substitui Talvez.',
+    fr: 'Appui long sur une case pour noter des animaux candidats sans poser de tuile. Dans le cycle, Animal (?) remplace Peut-être.',
+    de: 'Feld lange drücken, um Kandidaten zu notieren, ohne Steine zu legen. Im Wechsel ersetzt Tier (?) das Vielleicht-Feld.',
+    ru: 'Долгое нажатие на клетку записывает кандидатов, не кладя фишки. В цикле вместо «Может» ставится Есть (?).',
+    zh: '长按格子记下候选动物，无需放置牌。循环中以 有 (?) 代替候选格。',
+    ja: 'マスを長押しで候補の動物をメモ。タイルは置きません。循環では候補マスの代わりに あり (?) が入ります。',
+  },
+  'tools.tapPlace': { ko: '탭 배치', en: 'Tap to place', es: 'Tocar para colocar', pt: 'Toque para colocar', fr: 'Toucher pour poser', de: 'Tippen zum Setzen', ru: 'Размещение касанием', zh: '点击放置', ja: 'タップで配置' },
+  'tools.tapPlace.desc': {
+    ko: '놓기 도구로 빈 칸을 누르면 그 칸에 놓을 동물을 골라요. 끄면(기본) 펜 팔레트의 첫 도구가 순환(빈 칸 → X → (?) → 빈 칸)이에요.',
+    en: 'With the Place tool, tap an empty cell to choose its animal. Off (default): the first tool is Cycle (empty → X → (?) → empty).',
+    es: 'Con la herramienta Poner, toca una casilla vacía para elegir su animal. Desactivado (predeterminado): la primera herramienta es Ciclo (vacía → X → (?) → vacía).',
+    pt: 'Com a ferramenta Pôr, toque numa casa vazia para escolher o animal. Desligado (padrão): a primeira ferramenta é Ciclo (vazia → X → (?) → vazia).',
+    fr: 'Avec l’outil Poser, touchez une case vide pour choisir son animal. Désactivé (par défaut) : le premier outil est Cycle (vide → X → (?) → vide).',
+    de: 'Mit dem Setzen-Werkzeug ein leeres Feld antippen und sein Tier wählen. Aus (Standard): das erste Werkzeug ist Wechsel (leer → X → (?) → leer).',
+    ru: 'Инструментом «Класть» коснитесь пустой клетки и выберите животное. Выключено (по умолчанию): первый инструмент — Цикл (пусто → X → (?) → пусто).',
+    zh: '用放置工具点空格，选择要放的动物。关闭（默认）时第一个工具为循环（空 → X → (?) → 空）。',
+    ja: '置く道具で空きマスをタップして置く動物を選択。オフ（既定）では最初の道具が循環（空 → X → (?) → 空）です。',
+  },
+  'tools.longPlace': { ko: '길게 눌러 놓기', en: 'Long-press to place', es: 'Mantener para colocar', pt: 'Segurar para colocar', fr: 'Appui long pour poser', de: 'Lange drücken zum Setzen', ru: 'Долгое нажатие: положить', zh: '长按放置', ja: '長押しで配置' },
+  'tools.longPlace.desc': {
+    ko: '순환 모드에서 빈 칸을 길게 누르면 놓을 동물을 고르는 창이 먼저 떠요(창에서 후보로 바꿀 수 있어요). ♂, ♀, (?), 후보가 적힌 칸은 후보 창이 먼저 떠요. 손패에서 타일을 고르면 놓을 칸도 보여 줘요.',
+    en: 'In Cycle mode, long-press an empty cell to open the place picker first (switch to candidates inside). Cells marked ♂, ♀, (?) or with candidates open candidates first. Picking from the hand also highlights where it can go.',
+    es: 'En modo Ciclo, mantén pulsada una casilla vacía para abrir primero la selección de animal (puedes cambiar a candidatos). Las casillas con ♂, ♀, (?) o candidatos abren primero candidatos. Al elegir de la mano se resaltan las casillas posibles.',
+    pt: 'No modo Ciclo, segure uma casa vazia para abrir primeiro a escolha do animal (dá para trocar para candidatos). Casas com ♂, ♀, (?) ou candidatos abrem candidatos primeiro. Ao escolher na mão, as casas possíveis ficam destacadas.',
+    fr: 'En mode Cycle, un appui long sur une case vide ouvre d’abord le choix de l’animal (bascule possible vers les candidats). Les cases ♂, ♀, (?) ou avec candidats ouvrent d’abord les candidats. Choisir dans la main montre où poser.',
+    de: 'Im Wechsel-Modus öffnet langes Drücken auf ein leeres Feld zuerst die Tierauswahl (umschaltbar zu Kandidaten). Felder mit ♂, ♀, (?) oder Kandidaten öffnen zuerst Kandidaten. Auswahl aus der Hand zeigt mögliche Felder.',
+    ru: 'В режиме «Цикл» долгое нажатие на пустую клетку сначала открывает выбор животного (можно переключить на кандидатов). Клетки с ♂, ♀, (?) или кандидатами сначала открывают кандидатов. Выбор из руки подсвечивает, куда можно положить.',
+    zh: '循环模式下长按空格会先打开放置选择（可切换到候选）。标有 ♂、♀、(?) 或候选的格子先打开候选。从手牌选中时会提示可放的格子。',
+    ja: '循環モードで空きマスを長押しすると、置く動物の選択が先に開きます（候補に切替可）。♂、♀、(?)、候補があるマスは候補が先。手札から選ぶと置けるマスも表示。',
+  },
+  'tools.undo': { ko: '되돌리기', en: 'Undo', es: 'Deshacer', pt: 'Desfazer', fr: 'Annuler', de: 'Rückgängig', ru: 'Отмена', zh: '撤销', ja: '元に戻す' },
+  'tools.undo.desc': {
+    ko: '바로 전 손동작을 무르고 다시 해요. 끌기 한 번, 처음부터 다시도 한 단계예요. Ctrl+Z, Ctrl+Shift+Z',
+    en: 'Undo and redo your last move. A whole drag, or a reset, is one step. Ctrl+Z, Ctrl+Shift+Z',
+    es: 'Deshaz y rehaz tu último movimiento. Un arrastre entero o reiniciar cuentan como un paso. Ctrl+Z, Ctrl+Shift+Z',
+    pt: 'Desfaça e refaça o último movimento. Um arraste inteiro ou reiniciar é um passo. Ctrl+Z, Ctrl+Shift+Z',
+    fr: 'Annuler et rétablir le dernier geste. Un glisser entier ou une remise à zéro compte pour un pas. Ctrl+Z, Ctrl+Maj+Z',
+    de: 'Letzten Zug zurücknehmen und wiederholen. Ein ganzes Ziehen oder Zurücksetzen ist ein Schritt. Strg+Z, Strg+Umschalt+Z',
+    ru: 'Отменить и вернуть последнее действие. Целое протягивание или сброс считается одним шагом. Ctrl+Z, Ctrl+Shift+Z',
+    zh: '撤销或重做上一步。一次拖动、一次重置都算一步。Ctrl+Z、Ctrl+Shift+Z',
+    ja: '直前の手を戻す、やり直す。なぞり1回、最初からも1段階。Ctrl+Z、Ctrl+Shift+Z',
+  },
+  'tools.hypothesis': { ko: '가정 체크포인트', en: 'Hypothesis checkpoint', es: 'Punto de hipótesis', pt: 'Ponto de hipótese', fr: 'Point d’hypothèse', de: 'Annahme-Checkpoint', ru: 'Точка предположения', zh: '假设检查点', ja: '仮定チェックポイント' },
+  'tools.hypothesis.desc': {
+    ko: '가정을 시작하면 그 뒤에 바꾼 칸이 청록 테로 보여요. 틀리면 가정을 버려 한 번에 되감아요.',
+    en: 'After you start a hypothesis, changed cells get a teal outline. If it fails, discard it to rewind in one step.',
+    es: 'Tras iniciar una hipótesis, las casillas cambiadas se marcan en verde azulado. Si falla, descártala y vuelves atrás de una vez.',
+    pt: 'Depois de iniciar uma hipótese, as casas alteradas ganham contorno verde-azulado. Se falhar, descarte e volte de uma vez.',
+    fr: 'Après avoir lancé une hypothèse, les cases modifiées sont cerclées de bleu-vert. Si elle échoue, abandonnez-la pour tout rembobiner.',
+    de: 'Nach dem Start einer Annahme bekommen geänderte Felder einen Petrol-Rand. Scheitert sie, verwirf sie und spule auf einmal zurück.',
+    ru: 'После начала предположения изменённые клетки обводятся бирюзовым. Если не вышло, отбросьте его и вернитесь одним шагом.',
+    zh: '开始假设后，之后改动的格子会显示青色边框。假设不成立时放弃即可一次回退。',
+    ja: '仮定を始めると、その後に変えたマスが青緑の枠に。外れたら仮定を捨てて一度に巻き戻し。',
+  },
+  'tools.lineRecede': { ko: '줄 닫힘 물러남', en: 'Fade finished lines', es: 'Atenuar líneas completas', pt: 'Esmaecer linhas completas', fr: 'Estomper les lignes finies', de: 'Fertige Linien abblenden', ru: 'Гасить готовые линии', zh: '完成行淡出', ja: '完成した列を薄く' },
+  'tools.lineRecede.desc': {
+    ko: '동물 수, 성별 수, 줄 규칙이 모두 맞은 줄의 단서가 흐려지고, 닫히는 순간 빛이 한 번 지나가요.',
+    en: 'When a line’s count, sex count and rule are all satisfied, its clues fade, with a quick sweep as it closes.',
+    es: 'Cuando el número, el sexo y la regla de una línea se cumplen, sus pistas se atenúan con un destello al cerrarse.',
+    pt: 'Quando número, sexo e regra de uma linha batem, as pistas esmaecem, com um brilho rápido ao fechar.',
+    fr: 'Quand le nombre, le sexe et la règle d’une ligne sont satisfaits, ses indices s’estompent avec un bref éclat.',
+    de: 'Stimmen Anzahl, Geschlecht und Regel einer Linie, blenden ihre Hinweise ab, mit kurzem Lichtstreif beim Schließen.',
+    ru: 'Когда число, пол и правило линии выполнены, её подсказки бледнеют, а при закрытии пробегает блик.',
+    zh: '某行的数量、性别数和规则都满足时，提示会淡出，闭合瞬间闪过一道光。',
+    ja: '数、性別数、列ルールがすべて合った列の手がかりが薄くなり、閉じる瞬間に光が通ります。',
+  },
+  'tools.pairBond': { ko: '짝 맺음 연출', en: 'Pair bond effect', es: 'Efecto de pareja', pt: 'Efeito de par', fr: 'Effet de paire', de: 'Paar-Effekt', ru: 'Эффект пары', zh: '配对效果', ja: 'ペア成立の演出' },
+  'tools.pairBond.desc': {
+    ko: '짝이 이웃이 되는 순간 연결선이 그려지고 두 타일이 서로 쪽으로 살짝 기울어요.',
+    en: 'When a pair becomes neighbors, the link draws itself and the two tiles lean toward each other.',
+    es: 'Cuando una pareja queda vecina, la unión se dibuja y las dos fichas se inclinan una hacia otra.',
+    pt: 'Quando um par fica vizinho, a ligação se desenha e as duas peças se inclinam uma para a outra.',
+    fr: 'Quand une paire devient voisine, le lien se trace et les deux tuiles se penchent l’une vers l’autre.',
+    de: 'Werden zwei Partner Nachbarn, zeichnet sich die Verbindung und beide Steine neigen sich zueinander.',
+    ru: 'Когда пара становится соседями, связь прорисовывается, а плитки слегка наклоняются друг к другу.',
+    zh: '配对成为相邻时，连线被画出，两块牌相互轻倾。',
+    ja: 'ペアが隣り合った瞬間、つなぎ線が描かれ、2枚のタイルが互いに少し傾きます。',
+  },
+  'pen.place': { ko: '놓기', en: 'Place', es: 'Poner', pt: 'Pôr', fr: 'Poser', de: 'Setzen', ru: 'Класть', zh: '放置', ja: '置く' },
+  'pen.cycle': { ko: '순환', en: 'Cycle', es: 'Ciclo', pt: 'Ciclo', fr: 'Cycle', de: 'Wechsel', ru: 'Цикл', zh: '循环', ja: '循環' },
+  'pen.X': { ko: '없음', en: 'None', es: 'Nada', pt: 'Nada', fr: 'Vide', de: 'Leer', ru: 'Пусто', zh: '无', ja: 'なし' },
+  'pen.O': { ko: '있음', en: 'Animal', es: 'Animal', pt: 'Animal', fr: 'Animal', de: 'Tier', ru: 'Есть', zh: '有', ja: 'あり' },
+  'pen.Q': { ko: '후보칸', en: 'Maybe', es: 'Quizá', pt: 'Talvez', fr: 'Peut-être', de: 'Vielleicht', ru: 'Может', zh: '候选', ja: '候補' },
+  'pen.M': { ko: '수컷', en: 'Male', es: 'Macho', pt: 'Macho', fr: 'Mâle', de: 'Männl.', ru: 'Самец', zh: '雄', ja: 'オス' },
+  'pen.F': { ko: '암컷', en: 'Female', es: 'Hembra', pt: 'Fêmea', fr: 'Femelle', de: 'Weibl.', ru: 'Самка', zh: '雌', ja: 'メス' },
+  'pen.erase': { ko: '지움', en: 'Erase', es: 'Borrar', pt: 'Apagar', fr: 'Gomme', de: 'Löschen', ru: 'Ластик', zh: '擦除', ja: '消す' },
+  'rail.label': { ko: '플레이 도구', en: 'Play tools', es: 'Herramientas', pt: 'Ferramentas', fr: 'Outils de jeu', de: 'Spielwerkzeuge', ru: 'Инструменты', zh: '游戏工具', ja: 'プレイツール' },
+  'rail.pens': { ko: '펜', en: 'Pens', es: 'Lápices', pt: 'Canetas', fr: 'Stylos', de: 'Stifte', ru: 'Ручки', zh: '画笔', ja: 'ペン' },
+  'rail.undo': { ko: '되돌리기', en: 'Undo', es: 'Deshacer', pt: 'Desfazer', fr: 'Annuler', de: 'Zurück', ru: 'Отмена', zh: '撤销', ja: '戻す' },
+  'rail.redo': { ko: '다시 하기', en: 'Redo', es: 'Rehacer', pt: 'Refazer', fr: 'Rétablir', de: 'Wiederholen', ru: 'Вернуть', zh: '重做', ja: 'やり直し' },
+  'rail.redo.desc': {
+    ko: '되돌린 손동작을 다시 해요', en: 'Redo the move you undid', es: 'Rehace lo que deshiciste', pt: 'Refaz o que você desfez',
+    fr: 'Rétablit le geste annulé', de: 'Rückgängig gemachten Zug wiederholen', ru: 'Вернуть отменённое действие', zh: '重做刚撤销的操作', ja: '戻した手をやり直す',
+  },
+  'rail.hypo': { ko: '가정', en: 'Suppose', es: 'Suponer', pt: 'Supor', fr: 'Supposer', de: 'Annahme', ru: 'Допустим', zh: '假设', ja: '仮定' },
+  'rail.hypoOn': { ko: '가정 중', en: 'Supposing', es: 'Suponiendo', pt: 'Supondo', fr: 'En cours', de: 'Läuft', ru: 'Идёт', zh: '假设中', ja: '仮定中' },
+  'rail.more': { ko: '더보기', en: 'More', es: 'Más', pt: 'Mais', fr: 'Plus', de: 'Mehr', ru: 'Ещё', zh: '更多', ja: 'その他' },
+  'rail.settings': { ko: '플레이 도구 설정', en: 'Play tool settings', es: 'Ajustes de herramientas', pt: 'Ajustes das ferramentas', fr: 'Réglages des outils', de: 'Werkzeug-Einstellungen', ru: 'Настройки инструментов', zh: '工具设置', ja: 'ツール設定' },
+  'rail.settingsShort': { ko: '설정', en: 'Settings', es: 'Ajustes', pt: 'Ajustes', fr: 'Réglages', de: 'Optionen', ru: 'Настр.', zh: '设置', ja: '設定' },
+  'hypo.chip': {
+    ko: ({ d }) => `가정 ${d}`, en: ({ d }) => `Hyp. ${d}`, es: ({ d }) => `Hip. ${d}`, pt: ({ d }) => `Hip. ${d}`, fr: ({ d }) => `Hyp. ${d}`,
+    de: ({ d }) => `Ann. ${d}`, ru: ({ d }) => `Доп. ${d}`, zh: ({ d }) => `假设${d}`, ja: ({ d }) => `仮定${d}`,
+  },
+  'hypo.menuTitle': {
+    ko: ({ d, n }) => `가정 ${d}단계, 바뀐 칸 ${n}`,
+    en: ({ d, n }) => `Hypothesis level ${d}, ${n} cells changed`,
+    es: ({ d, n }) => `Hipótesis nivel ${d}, ${n} casillas cambiadas`,
+    pt: ({ d, n }) => `Hipótese nível ${d}, ${n} casas alteradas`,
+    fr: ({ d, n }) => `Hypothèse niveau ${d}, ${n} cases modifiées`,
+    de: ({ d, n }) => `Annahme Stufe ${d}, ${n} Felder geändert`,
+    ru: ({ d, n }) => `Предположение ${d}, изменено клеток: ${n}`,
+    zh: ({ d, n }) => `假设第${d}层，改动 ${n} 格`,
+    ja: ({ d, n }) => `仮定 ${d} 段目、変えたマス ${n}`,
+  },
+  'hypo.start.desc': {
+    ko: '가정 시작: 지금 보드를 맡겨 두고 시험해 봐요', en: 'Start a hypothesis: save the board and try something',
+    es: 'Iniciar hipótesis: guarda el tablero y prueba', pt: 'Iniciar hipótese: guarda o tabuleiro e testa',
+    fr: 'Lancer une hypothèse : garder le plateau et essayer', de: 'Annahme starten: Brett merken und ausprobieren',
+    ru: 'Начать предположение: запомнить поле и проверить', zh: '开始假设：保存当前棋盘后尝试', ja: '仮定を開始：今の盤を預けて試す',
+  },
+  'hypo.discard': { ko: '가정 버리기', en: 'Discard hypothesis', es: 'Descartar hipótesis', pt: 'Descartar hipótese', fr: 'Abandonner l’hypothèse', de: 'Annahme verwerfen', ru: 'Отбросить', zh: '放弃假设', ja: '仮定を捨てる' },
+  'hypo.discard.desc': {
+    ko: '가정을 시작한 때로 한 번에 되감아요', en: 'Rewind to when you started it, in one step', es: 'Vuelve al inicio de la hipótesis de una vez',
+    pt: 'Volta ao início da hipótese de uma vez', fr: 'Revient d’un coup au début de l’hypothèse', de: 'Auf einmal zum Start der Annahme zurück',
+    ru: 'Вернуться к началу одним шагом', zh: '一次回到开始假设时', ja: '仮定を始めた時点へ一度に戻す',
+  },
+  'hypo.commit': { ko: '가정 유지', en: 'Keep it', es: 'Mantener', pt: 'Manter', fr: 'Conserver', de: 'Behalten', ru: 'Оставить', zh: '保留', ja: '仮定を確定' },
+  'hypo.commit.desc': {
+    ko: '지금 보드를 그대로 두고 가정을 끝내요', en: 'Keep the board as it is and end the hypothesis', es: 'Deja el tablero así y termina la hipótesis',
+    pt: 'Mantém o tabuleiro e encerra a hipótese', fr: 'Garde le plateau tel quel et termine l’hypothèse', de: 'Brett so lassen und Annahme beenden',
+    ru: 'Оставить поле как есть и завершить', zh: '保持当前棋盘并结束假设', ja: '今の盤のまま仮定を終える',
+  },
+  'hypo.nest': { ko: '한 겹 더 가정', en: 'Suppose again inside', es: 'Otra hipótesis dentro', pt: 'Outra hipótese dentro', fr: 'Hypothèse imbriquée', de: 'Weitere Annahme darin', ru: 'Ещё одно внутри', zh: '再套一层假设', ja: 'さらに仮定を重ねる' },
+  'hypo.nest.desc': {
+    ko: '이 가정 안에서 새 체크포인트를 만들어요', en: 'Make a new checkpoint inside this one', es: 'Crea un nuevo punto dentro de esta',
+    pt: 'Cria um novo ponto dentro desta', fr: 'Crée un nouveau point à l’intérieur', de: 'Neuen Checkpoint innerhalb anlegen',
+    ru: 'Новая точка внутри этой', zh: '在当前假设内新建检查点', ja: 'この仮定の中に新しいチェックポイント',
+  },
+  'pop.place': { ko: '놓기', en: 'Place', es: 'Colocar', pt: 'Colocar', fr: 'Poser', de: 'Setzen', ru: 'Положить', zh: '放置', ja: '置く' },
+  'pop.cand': { ko: '후보', en: 'Candidates', es: 'Candidatos', pt: 'Candidatos', fr: 'Candidats', de: 'Kandidaten', ru: 'Кандидаты', zh: '候选', ja: '候補' },
+  'pop.cell': {
+    ko: ({ r, c }) => `${r}행 ${c}열`, en: ({ r, c }) => `R${r} C${c}`, es: ({ r, c }) => `F${r} C${c}`, pt: ({ r, c }) => `L${r} C${c}`,
+    fr: ({ r, c }) => `L${r} C${c}`, de: ({ r, c }) => `Z${r} S${c}`, ru: ({ r, c }) => `С${r} Ст${c}`, zh: ({ r, c }) => `${r}行${c}列`, ja: ({ r, c }) => `${r}行${c}列`,
+  },
+  'pop.candCount': {
+    ko: ({ n, cap }) => `후보 ${n}/${cap}`, en: ({ n, cap }) => `${n}/${cap} noted`, es: ({ n, cap }) => `${n}/${cap} anotados`, pt: ({ n, cap }) => `${n}/${cap} anotados`,
+    fr: ({ n, cap }) => `${n}/${cap} notés`, de: ({ n, cap }) => `${n}/${cap} notiert`, ru: ({ n, cap }) => `${n}/${cap}`, zh: ({ n, cap }) => `已记 ${n}/${cap}`, ja: ({ n, cap }) => `候補 ${n}/${cap}`,
+  },
+  'pop.clear': { ko: '후보 지우기', en: 'Clear', es: 'Borrar', pt: 'Limpar', fr: 'Effacer', de: 'Leeren', ru: 'Очистить', zh: '清除', ja: 'クリア' },
+  'pop.handEmpty': { ko: '손패가 비었어요', en: 'Your hand is empty', es: 'La mano está vacía', pt: 'A mão está vazia', fr: 'La main est vide', de: 'Die Hand ist leer', ru: 'Рука пуста', zh: '手牌已空', ja: '手札は空です' },
+  'cell.aria': {
+    ko: ({ r, c, mark, cands }) => `${r}행 ${c}열${mark ? ', 표시 ' + mark : ''}${cands ? ', 후보 ' + cands : ''}`,
+    en: ({ r, c, mark, cands }) => `Row ${r}, column ${c}${mark ? ', mark ' + mark : ''}${cands ? ', ' + cands + ' candidates' : ''}`,
+    es: ({ r, c, mark, cands }) => `Fila ${r}, columna ${c}${mark ? ', marca ' + mark : ''}${cands ? ', ' + cands + ' candidatos' : ''}`,
+    pt: ({ r, c, mark, cands }) => `Linha ${r}, coluna ${c}${mark ? ', marca ' + mark : ''}${cands ? ', ' + cands + ' candidatos' : ''}`,
+    fr: ({ r, c, mark, cands }) => `Ligne ${r}, colonne ${c}${mark ? ', marque ' + mark : ''}${cands ? ', ' + cands + ' candidats' : ''}`,
+    de: ({ r, c, mark, cands }) => `Zeile ${r}, Spalte ${c}${mark ? ', Markierung ' + mark : ''}${cands ? ', ' + cands + ' Kandidaten' : ''}`,
+    ru: ({ r, c, mark, cands }) => `Строка ${r}, столбец ${c}${mark ? ', пометка ' + mark : ''}${cands ? ', кандидатов: ' + cands : ''}`,
+    zh: ({ r, c, mark, cands }) => `第${r}行第${c}列${mark ? '，标记 ' + mark : ''}${cands ? '，候选 ' + cands : ''}`,
+    ja: ({ r, c, mark, cands }) => `${r}行${c}列${mark ? '、しるし ' + mark : ''}${cands ? '、候補 ' + cands : ''}`,
+  },
+  'coach.pens': {
+    ko: '펜을 고르고 칸을 누르거나 줄을 따라 끌어 보세요. 칸을 길게 누르면 후보를 적어요.',
+    en: 'Pick a pen, then tap cells or drag along a line. Long-press a cell to note candidates.',
+    es: 'Elige un lápiz y toca casillas o arrastra por una línea. Mantén pulsada una casilla para anotar candidatos.',
+    pt: 'Escolha uma caneta e toque nas casas ou arraste por uma linha. Segure uma casa para anotar candidatos.',
+    fr: 'Choisissez un stylo, touchez des cases ou glissez le long d’une ligne. Appui long pour noter des candidats.',
+    de: 'Stift wählen, Felder antippen oder entlang einer Linie ziehen. Lange drücken notiert Kandidaten.',
+    ru: 'Выберите ручку и касайтесь клеток или тяните вдоль линии. Долгое нажатие записывает кандидатов.',
+    zh: '选一支笔，点格子或沿一行拖动。长按格子可记候选。',
+    ja: 'ペンを選んでマスをタップ、または列をなぞって。長押しで候補をメモ。',
+  },
+  'coach.pensNoCand': {
+    ko: '펜을 고르고 칸을 누르거나 줄을 따라 끌어 보세요.', en: 'Pick a pen, then tap cells or drag along a line.',
+    es: 'Elige un lápiz y toca casillas o arrastra por una línea.', pt: 'Escolha uma caneta e toque nas casas ou arraste por uma linha.',
+    fr: 'Choisissez un stylo, touchez des cases ou glissez le long d’une ligne.', de: 'Stift wählen, Felder antippen oder entlang einer Linie ziehen.',
+    ru: 'Выберите ручку и касайтесь клеток или тяните вдоль линии.', zh: '选一支笔，点格子或沿一行拖动。', ja: 'ペンを選んでマスをタップ、または列をなぞって。',
+  },
+  'coach.noPens': {
+    ko: '칸을 길게 누르면 그 칸에 놓을 동물이나 후보를 고를 수 있어요.', en: 'Long-press a cell to choose an animal or candidates for it.',
+    es: 'Mantén pulsada una casilla para elegir su animal o candidatos.', pt: 'Segure uma casa para escolher o animal ou candidatos.',
+    fr: 'Appui long sur une case pour choisir son animal ou ses candidats.', de: 'Feld lange drücken, um Tier oder Kandidaten zu wählen.',
+    ru: 'Долгое нажатие на клетку: выбрать животное или кандидатов.', zh: '长按格子可选择要放的动物或候选。', ja: 'マスを長押しで置く動物や候補を選べます。',
+  },
+  'rules.ctl.pens.title': { ko: '펜과 후보', en: 'Pens and candidates', es: 'Lápices y candidatos', pt: 'Canetas e candidatos', fr: 'Stylos et candidats', de: 'Stifte und Kandidaten', ru: 'Ручки и кандидаты', zh: '画笔与候选', ja: 'ペンと候補' },
+  'rules.ctl.pens.body': {
+    ko: '도구 막대에서 펜(없음 X, 있음 (?), ♂, ♀, 지움)을 고르면 칸을 누르거나 줄을 따라 끌어 바로 적어요. 같은 표시를 다시 누르면 지워져요. 빈 칸을 길게 누르면(마우스는 오른쪽 클릭) 놓을 동물을, ♂, ♀, (?), 후보가 적힌 칸을 길게 누르면 후보를 고르는 창이 떠요(창 안에서 서로 바꿀 수 있어요). 펜을 든 채 놓인 타일을 누르면 ♂/♀ 펜은 성별을 정하고 지움 펜은 손패로 되돌려요. 막대 끝 단추로 막대를 접고 펼 수 있어요.',
+    en: 'Pick a pen on the tool bar (None X, Animal (?), ♂, ♀, Erase), then tap cells or drag along a line. Tap the same mark again to remove it. Long-press (right-click) an empty cell to choose an animal to place, or a cell marked ♂, ♀, (?) or with candidates to note candidates; you can switch inside the picker. With a pen, tapping a placed tile sets its sex (♂/♀) or returns it to the hand (Erase). The last button folds the bar.',
+    es: 'Elige un lápiz en la barra (Nada X, Animal (?), ♂, ♀, Borrar) y toca casillas o arrastra por una línea. Toca la misma marca otra vez para quitarla. Mantén pulsada (clic derecho) una casilla vacía para elegir el animal, o una con ♂, ♀, (?) o candidatos para anotar candidatos; puedes cambiar dentro de la ventana. Con un lápiz, tocar una ficha fija su sexo (♂/♀) o la devuelve a la mano (Borrar). El último botón pliega la barra.',
+    pt: 'Escolha uma caneta na barra (Nada X, Animal (?), ♂, ♀, Apagar) e toque nas casas ou arraste por uma linha. Toque a mesma marca de novo para tirar. Segure (clique direito) uma casa vazia para escolher o animal, ou uma com ♂, ♀, (?) ou candidatos para anotar candidatos; dá para trocar dentro da janela. Com uma caneta, tocar numa peça define o sexo (♂/♀) ou devolve à mão (Apagar). O último botão recolhe a barra.',
+    fr: 'Choisissez un stylo dans la barre (Vide X, Animal (?), ♂, ♀, Gomme), puis touchez des cases ou glissez le long d’une ligne. Retouchez la même marque pour l’enlever. Appui long (clic droit) sur une case vide pour choisir l’animal, sur une case ♂, ♀, (?) ou avec candidats pour noter des candidats ; bascule possible dans la fenêtre. Stylo en main, toucher une tuile fixe son sexe (♂/♀) ou la renvoie dans la main (Gomme). Le dernier bouton replie la barre.',
+    de: 'Wähle in der Leiste einen Stift (Leer X, Tier (?), ♂, ♀, Löschen), dann Felder antippen oder entlang einer Linie ziehen. Dieselbe Markierung erneut tippen entfernt sie. Langes Drücken (Rechtsklick) auf ein leeres Feld wählt das Tier, auf ein Feld mit ♂, ♀, (?) oder Kandidaten notiert Kandidaten; im Fenster umschaltbar. Mit Stift legt Tippen auf einen Stein das Geschlecht fest (♂/♀) oder legt ihn zurück (Löschen). Die letzte Taste klappt die Leiste ein.',
+    ru: 'Выберите ручку на панели (Пусто X, Есть (?), ♂, ♀, Ластик) и касайтесь клеток или тяните вдоль линии. Повторное касание той же пометки убирает её. Долгое нажатие (правый клик) на пустую клетку — выбрать животное, на клетку с ♂, ♀, (?) или кандидатами — записать кандидатов; в окне можно переключить. С ручкой касание фишки задаёт пол (♂/♀) или возвращает её в руку (Ластик). Последняя кнопка сворачивает панель.',
+    zh: '在工具栏选一支笔（无 X、有 (?)、♂、♀、擦除），点格子或沿一行拖动即可写上。再点同一标记即可去掉。长按空格（鼠标右键）选择要放的动物，长按标有 ♂、♀、(?) 或候选的格子记候选，窗口内可切换。拿着笔点已放的牌：♂/♀ 笔设定性别，擦除笔放回手牌。最后一个按钮可收起工具栏。',
+    ja: 'ツールバーでペン（なし X、あり (?)、♂、♀、消す）を選び、マスをタップまたは列をなぞって記入。同じしるしをもう一度で消えます。空きマスの長押し（マウスは右クリック）で置く動物、♂、♀、(?)、候補のあるマスの長押しで候補を選ぶ窓が開きます（窓の中で切替可）。ペンで置いたタイルをタップすると ♂/♀ は性別を決め、消すは手札に戻します。最後のボタンでバーを畳めます。',
+  },
+  'rules.ctl.undo.title': { ko: '되돌리기와 가정', en: 'Undo and hypotheses', es: 'Deshacer e hipótesis', pt: 'Desfazer e hipóteses', fr: 'Annuler et hypothèses', de: 'Rückgängig und Annahmen', ru: 'Отмена и предположения', zh: '撤销与假设', ja: '元に戻すと仮定' },
+  'rules.ctl.undo.body': {
+    ko: '되돌리기(Ctrl+Z)는 손동작 하나씩 무르고, 끌기 한 번은 한꺼번에 무릅니다. 막히면 가정을 시작해 보세요. 그 뒤에 바꾼 칸은 청록 테로 보이고, 틀리면 가정 버리기로 시작한 때로 한 번에 돌아가요.',
+    en: 'Undo (Ctrl+Z) takes back one move at a time, and a whole drag at once. Stuck? Start a hypothesis: cells you change afterwards get a teal outline, and Discard rewinds to where you started in one step.',
+    es: 'Deshacer (Ctrl+Z) quita un movimiento cada vez, y un arrastre entero de golpe. ¿Atascado? Inicia una hipótesis: las casillas que cambies se marcan en verde azulado y Descartar vuelve al inicio de una vez.',
+    pt: 'Desfazer (Ctrl+Z) volta um movimento por vez, e um arraste inteiro de uma só vez. Travou? Inicie uma hipótese: as casas que mudar ganham contorno verde-azulado e Descartar volta ao início de uma vez.',
+    fr: 'Annuler (Ctrl+Z) reprend un geste à la fois, et un glisser entier d’un coup. Bloqué ? Lancez une hypothèse : les cases modifiées ensuite sont cerclées de bleu-vert, et Abandonner revient au départ d’un coup.',
+    de: 'Rückgängig (Strg+Z) nimmt einen Zug nach dem anderen zurück, ein ganzes Ziehen auf einmal. Festgefahren? Starte eine Annahme: danach geänderte Felder bekommen einen Petrol-Rand, Verwerfen spult auf einmal zum Start zurück.',
+    ru: 'Отмена (Ctrl+Z) убирает по одному действию, целое протягивание сразу. Застряли? Начните предположение: изменённые после этого клетки обводятся бирюзовым, а «Отбросить» возвращает к началу одним шагом.',
+    zh: '撤销（Ctrl+Z）一次退一步，一次拖动整体撤销。卡住时可以开始假设：之后改动的格子显示青色边框，放弃假设即可一次回到开始时。',
+    ja: '元に戻す（Ctrl+Z）は1手ずつ、なぞり1回はまとめて戻します。行き詰まったら仮定を開始。その後に変えたマスは青緑の枠になり、仮定を捨てると開始時点へ一度に戻ります。',
+  },
+  'coach.pensLong': {
+    ko: '펜을 고르고 칸을 누르거나 줄을 따라 끌어 보세요. 빈 칸을 길게 누르면 동물을 놓고, 표시한 칸을 길게 누르면 후보를 적어요.',
+    en: 'Pick a pen, then tap cells or drag along a line. Long-press an empty cell to place an animal, a marked cell to note candidates.',
+    es: 'Elige un lápiz y toca casillas o arrastra por una línea. Mantén pulsada una casilla vacía para colocar un animal, o una marcada para anotar candidatos.',
+    pt: 'Escolha uma caneta e toque nas casas ou arraste por uma linha. Segure uma casa vazia para pôr um animal, ou uma marcada para anotar candidatos.',
+    fr: 'Choisissez un stylo, touchez des cases ou glissez le long d’une ligne. Appui long sur une case vide pour poser un animal, sur une case marquée pour noter des candidats.',
+    de: 'Stift wählen, Felder antippen oder entlang einer Linie ziehen. Langes Drücken auf ein leeres Feld setzt ein Tier, auf ein markiertes notiert Kandidaten.',
+    ru: 'Выберите ручку и касайтесь клеток или тяните вдоль линии. Долгое нажатие на пустую клетку кладёт животное, на помеченную — записывает кандидатов.',
+    zh: '选一支笔，点格子或沿一行拖动。长按空格放动物，长按已标记的格子记候选。',
+    ja: 'ペンを選んでマスをタップ、または列をなぞって。空きマスの長押しで配置、しるしのあるマスの長押しで候補メモ。',
+  },
+  'coach.pensLongNoCand': {
+    ko: '펜을 고르고 칸을 누르거나 줄을 따라 끌어 보세요. 빈 칸을 길게 누르면 동물을 놓아요.',
+    en: 'Pick a pen, then tap cells or drag along a line. Long-press an empty cell to place an animal.',
+    es: 'Elige un lápiz y toca casillas o arrastra por una línea. Mantén pulsada una casilla vacía para colocar un animal.',
+    pt: 'Escolha uma caneta e toque nas casas ou arraste por uma linha. Segure uma casa vazia para pôr um animal.',
+    fr: 'Choisissez un stylo, touchez des cases ou glissez le long d’une ligne. Appui long sur une case vide pour poser un animal.',
+    de: 'Stift wählen, Felder antippen oder entlang einer Linie ziehen. Langes Drücken auf ein leeres Feld setzt ein Tier.',
+    ru: 'Выберите ручку и касайтесь клеток или тяните вдоль линии. Долгое нажатие на пустую клетку кладёт животное.',
+    zh: '选一支笔，点格子或沿一行拖动。长按空格可放动物。',
+    ja: 'ペンを選んでマスをタップ、または列をなぞって。空きマスの長押しで配置。',
+  },
+  'coach.noPensLong': {
+    ko: '빈 칸을 길게 누르면 동물을 놓고, 표시한 칸을 길게 누르면 후보를 적어요.',
+    en: 'Long-press an empty cell to place an animal, a marked cell to note candidates.',
+    es: 'Mantén pulsada una casilla vacía para colocar un animal, o una marcada para anotar candidatos.',
+    pt: 'Segure uma casa vazia para pôr um animal, ou uma marcada para anotar candidatos.',
+    fr: 'Appui long sur une case vide pour poser un animal, sur une case marquée pour noter des candidats.',
+    de: 'Langes Drücken auf ein leeres Feld setzt ein Tier, auf ein markiertes notiert Kandidaten.',
+    ru: 'Долгое нажатие на пустую клетку кладёт животное, на помеченную — записывает кандидатов.',
+    zh: '长按空格放动物，长按已标记的格子记候选。',
+    ja: '空きマスの長押しで配置、しるしのあるマスの長押しで候補メモ。',
+  },
+  'rail.fold': { ko: '도구 막대 접기', en: 'Fold tool bar', es: 'Plegar barra', pt: 'Recolher barra', fr: 'Replier la barre', de: 'Leiste einklappen', ru: 'Свернуть панель', zh: '收起工具栏', ja: 'ツールバーを畳む' },
+  'rail.unfold': { ko: '도구 막대 펼치기', en: 'Unfold tool bar', es: 'Desplegar barra', pt: 'Expandir barra', fr: 'Déplier la barre', de: 'Leiste ausklappen', ru: 'Развернуть панель', zh: '展开工具栏', ja: 'ツールバーを開く' },
+  // 실험실 플레이로그 보기(연구용 화면). 다른 언어는 한국어로 대체된다.
+  'playlog.filter.note': { ko: '표시', en: 'Notes' },
+  'playlog.filter.tool': { ko: '도구', en: 'Tools' },
+  'playlog.existMark': { ko: '있음 (?)', en: 'Animal (?)' },
+  'playlog.existClear': { ko: '있음 지움', en: 'Animal cleared' },
+  'playlog.genderNote': { ko: '성별 메모', en: 'Sex note' },
+  'playlog.genderNoteClear': { ko: '성별 메모 지움', en: 'Sex note cleared' },
+  'playlog.noteChange': { ko: '표시 바꿈', en: 'Note changed' },
+  'playlog.undo': { ko: '되돌리기', en: 'Undo' },
+  'playlog.redo': { ko: '다시 하기', en: 'Redo' },
+  'playlog.hypoStart': { ko: '가정 시작', en: 'Hypothesis start' },
+  'playlog.hypoDiscard': { ko: '가정 버림', en: 'Hypothesis discarded' },
+  'playlog.hypoCommit': { ko: '가정 유지', en: 'Hypothesis kept' },
+  'playlog.paint': { ko: '끌어 칠하기', en: 'Drag paint' },
+  'playlog.penSelect': { ko: '펜', en: 'Pen' },
+  'playlog.toolsChange': { ko: '도구 설정', en: 'Tools setting' },
+});
+
+// ─────────────────────────────────────────────────────────────────
 // Context + hooks
 // ─────────────────────────────────────────────────────────────────
 const LangContext = createContext({ lang: 'ko', setLang: () => {}, t: (k) => k });
@@ -8385,7 +8754,7 @@ function LangSwitcher({ compact = false }) {
 // 나머지 두 항목은 별도 정적 페이지를 새 탭에서 엽니다.
 // 외부 링크 항목은 시각적으로 작은 화살표 아이콘으로 구분됩니다.
 //
-function MenuButton({ onOpenRules }) {
+function MenuButton({ onOpenRules, onOpenTools }) {
   const t = useT();
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
@@ -8417,6 +8786,14 @@ function MenuButton({ onOpenRules }) {
       onClick: handleRulesClick,
       external: false,
     },
+    // 2.3: 플레이 도구 설정(펜, 되돌리기, 가정 등을 하나씩 켜고 끔)
+    ...(onOpenTools ? [{
+      key: 'tools',
+      label: t('menu.tools'),
+      desc: t('menu.tools.desc'),
+      onClick: () => { setOpen(false); onOpenTools(); },
+      external: false,
+    }] : []),
     {
       key: 'privacy',
       label: t('menu.privacy'),
@@ -8472,8 +8849,8 @@ function MenuButton({ onOpenRules }) {
           fontFamily: FONT_STACK[lang],
         }}>
           {items.map((item, idx) => {
-            // 첫 항목과 외부 링크 그룹 사이에 구분선
-            const showDivider = idx === 1;
+            // 앱 안 항목과 외부 링크 그룹 사이에 구분선
+            const showDivider = item.external && idx > 0 && !items[idx - 1].external;
             const itemNode = item.external ? (
               <a
                 role="menuitem"
@@ -8734,6 +9111,10 @@ const ZG_OPTIONS = {
   // 7. 손패 크기 (아래 대기 중인 동물들)
   // ─────────────────────────────────────────────────────────────────────────
   hand: {
+    scale: 0.75,                   // 2.3.1: 손패 요소(타일, 배지, 여백) 배율. 1이면 이전 크기. 글자는 아래 최소 크기 밑으로 줄지 않는다
+    minNameFontMobile: 10,         //   휴대폰 동물 이름 최소 글자 크기(px). 이보다 작아지면 읽기 어렵다
+    minNameFontDesktop: 11,        //   넓은 화면
+    attrIconOnlyBelow: 8.5,        //   서식지, 식성 칩 글자가 이 크기(px)보다 작아지면 그림만 보인다(휴대폰 판 단서와 같은 방식)
     zoomMobile: 0.7128,            // 손패 전체 배율, 폭 640px 미만
     zoomDesktop: 1.1,              //   폭 640px 이상
     tileSize: 58,                  // 손패 타일 한 변(px, 위 배율 적용 전)
@@ -8760,6 +9141,41 @@ const ZG_OPTIONS = {
     maxWorkers: 4,                 // 'auto'일 때 최대 개수
     workerMinTimeLimitMs: 5000,    // 생성 시간 상한이 이 값 이상인 단계만 워커로 (기본: 어려움, 전문가)
     workerIdleMs: 60000,           // 생성이 끝난 워커를 이 시간 동안 쉬면 정리(메모리 반환). 다음 생성 때 다시 띄움(약 0.1초)
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 10. 플레이 도구 (플레이어가 화면의 ⋮ 메뉴 "플레이 도구"에서 하나씩 켜고 끈다)
+  //    아래 defaults는 처음 쓰는 사람의 기본값이다. 플레이어가 바꾼 값은 이 기기에 저장되어
+  //    이 값보다 우선한다. 콘솔: ZG.tools.get(), ZG.tools.set({ pens: false }), ZG.tools.reset()
+  //    여덟 가지 모두 화면이 주는 정보는 늘리지 않는다(플레이어의 생각을 적고 되돌리는 도구,
+  //    지금의 초록 충족과 같은 판정을 다르게 보여 주는 연출). 판마다 켜짐 여부를 기록에 남긴다.
+  //    전체를 한 번에 끄려면 ?zgOff=playTools (기능 플래그).
+  // ─────────────────────────────────────────────────────────────────────────
+  playTools: {
+    defaults: {
+      pens: true,                  // 펜 팔레트: 없음 X, 있음 (?), ♂, ♀, 지움을 골라 칸에 바로 적기
+      dragPaint: true,             // 끌어 칠하기: 펜을 든 채 줄을 따라 끌면 지나간 칸에 같은 표시 (마우스는 펜 없이도)
+      candSplit: true,             // 후보 분리: 후보는 칸을 길게 눌러 적고(타일을 놓지 않음), 순환의 Q 자리는 (?) 있음
+      tapPlace: false,             // 탭 배치: 놓기 도구로 빈 칸을 누르면 그 칸에 놓을 동물을 고르는 창. 끄면(기본) 첫 도구가 순환
+      longPlace: true,             // 길게 눌러 놓기: 순환 모드에서 빈 칸을 길게 누르면 놓기 창이 먼저(후보로 전환 가능).
+                                   //   ♂, ♀, (?), 후보가 적힌 칸은 후보 창이 먼저. 탭 배치와 이 설정 중 하나라도 켜면 손패 선택 시 놓을 칸 안내
+      undo: true,                  // 되돌리기와 다시 하기 (Ctrl+Z, Ctrl+Shift+Z)
+      hypothesis: true,            // 가정 체크포인트: 시작한 뒤 바꾼 칸을 청록 테로 보이고 한 번에 되감기
+      lineRecede: true,            // 줄 닫힘 물러남: 개수와 규칙이 모두 맞은 줄의 단서 묶음이 흐려짐
+      pairBond: true,              // 짝 맺음 연출: 짝이 이웃이 되는 순간 연결선이 그려지고 두 타일이 서로 기울었다 돌아옴
+    },
+    rail: 'auto',                  // 도구 막대 위치: 'auto'(넓은 화면은 보드 오른쪽, 아니면 보드 아래) | 'below' | 'side'
+    stickyRail: true,              // 보드가 화면보다 길 때 도구 막대를 화면 아래에 붙여 두기(보드 범위 안에서만)
+    undoLimit: 300,                // 되돌리기 최대 단계
+    hypothesisMaxDepth: 3,         // 가정 안의 가정 최대 겹
+    paintAxisLock: true,           // 끌어 칠하기를 처음 움직인 방향(행 또는 열)의 직선으로 고정
+    recedeOpacity: 0.4,            // 닫힌 줄 단서의 진하기 (0~1)
+    lineSweepMs: 520,              // 줄이 닫히는 순간 그 줄을 지나가는 빛의 길이
+    bondDrawMs: 300,               // 짝 연결선이 그려지는 시간
+    bondLeanPx: 2,                 // 짝 맺음 때 두 타일이 서로 쪽으로 기우는 거리
+    hypothesisColor: '#0F766E',    // 가정 이후 바뀐 칸의 테 색(청록, 기존 금색, 빨강, 성별색과 겹치지 않는 색)
+    coachHint: true,               // 도구 막대 아래 한 줄 사용법(닫으면 다시 안 보임)
+    foldMs: 240,                   // 도구 막대를 접고 펼 때 줄어드는 시간
   },
 };
 
@@ -8829,7 +9245,7 @@ const { useState, useEffect, useMemo, useCallback, useReducer, useRef } = React;
 const ZG = (window.ZG = window.ZG || {});
 (function (ZG) {
   // 2단계(권장 5): 플레이로그 출처 기록용 빌드 식별자 (판정 기준이 바뀔 때 올린다)
-  ZG.VERSION = 'stage2.2-2026.10.07';   // 성능 개선 1, 2: 지연 없는 양보, 생성 워커 경주 (판정 기준은 2.1과 같음)
+  ZG.VERSION = 'stage2.3.1-2026.10.12';   // 플레이 도구 9종(2.3 + 길게 눌러 놓기), 탭 배치 기본 끔, 막대 접기, 손패 75%. 판정 기준은 2.1과 같음
   // 현재 화면 보조 수준(국소 검증 정보). 지금은 고정이고 설정 노출은 다음 순위다.
   //   lineDone 줄 충족 색, violation 규칙 위반 표시, genderSync 짝 성별 자동 동기,
   //   oppFull 반대 성별 정원 표시(63판 수집 이후 추가된 보조).
@@ -8851,6 +9267,8 @@ const ZG = (window.ZG = window.ZG || {});
     researchUI: null,      // 연구용 화면(모드 토글, 커스텀, 지표 배지). null = LAB 모듈이 빌드에 있으면 켬
     ztsPlayerBadge: false, // 플레이어 화면에서도 플레이 중 ZTS 배지 표시 (2단계 이전 동작으로 되돌리기용)
     labelMode: false,      // 라벨 수집 모드(LAB): 플레이 중 지표 숨김, 라벨 먼저 받고 예측 공개
+    // ── 2.3 ──
+    playTools: true,       // 플레이 도구 8종 전체 스위치(끄면 이전 화면과 같은 조작). 하나씩은 ZG.tools
   };
   let overrides = {};
   try { overrides = Object.assign({}, window.ZG_FEATURE_OVERRIDES || {}); } catch (e) {}
@@ -8952,6 +9370,66 @@ const zg_yield = (function () {
 // 짧은 대기(≤5ms)는 "양보" 목적이므로 zg_yield로, 그보다 긴 대기는 실제 대기로.
 function zg_sleepOrYield(ms) {
   return (ms <= 5 || ms == null) ? zg_yield() : new Promise(r => setTimeout(r, ms));
+}
+
+// ── 플레이 도구 설정 (2.3) ────────────────────────────────────────────────────────
+// 아홉 가지 도구(2.3.1: 길게 눌러 놓기 더함)를 하나씩 켜고 끈다. 기본값은 옵션 섹션 playTools.defaults, 플레이어가 바꾼 값은
+// localStorage('zg.playTools')에 남아 기본값보다 우선한다. 기능 플래그 playTools가 꺼지면 모두 끔.
+// 같은 기기의 다른 탭에서 바꾸면 storage 이벤트로 따라온다.
+(function (ZG) {
+  const KEY = 'zg.playTools';
+  const KEYS = ['pens', 'dragPaint', 'candSplit', 'tapPlace', 'longPlace', 'undo', 'hypothesis', 'lineRecede', 'pairBond'];
+  const listeners = new Set();
+  let stored = {};
+  const read = () => {
+    try { const v = JSON.parse(localStorage.getItem(KEY) || '{}'); stored = (v && typeof v === 'object') ? v : {}; }
+    catch (e) { stored = {}; }
+  };
+  read();
+  const defaults = () => {
+    const d = {};
+    for (const k of KEYS) d[k] = zgOpt('playTools.defaults.' + k, true);
+    return d;
+  };
+  let snap = null;
+  const compute = () => {
+    const d = defaults(); const out = {};
+    const master = !!(ZG.FEATURES && ZG.FEATURES.playTools);
+    for (const k of KEYS) out[k] = master && (typeof stored[k] === 'boolean' ? stored[k] : d[k]);
+    return out;
+  };
+  const emit = () => { snap = compute(); listeners.forEach(fn => { try { fn(snap); } catch (e) {} }); };
+  const write = () => { try { localStorage.setItem(KEY, JSON.stringify(stored)); } catch (e) {} };
+  ZG.tools = {
+    KEYS,
+    get() { if (!snap) snap = compute(); return snap; },
+    isOn(k) { return !!ZG.tools.get()[k]; },
+    // set({ pens: false }) → 저장 후 구독자에게 알림. 알 수 없는 키, 불린이 아닌 값은 무시
+    set(patch) {
+      if (!patch || typeof patch !== 'object') return ZG.tools.get();
+      for (const k of KEYS) if (typeof patch[k] === 'boolean') stored[k] = patch[k];
+      write(); emit(); return snap;
+    },
+    reset() { const keep = stored._coachDone, fold = stored._railFolded; stored = {}; if (keep) stored._coachDone = keep; if (fold) stored._railFolded = fold; write(); emit(); return snap; },
+    // 도구 막대 접힘(화면 상태, 도구 켜짐과 별개로 이 기기에 저장)
+    railFolded() { return !!stored._railFolded; },
+    setRailFolded(v) { stored._railFolded = !!v; write(); listeners.forEach(fn => { try { fn(ZG.tools.get()); } catch (e) {} }); },
+    defaults,
+    coachDone() { return !!stored._coachDone; },
+    setCoachDone() { stored._coachDone = true; write(); listeners.forEach(fn => { try { fn(ZG.tools.get()); } catch (e) {} }); },
+    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+  };
+  try {
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('storage', (e) => { if (e && e.key === KEY) { read(); emit(); } });
+    }
+  } catch (e) {}
+})(window.ZG);
+// React 훅: 도구 설정이 바뀌면 다시 그린다
+function useZGTools() {
+  const [v, setV] = useState(() => ZG.tools.get());
+  useEffect(() => ZG.tools.subscribe(setV), []);
+  return v;
 }
 
 // AppContext — 슬롯 컴포넌트가 프롭 드릴링 없이 {state, dispatch}에 접근하는 통로.
@@ -28289,6 +28767,131 @@ function checkWinV2(puzzle, placements, marks) {
 }
 
 // =============================================================================
+// SECTION 6.5 — 플레이 도구 (2.3): 칸 표시, 끌어 칠하기, 후보, 되돌리기, 가정
+// =============================================================================
+// 칸 표시 cellMarks["r,c"]
+//   'X' 없음 | 'Q' 후보 칸(이전 방식: 타일을 놓아 후보 등록) | 'O' 있음 (?) | 'M' 있음 + 수컷 | 'F' 있음 + 암컷
+//   O, M, F는 플레이어의 메모다. 승리 판정, 단서 충족, 힌트는 이 표시를 보지 않는다.
+// 펜 한 번(또는 끌기 한 번)의 결과는 아래 순수 함수 하나로 정한다. 화면의 끌기 미리보기와
+// 리듀서가 같은 함수를 쓰므로 미리보기와 결과가 어긋나지 않는다.
+
+// 이 칸이 이미 이 펜의 표시를 갖고 있나 (끌기는 첫 칸에서 add/remove를 정하고 끝까지 쓴다)
+function zg_penHas(pen, cur) {
+  return !!pen && pen !== 'erase' && pen !== 'set' && cur === pen;
+}
+// tool = { pen: 'X'|'O'|'Q'|'M'|'F'|'erase'|'set', op: 'add'|'remove', mark?: 'X'|'O'|'Q'|undefined }
+//   add O(또는 Q): ♂, ♀ 칸은 그대로(있음이 이미 들어 있다). add M/F: 어떤 칸이든 그 성별로(X도 덮음)
+//   remove M/F: 그 성별만 지우고 (?) 있음은 남김. remove X/O/Q: 그 표시만 지움
+//   erase: 표시와 후보 모두 지움. set: 순환 끌기(첫 칸이 바뀐 상태로 모두 맞춤)
+// 반환 { mark, clearCand }. 후보는 X가 되거나 지울 때, 그리고 이전 방식(split=false)에서
+//   Q 칸에 들어가거나 나올 때 지운다(지금까지의 순환과 같은 규칙).
+function zg_paintResult(tool, cur, split) {
+  let next;
+  if (!tool || !tool.pen) return { mark: cur, clearCand: false };
+  if (tool.pen === 'erase') next = undefined;
+  else if (tool.pen === 'set') next = tool.mark || undefined;
+  else if (tool.op === 'remove') {
+    if (tool.pen === 'M' || tool.pen === 'F') next = cur === tool.pen ? 'O' : cur;
+    else next = cur === tool.pen ? undefined : cur;
+  } else {
+    if (tool.pen === 'O' || tool.pen === 'Q') next = (cur === 'M' || cur === 'F') ? cur : tool.pen;
+    else next = tool.pen;
+  }
+  const clearCand = tool.pen === 'erase' || next === 'X' || (!split && ((cur === 'Q') !== (next === 'Q')));
+  return { mark: next, clearCand };
+}
+// 펜 없이 칸을 누를 때의 순환. 이전 방식: 빈 칸 → X → Q → 빈 칸. 후보 분리: 빈 칸 → X → (?) → 빈 칸.
+//   펜으로 적은 ♂, ♀, (?)(또는 남아 있는 Q)는 한 번 누르면 지워진다.
+function zg_cycleNext(cur, split) {
+  if (cur === undefined || cur === null) return 'X';
+  if (cur === 'X') return split ? 'O' : 'Q';
+  return undefined;
+}
+
+// 되돌리기 단위: 보드의 네 가지 상태와 가정 스택
+function zg_boardSnap(st) {
+  return { placements: st.placements, marks: st.marks, cellMarks: st.cellMarks, qCandidates: st.qCandidates, hypo: st.hypo || [] };
+}
+function zg_samePlacements(a, b) {
+  if (a === b) return true;
+  const ka = Object.keys(a || {}), kb = Object.keys(b || {});
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) { const x = a[k], y = b[k]; if (!x || !y || x.row !== y.row || x.col !== y.col) return false; }
+  return true;
+}
+function zg_sameFlat(a, b) {
+  if (a === b) return true;
+  const ka = Object.keys(a || {}), kb = Object.keys(b || {});
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) if (a[k] !== b[k]) return false;
+  return true;
+}
+function zg_sameCands(a, b) {
+  if (a === b) return true;
+  const ka = Object.keys(a || {}), kb = Object.keys(b || {});
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false;
+  return true;
+}
+function zg_sameBoard(a, b) {
+  return zg_samePlacements(a.placements, b.placements) && zg_sameFlat(a.marks, b.marks)
+    && zg_sameFlat(a.cellMarks, b.cellMarks) && zg_sameCands(a.qCandidates, b.qCandidates)
+    && zg_sameHypo(a.hypo, b.hypo);
+}
+// 가정 스택은 길이와 각 체크포인트의 동일성으로 비교(빈 스택끼리는 같다)
+function zg_sameHypo(a, b) {
+  const x = a || [], y = b || [];
+  if (x === y) return true;
+  if (x.length !== y.length) return false;
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+  return true;
+}
+// 가정을 시작한 때와 지금 사이에 내용이 바뀐 칸들("r,c"의 Set). 화면의 청록 테와 기록의 바뀐 칸 수가 쓴다.
+//   타일이 옮겨 갔으면 떠난 칸과 들어간 칸 모두, 성별만 바뀌었으면 그 타일이 있는 칸.
+function zg_hypoDiffKeys(snap, cur, tokens) {
+  const out = new Set();
+  if (!snap || !cur) return out;
+  const cmA = snap.cellMarks || {}, cmB = cur.cellMarks || {};
+  for (const k of new Set([...Object.keys(cmA), ...Object.keys(cmB)])) if (cmA[k] !== cmB[k]) out.add(k);
+  const qA = snap.qCandidates || {}, qB = cur.qCandidates || {};
+  for (const k of new Set([...Object.keys(qA), ...Object.keys(qB)])) if (JSON.stringify(qA[k] || []) !== JSON.stringify(qB[k] || [])) out.add(k);
+  const pA = snap.placements || {}, pB = cur.placements || {};
+  const ids = tokens ? tokens.map(t => t.id) : [...new Set([...Object.keys(pA), ...Object.keys(pB)])];
+  for (const id of ids) {
+    const a = pA[id], b = pB[id];
+    const ka = a ? a.row + ',' + a.col : null, kb = b ? b.row + ',' + b.col : null;
+    if (ka !== kb) { if (ka) out.add(ka); if (kb) out.add(kb); }
+    else if (kb && (snap.marks || {})[id] !== (cur.marks || {})[id]) out.add(kb);
+  }
+  return out;
+}
+// 이 액션이 보드를 바꾸면 되돌리기 단위 하나를 쌓는다(UNDO/REDO 자신은 제외)
+const ZG_HIST_ACTIONS = new Set([
+  'PLACE_TOKEN', 'RETURN_TO_HAND', 'TOGGLE_MARK', 'SET_GENDER', 'DRAG_START', 'CYCLE_CELL_MARK', 'PAINT_CELLS',
+  'TOGGLE_CANDIDATE', 'CLEAR_CANDIDATES', 'ENQUEUE_Q_CANDIDATE', 'RESET', 'HYPO_START', 'HYPO_DISCARD', 'HYPO_COMMIT',
+]);
+const ZG_DRAG_RESET = { tokenId: null, over: null, overHand: false };
+function zg_withHistory(state, next, action) {
+  if (!state.puzzle || next.puzzle !== state.puzzle) return next;
+  if (next !== state && ZG_HIST_ACTIONS.has(action.type) && !zg_sameBoard(state, next)) {
+    // 손패에서 놓기는 DRAG_START(성별 확정) + PLACE_TOKEN 두 번이 한 손동작이다 → 한 단위로 묶는다
+    const merge = (action.type === 'PLACE_TOKEN' || action.type === 'RETURN_TO_HAND')
+      && state.histTag === 'DRAG_START:' + action.tokenId;
+    const tag = action.type === 'DRAG_START' ? 'DRAG_START:' + action.tokenId : null;
+    if (merge) return { ...next, future: [], histTag: null };
+    const lim = Math.max(1, zgOpt('playTools.undoLimit', 300));
+    const hist = (state.history || []).concat([zg_boardSnap(state)]);
+    if (hist.length > lim) hist.splice(0, hist.length - lim);
+    return { ...next, history: hist, future: [], histTag: tag };
+  }
+  // 묶음 표지는 바로 다음 액션에서만 유효하다
+  if (state.histTag && action.type !== 'DRAG_START') {
+    return next === state ? { ...state, histTag: null } : (next.histTag ? { ...next, histTag: null } : next);
+  }
+  return next;
+}
+
+// =============================================================================
 // SECTION 7 — APP STATE (Reducer)
 // =============================================================================
 
@@ -28299,7 +28902,8 @@ function checkWinV2(puzzle, placements, marks) {
 // the user touches them too. Centralising this here keeps every
 // individual case clean and ensures we never miss a path.
 function reducerWithHintClear(state, action) {
-  const next = reducerCore(state, action);
+  // 2.3: 보드를 바꾼 손동작마다 되돌리기 단위를 쌓는다(로그 기록보다 먼저: 기록은 결과 상태를 본다)
+  const next = zg_withHistory(state, reducerCore(state, action), action);
   // 2단계(권장 5): 상태를 바꾸지 않는 관찰 이벤트(화면 가림/복귀, 실험실 도구 열람)도 기록한다.
   //   2분 넘는 무행동 구간이 부재인지 사고인지, 풀이 중 솔버를 봤는지 가려내기 위해서다.
   if (ZG.FEATURES.playLogRecord && state.puzzle && next.puzzle === state.puzzle && next.playLogStartTime
@@ -28362,6 +28966,8 @@ function zg_metaLogEntry(action) {
     case 'VISIBILITY':      return { action: action.hidden ? 'page-hidden' : 'page-visible', detail: {} };
     case 'SHOW_SOLVER_LOG': return { action: 'lab-view', detail: { tool: 'solver' } };
     case 'SHOW_HFS_LOG':    return { action: 'lab-view', detail: { tool: 'hfs' } };
+    // 2.3: 상태를 바꾸지 않는 도구 사건(펜 고르기, 도구 설정 바꾸기)
+    case 'TOOL_EVENT':      return action.event ? { action: String(action.event), detail: action.detail || {} } : null;
     default: return null;
   }
 }
@@ -28373,7 +28979,13 @@ function zg_logCategory(action) {
   if (action === 'forbid' || action === 'unforbid') return 'forbid';
   if (action === 'candidate-mark' || action === 'candidate-clear' || action === 'candidate-enqueue'
       || action === 'candidate-dequeue' || action === 'cell-mark-change') return 'candidate';
-  if (action === 'page-hidden' || action === 'page-visible' || action === 'lab-view') return 'context';
+  // 2.3: 펜으로 적은 있음 (?), 성별 메모
+  if (action === 'exist-mark' || action === 'exist-clear' || action === 'gender-note' || action === 'gender-note-clear'
+      || action === 'note-change') return 'note';
+  // 2.3: 되돌리기, 가정, 끌기 묶음, 펜 고르기
+  if (action === 'undo' || action === 'redo' || action === 'hypo-start' || action === 'hypo-discard' || action === 'hypo-commit'
+      || action === 'paint' || action === 'pen-select') return 'tool';
+  if (action === 'page-hidden' || action === 'page-visible' || action === 'lab-view' || action === 'tools-change' || action === 'rail-fold') return 'context';
   if (action === 'reset' || action === 'hint-use' || action === 'hint-denied' || action === 'solution-revealed'
       || action === 'puzzle-start' || action === 'puzzle-solved' || action === 'timer-pause' || action === 'timer-resume') return 'system';
   return 'other';
@@ -28411,6 +29023,8 @@ function zg_puzzleStartDetail(puzzle, level, actionOrigin, extra) {
       score: j.scoreRange || null, timeLimitMs: j.timeLimitMs != null ? j.timeLimitMs : null } : null,
     build, version: ZG.VERSION || null,
     assist: ZG.ASSIST ? Object.assign({}, ZG.ASSIST) : null,
+    // 2.3: 이 판을 시작할 때 켜져 있던 플레이 도구(정보는 늘리지 않지만 손의 수고와 시간 곡선이 달라진다)
+    tools: ZG.tools ? Object.assign({}, ZG.tools.get()) : null,
     lab: !!ZG.labLoaded,
     labelMode: !!(ZG.labelModeActive && ZG.labelModeActive()),
   }, extra || {});
@@ -28477,6 +29091,7 @@ function recordPlayLogDiff(state, next, action) {
     const after = afterCellMarks[k];
     if (before === after) continue;
     const [row, col] = k.split(',').map(Number);
+    const isNote = (m) => m === 'O' || m === 'M' || m === 'F';
     if (!before && after === 'X') {
       entries.push({ action: 'forbid', detail: { row, col } });
     } else if (before === 'X' && !after) {
@@ -28485,6 +29100,17 @@ function recordPlayLogDiff(state, next, action) {
       entries.push({ action: 'candidate-mark', detail: { row, col } });
     } else if (before === 'Q' && !after) {
       entries.push({ action: 'candidate-clear', detail: { row, col } });
+    } else if (!before && after === 'O') {
+      // 2.3: 펜과 순환의 있음 (?), 성별 메모 ♂/♀
+      entries.push({ action: 'exist-mark', detail: { row, col } });
+    } else if (before === 'O' && !after) {
+      entries.push({ action: 'exist-clear', detail: { row, col } });
+    } else if ((after === 'M' || after === 'F') && before !== 'M' && before !== 'F' && before !== 'X' && before !== 'Q') {
+      entries.push({ action: 'gender-note', detail: { row, col, gender: after === 'M' ? 'male' : 'female', from: before || null } });
+    } else if ((before === 'M' || before === 'F') && (after === 'O' || !after)) {
+      entries.push({ action: 'gender-note-clear', detail: { row, col, prevGender: before === 'M' ? 'male' : 'female', to: after || null } });
+    } else if (before && after && (isNote(before) || isNote(after))) {
+      entries.push({ action: 'note-change', detail: { row, col, from: before, to: after } });
     } else if (before && after) {
       entries.push({ action: 'cell-mark-change', detail: { row, col, from: before, to: after } });
     }
@@ -28496,7 +29122,8 @@ function recordPlayLogDiff(state, next, action) {
   const beforeQ = state.qCandidates || {};
   const afterQ = next.qCandidates || {};
   const qKeys = new Set([...Object.keys(beforeQ), ...Object.keys(afterQ)]);
-  const _qSig = (c) => (c && typeof c === 'object') ? (c.animalId + ':' + (c.gender || 'male')) : String(c);
+  // 2.3: 후보 분리의 후보는 종만 적는다(gender null). 이전 방식의 후보는 늘 성별이 있다.
+  const _qSig = (c) => (c && typeof c === 'object') ? (c.animalId + ':' + (c.gender || '-')) : String(c);
   const _qAnimalId = (c) => (c && typeof c === 'object') ? c.animalId : c;
   const _qGender = (c) => (c && typeof c === 'object') ? (c.gender || null) : null;
   for (const k of qKeys) {
@@ -28546,6 +29173,22 @@ function recordPlayLogDiff(state, next, action) {
     if (next.timerFinalElapsedMs !== null && state.timerFinalElapsedMs === null) {
       entries.push({ action: 'puzzle-solved', detail: { finalElapsedMs: next.timerFinalElapsedMs } });
     }
+  } else if (action.type === 'UNDO') {
+    // 2.3: 되돌리기와 다시 하기. 실제 바뀐 내용은 위의 배치, 성별, 표시 항목으로 같이 남는다(a: 'UNDO')
+    entries.push({ action: 'undo', detail: { left: (next.history || []).length } });
+  } else if (action.type === 'REDO') {
+    entries.push({ action: 'redo', detail: { left: (next.future || []).length } });
+  } else if (action.type === 'HYPO_START') {
+    entries.push({ action: 'hypo-start', detail: { depth: (next.hypo || []).length } });
+  } else if (action.type === 'HYPO_DISCARD' || action.type === 'HYPO_COMMIT') {
+    const hy = state.hypo || [];
+    const top = hy[hy.length - 1];
+    const changed = top ? zg_hypoDiffKeys(top, state, tokens).size : 0;
+    entries.push({ action: action.type === 'HYPO_DISCARD' ? 'hypo-discard' : 'hypo-commit',
+      detail: { depth: hy.length, changed, ms: top && top.at ? Math.max(0, Date.now() - top.at) : null } });
+  } else if (action.type === 'PAINT_CELLS' && Array.isArray(action.keys) && action.keys.length > 1) {
+    // 여러 칸을 한 번에 끈 묶음(칸마다의 항목은 위에 따로 남는다)
+    entries.push({ action: 'paint', detail: { pen: action.pen || null, op: action.op || null, mark: action.mark || null, cells: action.keys.length } });
   }
 
   return entries;
@@ -28569,6 +29212,7 @@ function reducerCore(state, action) {
       return {
         ...state, puzzle: action.puzzle, placements, marks: { ...preMarks },
         cellMarks: {}, qCandidates: {},
+        history: [], future: [], hypo: [], histTag: null,   // 2.3: 되돌리기, 가정
         isGenerating: false, isSolved: false,
         recentTokenId: null, partnerTokenId: null, showWin: false,
         level: action.level ?? state.level,
@@ -28637,6 +29281,7 @@ function reducerCore(state, action) {
         placements,
         marks: { ...preMarks },
         cellMarks: {}, qCandidates: {},
+        history: [], future: [], hypo: [], histTag: null,   // 2.3: 되돌리기, 가정
         isGenerating: false, isSolved: false,
         recentTokenId: null, partnerTokenId: null, showWin: false,
         level: puzzle.level || state.level,
@@ -28793,16 +29438,142 @@ function reducerCore(state, action) {
       return { ...state, generationProgress: action.progress };
     case 'CYCLE_CELL_MARK': {
       // 3-state cycle: empty → X → Q → empty
+      // 2.3: action.split(후보 분리)이면 empty → X → (?) → empty. 펜 표시((?), ♂, ♀)는 한 번에 지운다.
       const key = `${action.row},${action.col}`;
-      const cur = state.cellMarks[key]; // undefined | 'X' | 'Q'
-      const next = cur === undefined ? 'X' : cur === 'X' ? 'Q' : undefined;
+      const cur = state.cellMarks[key]; // undefined | 'X' | 'Q' | 'O' | 'M' | 'F'
+      const split = !!action.split;
+      const next = zg_cycleNext(cur, split);
       const newMarks = { ...state.cellMarks };
       if (next === undefined) delete newMarks[key];
       else newMarks[key] = next;
-      // Reset Q candidates when entering Q state or leaving Q state
+      // Reset Q candidates when entering Q state or leaving Q state (후보 분리: X가 될 때만)
       const newQCandidates = { ...state.qCandidates };
-      if (cur === 'Q' || next === 'Q') delete newQCandidates[key];
+      const { clearCand } = zg_paintResult({ pen: 'set', mark: next }, cur, split);
+      if (clearCand) delete newQCandidates[key];
       return { ...state, cellMarks: newMarks, qCandidates: newQCandidates };
+    }
+    // ── 2.3 플레이 도구 ──────────────────────────────────────────────────────
+    case 'PAINT_CELLS': {
+      // 펜 탭 한 번 또는 끌기 한 번(keys 여러 칸) = 되돌리기 한 단위.
+      //   { pen, op, mark(set일 때), keys: ["r,c", ...], split }
+      //   금지 칸과 타일이 놓인 칸은 건너뛴다(끌기는 타일을 건드리지 않는다).
+      if (state.isSolved || !state.puzzle) return state;
+      const keys = Array.isArray(action.keys) ? action.keys : [];
+      if (!keys.length) return state;
+      const forb = new Set((state.puzzle.forbiddenCells || []).map(([r, c]) => `${r},${c}`));
+      const occ = new Set(Object.values(state.placements).filter(Boolean).map(p => `${p.row},${p.col}`));
+      const tool = { pen: action.pen, op: action.op === 'remove' ? 'remove' : 'add', mark: action.mark };
+      let cm = null, qc = null;
+      for (const key of keys) {
+        if (typeof key !== 'string' || forb.has(key) || occ.has(key)) continue;
+        const cur = state.cellMarks[key];
+        const res = zg_paintResult(tool, cur, !!action.split);
+        if (res.mark !== cur) {
+          cm = cm || { ...state.cellMarks };
+          if (res.mark === undefined) delete cm[key]; else cm[key] = res.mark;
+        }
+        if (res.clearCand && state.qCandidates[key]) {
+          qc = qc || { ...state.qCandidates };
+          delete qc[key];
+        }
+      }
+      if (!cm && !qc) return state;
+      return { ...state, cellMarks: cm || state.cellMarks, qCandidates: qc || state.qCandidates };
+    }
+    case 'SET_GENDER': {
+      // ♂/♀ 펜으로 놓인 타일의 성별을 바로 정한다(TOGGLE_MARK의 순환 대신). gender null = 미정(?)
+      //   짝 성별 동기화와 고정 타일 규칙은 TOGGLE_MARK와 같다.
+      if (state.isSolved || !state.puzzle) return state;
+      const tid = action.tokenId;
+      if (!state.placements[tid]) return state;
+      if (state.puzzle.preMarks && state.puzzle.preMarks[tid]) return state;
+      const partnerId = getPartnerToken(tid, state.puzzle.pairs);
+      const partnerIsFixed = partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId];
+      if (partnerIsFixed) return state;
+      const g = action.gender === 'male' || action.gender === 'female' ? action.gender : null;
+      if ((state.marks[tid] || null) === g) return state;
+      const newMarks = { ...state.marks };
+      if (g === null) { delete newMarks[tid]; if (partnerId) delete newMarks[partnerId]; }
+      else { newMarks[tid] = g; if (partnerId) newMarks[partnerId] = g === 'male' ? 'female' : 'male'; }
+      return {
+        ...state, marks: newMarks, recentTokenId: tid,
+        partnerTokenId: (partnerId && state.placements[partnerId]) ? partnerId : null,
+      };
+    }
+    case 'TOGGLE_CANDIDATE': {
+      // 후보 분리: 칸을 길게 눌러 연 창에서 종 후보를 켜고 끈다(타일을 놓지 않는다).
+      //   gender null = 종만. 칸당 최대 qMarkCapacity개, 넘치면 가장 오래된 것부터 밀려난다(이전과 같음).
+      if (state.isSolved || !state.puzzle) return state;
+      const key = `${action.row},${action.col}`;
+      const forb = new Set((state.puzzle.forbiddenCells || []).map(([r, c]) => `${r},${c}`));
+      if (forb.has(key) || state.cellMarks[key] === 'X') return state;
+      const g = action.gender === 'male' || action.gender === 'female' ? action.gender : null;
+      const cur = state.qCandidates[key] || [];
+      const i = cur.findIndex(c => c.animalId === action.animalId && (c.gender || null) === g);
+      let list;
+      if (i >= 0) list = cur.filter((_, j) => j !== i);
+      else {
+        list = [...cur, { animalId: action.animalId, gender: g }];
+        const cap = state.qMarkCapacity || 4;
+        while (list.length > cap) list.shift();
+      }
+      const qc = { ...state.qCandidates };
+      if (list.length) qc[key] = list; else delete qc[key];
+      return { ...state, qCandidates: qc };
+    }
+    case 'CLEAR_CANDIDATES': {
+      if (state.isSolved) return state;
+      const key = `${action.row},${action.col}`;
+      if (!state.qCandidates[key]) return state;
+      const qc = { ...state.qCandidates };
+      delete qc[key];
+      return { ...state, qCandidates: qc };
+    }
+    case 'UNDO':
+    case 'REDO': {
+      // 되돌리기 단위는 리듀서 바깥 포장(zg_withHistory)이 쌓는다. 여기서는 꺼내 바꿔 끼우기만.
+      if (state.isSolved || !state.puzzle) return state;
+      const from = action.type === 'UNDO' ? (state.history || []) : (state.future || []);
+      if (!from.length) return state;
+      const snap = from[from.length - 1];
+      const cur = zg_boardSnap(state);
+      const rest = from.slice(0, -1);
+      return {
+        ...state,
+        placements: snap.placements, marks: snap.marks, cellMarks: snap.cellMarks, qCandidates: snap.qCandidates,
+        hypo: snap.hypo || [],
+        history: action.type === 'UNDO' ? rest : [...(state.history || []), cur],
+        future: action.type === 'UNDO' ? [...(state.future || []), cur] : rest,
+        histTag: null, recentTokenId: null, partnerTokenId: null,
+        dragState: ZG_DRAG_RESET,
+      };
+    }
+    case 'HYPO_START': {
+      // 가정 체크포인트: 지금 보드를 맡겨 두고 가정을 시작한다(겹칠 수 있음, 최대 hypothesisMaxDepth)
+      if (state.isSolved || !state.puzzle) return state;
+      const hy = state.hypo || [];
+      if (hy.length >= Math.max(1, zgOpt('playTools.hypothesisMaxDepth', 3))) return state;
+      const cp = { placements: state.placements, marks: state.marks, cellMarks: state.cellMarks, qCandidates: state.qCandidates, at: Date.now() };
+      return { ...state, hypo: [...hy, cp] };
+    }
+    case 'HYPO_DISCARD': {
+      // 가정 버리기: 가장 안쪽 가정을 시작한 때의 보드로 한 번에 되감는다(이것도 되돌릴 수 있다)
+      if (state.isSolved || !state.puzzle) return state;
+      const hy = state.hypo || [];
+      if (!hy.length) return state;
+      const cp = hy[hy.length - 1];
+      return {
+        ...state,
+        placements: cp.placements, marks: cp.marks, cellMarks: cp.cellMarks, qCandidates: cp.qCandidates,
+        hypo: hy.slice(0, -1), recentTokenId: null, partnerTokenId: null, dragState: ZG_DRAG_RESET,
+      };
+    }
+    case 'HYPO_COMMIT': {
+      // 가정 유지: 보드는 그대로, 가장 안쪽 가정만 끝낸다
+      if (state.isSolved || !state.puzzle) return state;
+      const hy = state.hypo || [];
+      if (!hy.length) return state;
+      return { ...state, hypo: hy.slice(0, -1) };
     }
     case 'ENQUEUE_Q_CANDIDATE': {
       // Add a {animalId, gender} pair to Q-mark cell's FIFO candidate list.
@@ -28978,7 +29749,7 @@ function reducerCore(state, action) {
       }
       return {
         ...state, placements, marks: { ...preMarks },
-        cellMarks: {}, qCandidates: {},
+        cellMarks: {}, qCandidates: {}, hypo: (state.hypo && state.hypo.length) ? [] : (state.hypo || []),   // 2.3: 처음부터 다시도 되돌릴 수 있다, 가정은 끝냄
         recentTokenId: null, partnerTokenId: null, isSolved: false, showWin: false,
         winDialogSeen: false,
         dragState: { tokenId: null, over: null, overHand: false },
@@ -29005,7 +29776,9 @@ function reducerCore(state, action) {
           winDialogSeen: true,
         };
       }
-      return { ...state, placements: solvedPlacements(), marks: { ...state.puzzle.solution }, solutionRevealed: true };
+      // 2.3: 정답 공개는 되돌릴 수 없다(되돌리기 기록과 가정도 끝낸다)
+      return { ...state, placements: solvedPlacements(), marks: { ...state.puzzle.solution }, solutionRevealed: true,
+               history: [], future: [], hypo: [], histTag: null };
     }
     case 'SOLVED': {
       // Freeze the timer at the moment of solve (preserves the final
@@ -29016,6 +29789,7 @@ function reducerCore(state, action) {
       return {
         ...state,
         isSolved: true,
+        hypo: [],                    // 2.3: 다 풀면 가정도 끝
         timerFinalElapsedMs: finalMs,
         timerPaused: true,
         timerStartTime: null,
@@ -29147,8 +29921,12 @@ const initialState = {
   recentTokenId: null, partnerTokenId: null,
   isGenerating: true, isSolved: false,
   showRules: false, showWin: false, legendCollapsed: true,
-  cellMarks: {},       // {"r,c": 'X' | 'Q'}
-  qCandidates: {},     // {"r,c": [animalId1, ...]} FIFO list of animal IDs
+  cellMarks: {},       // {"r,c": 'X' | 'Q' | 'O' | 'M' | 'F'}  (2.3: O 있음, M/F 있음+성별 메모)
+  qCandidates: {},     // {"r,c": [{animalId, gender|null}, ...]} FIFO (2.3: 후보 분리는 gender null)
+  history: [],         // 2.3: 되돌리기 단위(zg_boardSnap) 스택
+  future: [],          // 2.3: 다시 하기 스택
+  hypo: [],            // 2.3: 가정 체크포인트 스택(보드 맡김)
+  histTag: null,       // 2.3: 손패 놓기 두 액션(DRAG_START + PLACE_TOKEN)을 한 단위로 묶는 표지
   qMarkCapacity: 4,    // 2x2 grid (can be 9 for 3x3)
   generationProgress: null,
   dragState: { tokenId: null, over: null, overHand: false },
@@ -29362,7 +30140,7 @@ function zg_buildPlayRecord(st, status, reason) {
   for (const e of log) {
     const c = zg_logCategory(e && e.action);
     catStats[c] = (catStats[c] || 0) + 1;
-    if (c === 'placement' || c === 'gender' || c === 'forbid' || c === 'candidate') playerActions++;
+    if (c === 'placement' || c === 'gender' || c === 'forbid' || c === 'candidate' || c === 'note') playerActions++;
   }
   const z = puzzle._zts || null;
   const d = puzzle._depth || null;
@@ -30152,7 +30930,7 @@ function LadderSelector({ selection, activeCell, onSelect, onStart, disabled }) 
   );
 }
 
-function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine, onOpenCustom, useDifficultyV6, onToggleDifficultyV6, onV13GeneratedPuzzle, onActivatePreset, activePresetId,
+function Header({ onHelp, onOpenTools, level, onChangeLevel, disabled, engine, onChangeEngine, onOpenCustom, useDifficultyV6, onToggleDifficultyV6, onV13GeneratedPuzzle, onActivatePreset, activePresetId,
                   ladderSelection, onLadderSelect, onLadderStart }) {
   // V12.13: 3-row grid layout (사용자 요청)
   //   Row 1 (5 cols): 새싹4×4  기초5×5  중급6×6  상급6×6  커스텀
@@ -30544,7 +31322,7 @@ function Header({ onHelp, level, onChangeLevel, disabled, engine, onChangeEngine
         <LangSwitcher compact />
 
         {/* Menu — Rules / Privacy / Terms */}
-        <MenuButton onOpenRules={onHelp} />
+        <MenuButton onOpenRules={onHelp} onOpenTools={onOpenTools} />
       </div>
 
       {/* V12.30: 사용자 요청 — 메인 타이틀과 난이도 버튼 그룹 사이에
@@ -31613,6 +32391,9 @@ function LoadingOverlay({ show, level, progress, presetLabel, progressBus, tierS
 function RulesModal({ show, onClose }) {
   if (!show) return null;
   const t = useT();
+  // 2.3: 켜 둔 도구(훅을 쓰지 않는다: 이 컴포넌트는 조기 반환 뒤에 훅이 있어 훅 수가 바뀌면 안 된다.
+  //   창을 열 때마다 다시 그려지므로 그 순간의 설정이면 충분하다)
+  const rulesTools = ZG.tools ? ZG.tools.get() : null;
   // V12.33 SOTA Rules — 4 sections with rule cards, casual tone, mobile-aware
   const vw = useViewportWidth();
   const isMobile = vw < 640;
@@ -31734,6 +32515,17 @@ function RulesModal({ show, onClose }) {
           <RuleCard accent="var(--ink-secondary)"
             title={t('rules.ctl.return.title')}
             body={t('rules.ctl.return.body')} />
+          {/* 2.3 플레이 도구(켜 둔 것만) */}
+          {rulesTools && (rulesTools.pens || rulesTools.candSplit || rulesTools.tapPlace || rulesTools.longPlace) && (
+            <RuleCard accent="var(--ink-secondary)"
+              title={t('rules.ctl.pens.title')}
+              body={t('rules.ctl.pens.body')} />
+          )}
+          {rulesTools && (rulesTools.undo || rulesTools.hypothesis) && (
+            <RuleCard accent={zgOpt('playTools.hypothesisColor', '#0F766E')}
+              title={t('rules.ctl.undo.title')}
+              body={t('rules.ctl.undo.body')} />
+          )}
         </div>
 
         {/* Section 4: Winning & Tips */}
@@ -34247,7 +35039,7 @@ function ForbiddenCell({ size }) {
   );
 }
 
-function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
+function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly }) {
   const { lang } = useLang();
   // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
   const dim = Math.ceil(Math.sqrt(capacity));
@@ -34273,6 +35065,8 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
     }}>
       {slots.map((slot, i) => {
         if (!slot) {
+          // 2.3 후보 분리: 빈 자리 틀은 그리지 않는다(연필 메모처럼 적은 것만)
+          if (speciesOnly) return <div key={i} />;
           return (
             <div key={i} style={{
               background: zgOpt('candidates.emptySlotBg', 'rgba(255,255,255,0.4)'),
@@ -34283,6 +35077,8 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
         }
         const animal = animalById(slot.animalId);
         const gender = slot.gender || 'male';
+        // 2.3: 종만 적은 후보(gender null)와 칸의 성별 메모를 빌린 후보는 기호를 따로 그리지 않는다
+        const showSym = !!slot.gender && !slot._noteGender;
         const genderSym = gender === 'male' ? '♂' : '♀';
         const genderColor = gender === 'male' ? zgOpt('colors.genderMale', '#1E3A8A') : zgOpt('colors.genderFemale', '#9D174D');
         return (
@@ -34305,14 +35101,14 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity }) {
               alignItems: 'center', justifyContent: 'center',
               fontSize: miniCellSize * 0.55,
             }}>{animal.emoji}</div>
-            <div className="font-display" style={{
+            {showSym && <div className="font-display" style={{
               position: 'absolute', bottom: 0, right: 1,
               // V12.41: 사용자 요청 — ♂/♀ 기호 15% 키움
               //   이전: max(8, miniCellSize * 0.24) → max(9.2, miniCellSize * 0.276)
               fontSize: Math.max(9.2, miniCellSize * zgOpt('candidates.genderSymbolScale', 0.276)),
               color: genderColor, fontWeight: 600, lineHeight: 1,
               textShadow: '0 0 2px rgba(255,255,255,0.9)',
-            }}>{genderSym}</div>
+            }}>{genderSym}</div>}
           </div>
         );
       })}
@@ -34342,9 +35138,47 @@ function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
   );
 }
 
-function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onClick }) {
+// 2.3: 펜 표시 그림. 2.3.1: 있음은 ♂/♀와 같은 크기의 동그라미 안 ?(성별을 아직 모르는 동물)
+function CellNoteGlyph({ mark, size, small }) {
+  if (mark !== 'O' && mark !== 'M' && mark !== 'F') return null;
+  const color = mark === 'M' ? zgOpt('colors.genderMale', '#1E3A8A')
+    : mark === 'F' ? zgOpt('colors.genderFemale', '#9D174D')
+    : 'var(--ink-secondary)';
+  const glyph = mark === 'M' ? '♂' : mark === 'F' ? '♀' : '?';
+  const d = Math.round(size * (small ? 0.26 : 0.46));
+  return (
+    <div aria-hidden className="font-display" style={{
+      width: d, height: d, borderRadius: 999, boxSizing: 'border-box',
+      border: `${small ? 1 : 1.5}px solid ${color}`, color, background: small ? 'rgba(255,255,255,0.9)' : 'transparent',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.max(small ? 8 : 11, Math.round(d * (mark === 'O' ? 0.58 : 0.62))), fontWeight: 600, lineHeight: 1, opacity: 0.88,
+      fontStyle: 'normal',
+    }}>{glyph}</div>
+  );
+}
+
+// 2.3: 가정 이후 바뀐 칸의 테(청록 점선). 칸 위에 얹는 장식이라 입력을 막지 않는다.
+function HypoRing() {
+  const c = zgOpt('playTools.hypothesisColor', '#0F766E');
+  return (
+    <span aria-hidden style={{
+      position: 'absolute', inset: 0, borderRadius: 4, pointerEvents: 'none', zIndex: 6,
+      boxShadow: `inset 0 0 0 2px ${c}`, opacity: 0.85,
+      background: `repeating-linear-gradient(135deg, transparent 0 6px, ${c}14 6px 8px)`,
+    }}>
+      <span style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0,
+        borderTop: `9px solid ${c}`, borderLeft: '9px solid transparent', borderTopRightRadius: 3 }} />
+    </span>
+  );
+}
+
+function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onClick,
+                    split, isTapTarget, hypo, popoverOpen, nopeKey, touchLock, gestureHandlers, keyHandler, ariaLabel }) {
   const isX = markState === 'X';
   const isQ = markState === 'Q';
+  const isNote = markState === 'O' || markState === 'M' || markState === 'F';
+  // 2.3 후보 분리: 후보는 표시와 따로 적힌다(Q 없이도). 이전 방식은 Q 칸에서만 보인다.
+  const splitCands = split && !isX && !isQ && qCandidates && qCandidates.length > 0;
 
   let bg, border;
   if (isX) {
@@ -34353,20 +35187,37 @@ function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapac
   } else if (isQ) {
     bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'rgba(180,83,9,0.04)';
     border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px solid rgba(180,83,9,0.35)';
+  } else if (isNote || splitCands) {
+    // 있음(?), ♂, ♀ 또는 후보가 적힌 칸: 동물이 올 자리. 2.3.1: 이전 후보 칸(Q)과 같은 바탕과 테
+    bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'rgba(180,83,9,0.04)';
+    border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px solid rgba(180,83,9,0.35)';
   } else {
     bg = isDropTarget ? 'rgba(180,83,9,0.08)' : 'var(--bg-subtle)';
     border = isDropTarget ? '1.5px dashed var(--accent-gold)' : '1px dashed var(--border-medium)';
+  }
+  // 탭 배치: 손패에서 고른 타일을 놓을 수 있는 칸을 옅게(끌기 중의 놓을 칸 표시와 같은 말투)
+  if (isTapTarget && !isDropTarget && !isX) {
+    border = '1px dashed rgba(180,83,9,0.6)';
+    if (!isNote && !isQ && !splitCands) bg = 'rgba(180,83,9,0.035)';
   }
 
   return (
     <div
       data-drop-cell={`${row},${col}`}
       onClick={onClick}
+      {...(gestureHandlers || {})}
+      onKeyDown={keyHandler}
       role="button"
+      tabIndex={keyHandler ? 0 : undefined}
+      aria-label={ariaLabel}
       style={{
         width: size, height: size, background: bg, borderRadius: 4, border,
-        transition: 'all 140ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 140ms, border-color 140ms, box-shadow 140ms', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', position: 'relative', overflow: 'hidden',
+        touchAction: touchLock ? 'none' : 'manipulation',
+        boxShadow: popoverOpen ? '0 0 0 2px var(--ink-primary)' : 'none',
+        // 같은 칸에서 연달아 흔들려도 다시 시작하게 이름을 번갈아 쓴다(요소를 새로 만들지 않아 초점이 남는다)
+        animation: nopeKey ? `${(parseInt(String(nopeKey).slice(5), 10) % 2) ? 'zgNope' : 'zgNopeB'} 200ms ease-in-out` : 'none',
       }}
     >
       {isX && (
@@ -34378,22 +35229,53 @@ function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapac
       {isQ && (
         <QMarkOverlay candidates={qCandidates} capacity={qCapacity} cellSize={size} hasPlacedTile={false} />
       )}
-      {!isX && !isQ && (
+      {splitCands && (
+        <>
+          <QCandidateGrid candidates={qCandidates.map(c => (c.gender || (markState !== 'M' && markState !== 'F')) ? c
+                                     : { ...c, gender: markState === 'M' ? 'male' : 'female', _noteGender: true })}
+            capacity={qCapacity || 4} cellSize={size} opacity={1} speciesOnly />
+          {isNote && (
+            <div style={{ position: 'absolute', top: 1, left: 1, zIndex: 6, pointerEvents: 'none' }}>
+              <CellNoteGlyph mark={markState} size={size} small />
+            </div>
+          )}
+        </>
+      )}
+      {isNote && !splitCands && <CellNoteGlyph mark={markState} size={size} />}
+      {!isX && !isQ && !isNote && !splitCands && (
         <div style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--border-medium)' }} />
       )}
+      {hypo && <HypoRing />}
     </div>
   );
 }
 
-function PairAdjacencyLine({ from, to, cellSize, gap, valid }) {
+function PairAdjacencyLine({ from, to, cellSize, gap, valid, bondFx }) {
   const cx = (c) => c * (cellSize + gap) + cellSize / 2;
   const cy = (r) => r * (cellSize + gap) + cellSize / 2;
   const x1 = cx(from.col), y1 = cy(from.row);
   const x2 = cx(to.col), y2 = cy(to.row);
+  if (!bondFx) {
+    return (
+      <line x1={x1} y1={y1} x2={x2} y2={y2}
+        stroke={valid ? '#16A34A' : 'var(--danger)'}
+        strokeWidth="2" strokeDasharray="3 3" opacity="0.7" strokeLinecap="round" />
+    );
+  }
+  // 2.3 짝 맺음: 실선이 놓은 쪽(from)에서 짝 쪽으로 그려진 뒤 사라지고, 점선이 그 자리에 남는다.
+  //   가운데에서 작은 고리가 한 번 퍼진다. 길이와 시간은 옵션(playTools.bondDrawMs).
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const ms = zgOpt('playTools.bondDrawMs', 300);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
   return (
-    <line x1={x1} y1={y1} x2={x2} y2={y2}
-      stroke={valid ? '#16A34A' : 'var(--danger)'}
-      strokeWidth="2" strokeDasharray="3 3" opacity="0.7" strokeLinecap="round" />
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#16A34A" strokeWidth="2" strokeDasharray="3 3" strokeLinecap="round"
+        style={{ opacity: 0.7, animation: `zgBondDashIn ${Math.round(ms * 1.6)}ms ease-out both` }} />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#16A34A" strokeWidth="2.6" strokeLinecap="round"
+        style={{ '--len': len, strokeDasharray: len, strokeDashoffset: len, animation: `zgBondDraw ${Math.round(ms * 1.6)}ms cubic-bezier(0.4,0,0.2,1) both` }} />
+      <circle cx={mx} cy={my} r={Math.max(5, cellSize * 0.14)} fill="none" stroke="var(--accent-gold)" strokeWidth="1.5"
+        style={{ transformOrigin: `${mx}px ${my}px`, animation: `zgBondSpark ${Math.round(ms * 1.5)}ms ease-out ${Math.round(ms * 0.55)}ms both` }} />
+    </g>
   );
 }
 
@@ -34617,8 +35499,199 @@ function useDrag() {
   return ctx;
 }
 
-function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState, hintTokenIds }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.3 빈 칸 손동작: 누르기(탭), 끌어 칠하기, 길게 누르기(또는 오른쪽 클릭)
+//   타일 칸은 DragProvider가 맡는다(옮기기, 성별). 여기서는 타일이 없는 칸만.
+//   끌기 동안의 결과는 미리보기(stroke.preview)로만 그리고, 손을 떼면 한 번에 적는다
+//   → 되돌리기 한 단위, 기록에는 칸마다의 항목 + 끌기 묶음 하나.
+//   터치에서 끌기는 펜을 들었을 때만(touchLock). 펜이 없으면 보드에서 화면을 밀어 내릴 수 있다.
+// ─────────────────────────────────────────────────────────────────────────────
+function useCellGestures(opts) {
+  const live = useRef(opts);
+  live.current = opts;
+  const g = useRef(null);
+  const lastTap = useRef({ key: null, at: 0 });
+  const [stroke, setStroke] = useState(null);
+  const listenersRef = useRef(null);
+
+  const cellAt = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    const cell = el && el.closest ? el.closest('[data-drop-cell]') : null;
+    if (!cell) return null;
+    const [r, c] = cell.getAttribute('data-drop-cell').split(',').map(Number);
+    return { r, c };
+  };
+  const detach = () => {
+    const L = listenersRef.current;
+    if (L) {
+      window.removeEventListener('pointermove', L.move);
+      window.removeEventListener('pointerup', L.up);
+      window.removeEventListener('pointercancel', L.cancel);
+      listenersRef.current = null;
+    }
+  };
+  const finish = () => {
+    if (g.current && g.current.timer) clearTimeout(g.current.timer);
+    g.current = null;
+    detach();
+  };
+  useEffect(() => () => { finish(); }, []);
+  // 보드가 바뀌면(새 판, 되돌리기) 진행 중인 끌기를 버린다
+  useEffect(() => { if (stroke && !opts.enabled) { finish(); setStroke(null); } }, [opts.enabled]);
+
+  const strokeKeys = (s, t) => {
+    if (s.axisLock) {
+      if (!s.axis && (t.r !== s.r0 || t.c !== s.c0)) s.axis = Math.abs(t.r - s.r0) > Math.abs(t.c - s.c0) ? 'col' : 'row';
+      if (!s.axis) return [s.r0 + ',' + s.c0];
+      const out = [];
+      if (s.axis === 'row') { const a = Math.min(s.c0, t.c), b = Math.max(s.c0, t.c); for (let c = a; c <= b; c++) out.push(s.r0 + ',' + c); }
+      else { const a = Math.min(s.r0, t.r), b = Math.max(s.r0, t.r); for (let r = a; r <= b; r++) out.push(r + ',' + s.c0); }
+      return out;
+    }
+    s.visited.add(t.r + ',' + t.c);
+    return [...s.visited];
+  };
+  const previewOf = (tool, keys) => {
+    const L = live.current; const pv = {}; const valid = [];
+    for (const k of keys) {
+      if (L.forbiddenSet.has(k) || L.placedMap[k]) continue;
+      valid.push(k);
+      const res = zg_paintResult(tool, L.cellMarks[k], L.split);
+      pv[k] = res.mark;
+      if (res.clearCand) pv['~' + k] = true;   // 미리보기에서도 지워질 후보는 감춘다
+    }
+    return { pv, valid };
+  };
+
+  const handlersFor = (r, c) => {
+    const key = r + ',' + c;
+    return {
+      onPointerDown: (e) => {
+        const L = live.current;
+        if (!L.enabled) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        finish();
+        const s = g.current = {
+          id: e.pointerId, type: e.pointerType, r0: r, c0: c, key, x0: e.clientX, y0: e.clientY,
+          moved: false, dead: false, long: false, tool: null, axis: null, axisLock: L.axisLock, visited: new Set([key]), keys: [key],
+          timer: null,
+        };
+        if (L.longPressEnabled) {
+          const ms = L.longPressMs;
+          s.timer = setTimeout(() => {
+            if (g.current !== s || s.moved) return;
+            s.long = true;
+            live.current.onCellLongPress && live.current.onCellLongPress(r, c);
+          }, ms);
+        }
+        const move = (ev) => {
+          const st = g.current;
+          if (!st || ev.pointerId !== st.id) return;
+          if (!st.moved) {
+            if (Math.hypot(ev.clientX - st.x0, ev.clientY - st.y0) < 6) return;
+            st.moved = true;
+            if (st.timer) { clearTimeout(st.timer); st.timer = null; }
+            const LL = live.current;
+            const canPaint = LL.paintEnabled && !st.long && (st.type !== 'touch' || LL.touchLock);
+            const tool = canPaint && LL.paintOpFor ? LL.paintOpFor(st.key) : null;
+            if (!tool) { st.dead = true; return; }
+            st.tool = tool;
+            const { pv } = previewOf(tool, [st.key]);
+            setStroke({ tool, keys: [st.key], preview: pv });
+          }
+          if (st.dead || !st.tool) return;
+          if (ev.cancelable) ev.preventDefault();
+          const t = cellAt(ev.clientX, ev.clientY);
+          if (!t) return;
+          const keys = strokeKeys(st, t);
+          if (keys.length === st.keys.length && keys.every((k, i) => k === st.keys[i])) return;
+          st.keys = keys;
+          const { pv } = previewOf(st.tool, keys);
+          setStroke({ tool: st.tool, keys, preview: pv });
+        };
+        const up = (ev) => {
+          const st = g.current;
+          if (!st || ev.pointerId !== st.id) return;
+          finish();
+          // 이 손동작 뒤에 브라우저가 보내는 click은 버린다(길게 누르기, 끌기, 탭 모두)
+          lastTap.current = { key: st.key, at: Date.now() };
+          if (st.long) { setStroke(null); return; }
+          if (st.moved) {
+            if (!st.dead && st.tool) {
+              const { valid } = previewOf(st.tool, st.keys);
+              setStroke(null);
+              if (valid.length && live.current.onPaintCommit) live.current.onPaintCommit(st.tool, valid);
+            }
+            return;
+          }
+          live.current.onCellTap && live.current.onCellTap(st.r0, st.c0);
+        };
+        const cancel = (ev) => {
+          const st = g.current;
+          if (!st || ev.pointerId !== st.id) return;
+          finish();
+          setStroke(null);
+        };
+        listenersRef.current = { move, up, cancel };
+        window.addEventListener('pointermove', move, { passive: false });
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', cancel);
+      },
+      onContextMenu: (e) => {
+        const L = live.current;
+        if (!L.enabled || !L.longPressEnabled) return;
+        e.preventDefault();
+        finish(); setStroke(null);
+        L.onCellLongPress && L.onCellLongPress(r, c);
+      },
+    };
+  };
+  // 포인터 없이 들어온 클릭(키보드로 누른 버튼, 스크립트)만 탭으로. 포인터 탭 뒤에 오는 클릭은 버린다.
+  const onClickFor = (r, c) => () => {
+    const L = live.current;
+    const k = r + ',' + c;
+    if (lastTap.current.key === k && Date.now() - lastTap.current.at < 800) return;
+    if (!L.enabled) { L.onLegacyClick && L.onLegacyClick(r, c); return; }
+    L.onCellTap && L.onCellTap(r, c);
+  };
+  return { stroke, handlersFor, onClickFor };
+}
+
+// 2.3 줄 닫힘: 동물 수 단서가 있고 그 수가 맞으며, 성별 단서도 모두 맞고, 성별 미정 타일이 없고,
+//   줄 규칙이 모두 충족된 줄. 지금의 초록 충족과 같은 판정을 줄 단위로 묶은 것이라 정보는 늘지 않는다.
+//   (동물 수 단서가 없는 줄은 남은 칸 수를 알 수 없어 닫히지 않는다)
+function zg_closedLines(puzzle, placements, marks, countOk, ruleStatus) {
+  const out = new Set();
+  const n = puzzle.n;
+  const byLine = {};
+  for (const h of (puzzle.countHints || [])) {
+    const k = h.row !== null && h.row !== undefined ? 'r' + h.row : 'c' + h.col;
+    (byLine[k] = byLine[k] || []).push(h);
+  }
+  const rulesByLine = {};
+  for (const rl of (puzzle.lineRules || [])) { const k = (rl.isRow ? 'r' : 'c') + rl.idx; (rulesByLine[k] = rulesByLine[k] || []).push(rl); }
+  for (let i = 0; i < n; i++) {
+    for (const k of ['r' + i, 'c' + i]) {
+      const hs = byLine[k] || [];
+      if (!hs.some(h => h.type === 'total')) continue;
+      if (!hs.every(h => countOk[h.id])) continue;
+      const isRow = k[0] === 'r';
+      const inLine = Object.entries(placements).filter(([, p]) => p && (isRow ? p.row === i : p.col === i));
+      if (hs.some(h => h.type !== 'total') && inLine.some(([tid]) => !marks[tid])) continue;
+      if ((rulesByLine[k] || []).some(rl => ruleStatus[rl.id] !== 'satisfied' && ruleStatus[rl.id] !== 'empty')) continue;
+      out.add(k);
+    }
+  }
+  return out;
+}
+
+function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, onCellClick, onEmptyCellClick, onCellDrop, onTokenDragStart, recentTokenId, partnerTokenId, winAnimating, dragState, hintTokenIds,
+                tools, pen, onCellTap, onCellLongPress, paintOpFor, onPaintCommit, hypoTop, popoverKey, tapTargets, nope, inputLocked }) {
   const drag = useDrag();
+  // 2.3 플레이 도구(없으면 이전 화면과 같다)
+  const T = tools || {};
+  const toolsOn = !!(T && (T.pens || T.dragPaint || T.candSplit || T.tapPlace || T.longPlace || T.hypothesis || T.lineRecede || T.pairBond || T.undo));
+  const split = !!T.candSplit;
   const n = puzzle.n;
   const vw = useViewportWidth();
   const isPortrait = useIsPortrait();
@@ -34878,11 +35951,108 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     if (p1 && p2) pairAdj[t1] = pairAdj[t2] = isAdjacent(p1, p2);
   }
 
+  // ── 2.3 줄 닫힘 물러남 + 닫히는 순간의 빛 ──
+  const recede = !!T.lineRecede;
+  const closed = recede ? zg_closedLines(puzzle, placements, marks, countOk, ruleStatus) : new Set();
+  const closedSig = [...closed].sort().join('|');
+  const [sweeps, setSweeps] = useState([]);
+  const closedPrev = useRef({ puzzle: null, set: new Set() });
+  // 연출을 걷어 내는 타이머는 다음 변화로 지우지 않는다(지우면 연출이 남는다). 판이 바뀌거나 보드가 사라질 때만.
+  const fxTimers = useRef([]);
+  useEffect(() => () => { fxTimers.current.forEach(clearTimeout); fxTimers.current = []; }, []);
+  useEffect(() => {
+    const prev = closedPrev.current;
+    if (prev.puzzle !== puzzle) { closedPrev.current = { puzzle, set: closed }; setSweeps([]); return; }
+    const newly = [...closed].filter(k => !prev.set.has(k));
+    closedPrev.current = { puzzle, set: closed };
+    if (!newly.length || winAnimating) return;
+    const ms = zgOpt('playTools.lineSweepMs', 520);
+    const items = newly.map(k => ({ line: k, id: k + ':' + Date.now() + ':' + Math.random().toString(36).slice(2, 6) }));
+    setSweeps(s => [...s, ...items]);
+    fxTimers.current.push(setTimeout(() => setSweeps(s => s.filter(x => !items.some(y => y.id === x.id))), ms + 80));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closedSig, puzzle]);
+
+  // ── 2.3 짝 맺음: 짝이 이웃이 되는 순간(놓기, 옮기기, 되돌리기 모두) ──
+  const bondOn = !!T.pairBond;
+  const bondedSig = puzzle.pairs.filter(([t1]) => pairAdj[t1] === true).map(([t1]) => t1).sort().join('|');
+  const [bondFx, setBondFx] = useState({});
+  const bondPrev = useRef({ puzzle: null, set: new Set(), pos: {} });
+  useEffect(() => {
+    const prev = bondPrev.current;
+    const now = new Set(bondedSig ? bondedSig.split('|') : []);
+    const pos = {};
+    for (const [t1, t2] of puzzle.pairs) if (now.has(t1)) pos[t1] = JSON.stringify([placements[t1], placements[t2]]);
+    if (prev.puzzle !== puzzle) { bondPrev.current = { puzzle, set: now, pos }; setBondFx({}); return; }
+    const newly = [...now].filter(t1 => !prev.set.has(t1));
+    bondPrev.current = { puzzle, set: now, pos };
+    if (!bondOn || !newly.length || winAnimating) return;
+    const fx = {};
+    for (const t1 of newly) {
+      const pr = puzzle.pairs.find(p => p[0] === t1);
+      if (!pr) continue;
+      // 방금 움직인 쪽(recentTokenId)에서 짝 쪽으로 그린다
+      const mover = pr.includes(recentTokenId) ? recentTokenId : pr[1];
+      const other = mover === pr[0] ? pr[1] : pr[0];
+      fx[t1] = { mover, other, id: Date.now() + Math.random() };
+    }
+    setBondFx(f => Object.assign({}, f, fx));
+    const ms = Math.round(zgOpt('playTools.bondDrawMs', 300) * 2.2);
+    fxTimers.current.push(setTimeout(() => setBondFx(f => { const c = Object.assign({}, f); for (const k of Object.keys(fx)) if (c[k] === fx[k]) delete c[k]; return c; }), ms));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bondedSig, puzzle]);
+  const bondedNow = new Set(bondedSig ? bondedSig.split('|') : []);
+  const leanFor = {};   // tokenId → {x, y} 짝 쪽 단위 방향 (지금도 이웃인 짝만)
+  for (const [t1, fx] of Object.entries(bondFx)) {
+    if (!bondedNow.has(t1)) continue;
+    const a = placements[fx.mover], b = placements[fx.other];
+    if (!a || !b) continue;
+    const dx = Math.sign(b.col - a.col), dy = Math.sign(b.row - a.row);
+    leanFor[fx.mover] = { x: dx, y: dy, id: fx.id };
+    leanFor[fx.other] = { x: -dx, y: -dy, id: fx.id };
+  }
+
+  // ── 2.3 가정 이후 바뀐 칸 ──
+  const hypoKeys = (T.hypothesis && hypoTop) ? zg_hypoDiffKeys(hypoTop, { placements, marks, cellMarks, qCandidates }, puzzle.tokens) : null;
+
+  // ── 2.3 빈 칸 손동작 ──
+  const touchLock = !!(T.dragPaint && T.pens && pen && pen !== 'place');
+  const gestures = useCellGestures({
+    enabled: toolsOn && !inputLocked,
+    split, cellMarks: cellMarks || {}, placedMap, forbiddenSet,
+    paintEnabled: !!T.dragPaint, touchLock, axisLock: zgOpt('playTools.paintAxisLock', true),
+    longPressEnabled: !!(T.candSplit || T.tapPlace || T.longPlace),
+    longPressMs: (pen && pen !== 'place') ? Math.max(500, zgOpt('motion.longPressMs', 350)) : zgOpt('motion.longPressMs', 350),
+    paintOpFor, onPaintCommit, onCellTap, onCellLongPress,
+    onLegacyClick: (r, c) => onEmptyCellClick && onEmptyCellClick(r, c),
+  });
+  const strokePv = gestures.stroke ? gestures.stroke.preview : null;
+  const tAria = useT();
+  // 방향키로 칸 사이 이동(빈 칸, 타일 모두). 금지 칸은 건너뛴다.
+  const onBoardKeyDown = (e) => {
+    const dirs = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    const d = dirs[e.key];
+    if (!d) return;
+    const host = e.target && e.target.closest ? e.target.closest('[data-drop-cell]') : null;
+    if (!host) return;
+    let [r, c] = host.getAttribute('data-drop-cell').split(',').map(Number);
+    const root = e.currentTarget;
+    for (let i = 0; i < n; i++) {
+      r += d[0]; c += d[1];
+      if (r < 0 || c < 0 || r >= n || c >= n) return;
+      const el = root.querySelector(`[data-drop-cell="${r},${c}"]`);
+      if (!el) continue;
+      const target = el.getAttribute('tabindex') === '0' ? el : el.querySelector('[tabindex="0"]');
+      if (target) { e.preventDefault(); target.focus(); return; }
+    }
+  };
+
   const cellContent = (r, c, idx) => {
     const key = `${r},${c}`;
     if (forbiddenSet.has(key)) return <ForbiddenCell size={cellSize} />;
     const tid = placedMap[key];
     const isDropTarget = drag.overTarget && drag.overTarget.kind === 'cell' && drag.overTarget.row === r && drag.overTarget.col === c;
+    const inHypo = !!(hypoKeys && hypoKeys.has(key));
     if (tid) {
       const tok = puzzle.tokens.find(t => t.id === tid);
       const animal = animalById(tok.animalId);
@@ -34895,11 +36065,15 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
       const cellQCands = cellIsQ && qCandidates ? qCandidates[key] : undefined;
       const isSelected = drag.selectedTokenId === tok.id;
       const isDraggingThis = drag.draggingTokenId === tok.id;
+      const lean = leanFor[tok.id];
+      const leanPx = zgOpt('playTools.bondLeanPx', 2);
       return (
         <div
           data-drop-cell={`${r},${c}`}
           style={{
-            animation: winAnimating ? `celebrationWave ${zgOpt('motion.winWaveMs', 700)}ms cubic-bezier(0.4,0,0.2,1) ${idx * zgOpt('motion.winWaveStaggerMs', 55)}ms both` : 'none',
+            animation: winAnimating ? `celebrationWave ${zgOpt('motion.winWaveMs', 700)}ms cubic-bezier(0.4,0,0.2,1) ${idx * zgOpt('motion.winWaveStaggerMs', 55)}ms both`
+              : (lean ? `zgPairLean ${Math.round(zgOpt('playTools.bondDrawMs', 300) * 1.4)}ms cubic-bezier(0.34,1.4,0.64,1) ${Math.round(zgOpt('playTools.bondDrawMs', 300) * 0.5)}ms both` : 'none'),
+            '--lx': lean ? `${lean.x * leanPx}px` : '0px', '--ly': lean ? `${lean.y * leanPx}px` : '0px',
             position: 'relative',
             boxShadow: isDropTarget ? '0 0 0 2px var(--accent-gold)' : 'none',
             borderRadius: 4,
@@ -34927,6 +36101,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
           {cellIsQ && (
             <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} />
           )}
+          {inHypo && <HypoRing />}
           {isHinted && (
             <span
               aria-label="hint-spotlight"
@@ -34945,8 +36120,23 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         </div>
       );
     }
-    const markState = cellMarks ? cellMarks[key] : undefined;
-    const qCands = qCandidates ? qCandidates[key] : undefined;
+    const baseMark = cellMarks ? cellMarks[key] : undefined;
+    // 끌기 미리보기가 있으면 그 결과로 그린다(손을 떼면 같은 결과가 적힌다)
+    const markState = strokePv && Object.prototype.hasOwnProperty.call(strokePv, key) ? strokePv[key] : baseMark;
+    const qCands = (strokePv && strokePv['~' + key]) ? undefined : (qCandidates ? qCandidates[key] : undefined);
+    if (!toolsOn) {
+      return (
+        <DropCell
+          size={cellSize} row={r} col={c}
+          isDropTarget={isDropTarget}
+          markState={markState}
+          qCandidates={qCands}
+          qCapacity={qMarkCapacity}
+          onClick={() => onEmptyCellClick && onEmptyCellClick(r, c)}
+        />
+      );
+    }
+    const markName = markState === 'X' ? 'X' : markState === 'Q' ? '?' : markState === 'O' ? tAria('pen.O') : markState === 'M' ? '♂' : markState === 'F' ? '♀' : '';
     return (
       <DropCell
         size={cellSize} row={r} col={c}
@@ -34954,7 +36144,21 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         markState={markState}
         qCandidates={qCands}
         qCapacity={qMarkCapacity}
-        onClick={() => onEmptyCellClick && onEmptyCellClick(r, c)}
+        split={split}
+        isTapTarget={!!tapTargets && markState !== 'X'}
+        hypo={inHypo}
+        popoverOpen={popoverKey === key}
+        nopeKey={nope && nope.key === key ? 'nope-' + nope.ts : null}
+        touchLock={touchLock}
+        gestureHandlers={gestures.handlersFor(r, c)}
+        onClick={gestures.onClickFor(r, c)}
+        keyHandler={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellTap && onCellTap(r, c); }
+          else if ((e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey) || e.key === 'c' || e.key === 'C') && onCellLongPress && (T.candSplit || T.tapPlace || T.longPlace)) {
+            e.preventDefault(); onCellLongPress(r, c);
+          }
+        }}
+        ariaLabel={tAria('cell.aria', { r: r + 1, c: c + 1, mark: markName, cands: qCands ? qCands.length : 0 })}
       />
     );
   };
@@ -34973,17 +36177,39 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
 
   return (
     <div style={{ padding: `4px ${outerPadX} 20px`, display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-      <div style={{
+      <div data-board-card="1" onKeyDown={toolsOn ? onBoardKeyDown : undefined} style={{
         position: 'relative', display: 'inline-block', padding: boardPad, background: 'var(--bg-card)',
-        border: '1px solid var(--border-soft)', borderRadius: 3,
-        boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 12px 32px -16px rgba(60, 50, 30, 0.15)',
+        border: hypoTop && T.hypothesis ? `1px solid ${zgOpt('playTools.hypothesisColor', '#0F766E')}` : '1px solid var(--border-soft)', borderRadius: 3,
+        boxShadow: hypoTop && T.hypothesis
+          ? `0 0 0 1px ${zgOpt('playTools.hypothesisColor', '#0F766E')}33, 0 12px 32px -16px rgba(60, 50, 30, 0.15)`
+          : '0 1px 0 rgba(0,0,0,0.02), 0 12px 32px -16px rgba(60, 50, 30, 0.15)',
+        transition: 'border-color 200ms, box-shadow 200ms',
       }}>
+        {/* 2.3 가정 중 표지: 보드 왼쪽 위 빈 모서리(행 단서 위, 열 단서 왼쪽)를 쓴다 */}
+        {hypoTop && T.hypothesis && (
+          <div role="status" aria-live="polite" className="font-mono" style={{
+            position: 'absolute', left: boardPad, top: boardPad, width: rowHintWidth, height: colHintHeight,
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', pointerEvents: 'none', zIndex: 3,
+          }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 6px', borderRadius: 999,
+              border: `1px solid ${zgOpt('playTools.hypothesisColor', '#0F766E')}`, color: zgOpt('playTools.hypothesisColor', '#0F766E'),
+              background: 'var(--bg-card)', fontSize: isTiny ? 10 : 11, fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap',
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden><path d="M6 21V4h11l-2.5 4L17 12H6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" /></svg>
+              {tAria('hypo.chip', { d: hypoTop.depth || 1, n: hypoKeys ? hypoKeys.size : 0 })}
+            </span>
+          </div>
+        )}
         {/* Column headers */}
         <div style={{ display: 'flex', gap, marginBottom: gap, paddingLeft: rowHintWidth + gap, minHeight: colHintHeight }}>
           {colsArr.map(c => {
             const ch = colCountHints[c] || [];
+            const isClosed = closed.has('c' + c);
             return (
-              <div key={c} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap' }}>
+              <div key={c} data-line-closed={isClosed ? '1' : undefined} style={{ width: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: hintGap, flexWrap: 'nowrap',
+                opacity: isClosed ? zgOpt('playTools.recedeOpacity', 0.4) : 1, filter: isClosed ? 'saturate(0.55)' : 'none',
+                transition: 'opacity 260ms cubic-bezier(0.4,0,0.2,1), filter 260ms' }}>
                 {(colRules[c] || []).map(r => (
                   <LineRuleBadge key={r.id} rule={r} ok={ruleOk[r.id]} status={ruleStatus[r.id]} compact={compact} iconOnly={iconOnly} slotW={slotW} slotH={slotH} fontScale={fontScale} />
                 ))}
@@ -35017,9 +36243,12 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
           const rowRuleBadgeW = rh.length >= 2
             ? rowSlotH * 2 + 2
             : Math.min(rowInnerW, rowSlotH * 2 + 2);
+          const rowClosed = closed.has('r' + r);
           return (
           <div key={r} style={{ display: 'flex', gap, marginBottom: gap }}>
-            <div style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: rowPadL, paddingRight: rowPadR, overflow: 'visible' }}>
+            <div data-line-closed={rowClosed ? '1' : undefined} style={{ width: rowHintWidth, height: cellSize, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: hintGap, paddingLeft: rowPadL, paddingRight: rowPadR, overflow: 'visible',
+              opacity: rowClosed ? zgOpt('playTools.recedeOpacity', 0.4) : 1, filter: rowClosed ? 'saturate(0.55)' : 'none',
+              transition: 'opacity 260ms cubic-bezier(0.4,0,0.2,1), filter 260ms' }}>
               {rRules.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: hintGap, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                   {rRules.map(rr => (
@@ -35053,11 +36282,39 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
             const p1 = placements[t1], p2 = placements[t2];
             if (!p1 || !p2) return null;
             const valid = isAdjacent(p1, p2);
+            const fx = valid && bondedNow.has(t1) && bondFx[t1];
+            // 짝 맺음 연출은 방금 움직인 타일 쪽에서 그린다
+            const from = fx && fx.mover === t2 ? p2 : p1;
+            const to = fx && fx.mover === t2 ? p1 : p2;
             return (
-              <PairAdjacencyLine key={t1} from={p1} to={p2} cellSize={cellSize} gap={gap} valid={valid} />
+              <PairAdjacencyLine key={fx ? t1 + ':' + fx.id : t1} from={fx ? from : p1} to={fx ? to : p2} cellSize={cellSize} gap={gap} valid={valid} bondFx={!!fx} />
             );
           })}
         </svg>
+        {/* 2.3 줄이 닫히는 순간 그 줄을 한 번 지나가는 빛 */}
+        {sweeps.map(sw => {
+          const isRow = sw.line[0] === 'r';
+          const i = parseInt(sw.line.slice(1), 10);
+          const ms = zgOpt('playTools.lineSweepMs', 520);
+          const gx = boardPad + rowHintWidth + gap, gy = boardPad + colHintHeight + gap;
+          const span = n * cellSize + (n - 1) * gap;
+          const st = isRow
+            ? { left: gx, top: gy + i * (cellSize + gap), width: span, height: cellSize }
+            : { left: gx + i * (cellSize + gap), top: gy, width: cellSize, height: span };
+          return (
+            <div key={sw.id} aria-hidden style={{
+              position: 'absolute', ...st, pointerEvents: 'none', borderRadius: 4, zIndex: 7, overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: isRow
+                  ? 'linear-gradient(90deg, rgba(180,83,9,0) 0%, rgba(180,83,9,0.20) 50%, rgba(180,83,9,0) 100%)'
+                  : 'linear-gradient(180deg, rgba(180,83,9,0) 0%, rgba(180,83,9,0.20) 50%, rgba(180,83,9,0) 100%)',
+                animation: `${isRow ? 'zgSweepX' : 'zgSweepY'} ${ms}ms cubic-bezier(0.4,0,0.2,1) both`,
+              }} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -35067,17 +36324,22 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
   const drag = useDrag();
   const tStr = useT();
   const { lang } = useLang();
-  // V12.25: 사용자 요청 — 데스크탑은 원래 크기, 모바일은 더 작게
-  // V12.26: 모바일 추가 10% 축소 — 0.72 × 0.9 = 0.648
-  // V12.52: 사용자 요청 — 핸드풀 요소 10% 크기 증가
-  //   이전 (V12.26): isMobile ? 0.648 : 1.0
-  //   이후 (V12.52): 위 값 × 1.10 → isMobile ? 0.7128 : 1.1
-  //   zoom은 chip padding, tile 58px, gender 배지, gap 등 안쪽 요소 일괄 스케일.
-  //   헤더 텍스트(.hand.title/.hand.waiting)와 빈 상태 hint는 zoom 밖이므로
-  //   아래 fontSize를 11→12, 13→14로 별도 인상하여 일관된 +10%.
+  // V12.25~V12.52: 손패 배율(휴대폰 0.7128, 넓은 화면 1.1)은 CSS zoom으로 안쪽 요소를 한꺼번에 줄였다.
+  // 2.3.1: 손패 요소(타일, 배지, 여백, 간격)를 그 크기의 75%(옵션 hand.scale)로 줄여 한 화면에 더 많이 보인다.
+  //   zoom 대신 실제 크기(px)를 계산한다. 글자는 읽을 수 있는 최소 크기 밑으로 줄이지 않고(동물 이름),
+  //   서식지, 식성 칩 글자가 너무 작아지면(휴대폰) 그림만 남긴다(휴대폰 판의 규칙 단서와 같은 방식).
   const vw = useViewportWidth();
   const isMobile = vw < 640;
   const handZoom = isMobile ? zgOpt('hand.zoomMobile', 0.7128) : zgOpt('hand.zoomDesktop', 1.1);
+  const m = handZoom * zgOpt('hand.scale', 0.75);
+  const px = (v, min) => Math.max(min || 0, Math.round(v * m * 10) / 10);
+  const tile = Math.round(zgOpt('hand.tileSize', 58) * m);
+  const badge = px(zgOpt('hand.genderBadgeSize', 14), isMobile ? 10 : 11);
+  const badgeSym = px(zgOpt('hand.genderSymbolSize', 11), isMobile ? 8 : 9);
+  const nameFs = px(14, isMobile ? zgOpt('hand.minNameFontMobile', 10) : zgOpt('hand.minNameFontDesktop', 11));
+  const chipFs = 11 * m;
+  const attrIconOnly = chipFs < zgOpt('hand.attrIconOnlyBelow', 8.5);
+  const chipIcon = attrIconOnly ? px(12, 10) : px(12, 9);
   if (!puzzle) return null;
   const unplaced = puzzle.tokens.filter(t => !placements[t.id]);
   const groups = {};
@@ -35094,42 +36356,39 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
         if (e.target === e.currentTarget && onHandTapReturn) onHandTapReturn();
       }}
       style={{
-        // V12.27: 모바일(370px)에서 페어 chip 2개가 한 행에 들어가도록 좌우 여백 축소
-        margin: isMobile ? '0 4px 20px' : '0 clamp(12px, 4vw, 40px) 20px',
-        padding: isMobile ? '10px 6px' : 'clamp(12px, 3vw, 18px) clamp(12px, 3vw, 20px)',
-        minHeight: 100,
+        margin: isMobile ? '0 4px 15px' : '0 clamp(12px, 4vw, 40px) 15px',
+        padding: isMobile ? '8px 5px' : 'clamp(9px, 2.25vw, 14px) clamp(9px, 2.25vw, 15px)',
+        minHeight: 75,
         background: overHand ? 'rgba(180,83,9,0.05)' : 'var(--bg-subtle)',
         border: overHand ? '1px dashed var(--accent-gold)' : '1px solid var(--border-soft)',
         borderRadius: 3, transition: 'all 160ms',
       }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <div className="font-body" style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-tertiary)', fontWeight: 500 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <div className="font-body" style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-tertiary)', fontWeight: 500 }}>
           {tStr('hand.title')}
         </div>
-        <div className="font-mono" style={{ fontSize: 12, color: 'var(--ink-tertiary)' }}>
+        <div className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>
           {unplaced.length > 0 ? tStr('hand.waiting', { n: unplaced.length }) : tStr('hand.allPlaced')}
         </div>
       </div>
       {unplaced.length === 0 ? (
-        <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: 14, fontStyle: 'italic' }} className="font-display">
+        <div style={{ padding: '15px 0', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: 14, fontStyle: 'italic' }} className="font-display">
           {tStr('hand.hint')}
         </div>
       ) : (
-        // V12.25/26: 데스크탑 1.0, 모바일 0.648 zoom
-        // V12.27: 모바일에서 chip 사이 gap도 축소
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? 6 : 14, zoom: handZoom }}>
+        <div data-hand-grid="1" style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? px(6, 3) : px(14, 6) }}>
           {entries.map(([aid, toks]) => {
             const animal = animalById(parseInt(aid));
+            const habLabel = translateValue(animal.habitat, tStr), dietLabel = translateValue(animal.diet, tStr);
             return (
-              <div key={aid} style={{
+              <div key={aid} data-hand-card="1" style={{
                 display: 'flex', alignItems: 'center',
-                // V12.27: 모바일 chip 자체 padding/gap 축소
-                gap: isMobile ? 6 : 8,
-                padding: isMobile ? '6px 6px' : '8px 10px',
+                gap: isMobile ? px(6, 3) : px(8, 4),
+                padding: isMobile ? `${px(6, 3)}px ${px(6, 3)}px` : `${px(8, 4)}px ${px(10, 5)}px`,
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-soft)', borderRadius: 3,
               }}>
-                <div style={{ display: 'flex', gap: isMobile ? 3 : 4 }}>
+                <div style={{ display: 'flex', gap: isMobile ? 2 : px(4, 2) }}>
                   {toks.map((t, i) => {
                     // Determine display gender (priority order):
                     //   1. If this token has an explicit mark, use it
@@ -35165,10 +36424,10 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                           });
                         }}
                         style={{
-                          width: zgOpt('hand.tileSize', 58), height: zgOpt('hand.tileSize', 58), background: 'var(--bg-card)',
+                          width: tile, height: tile, background: 'var(--bg-card)',
                           border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-medium)',
-                          boxShadow: isSelected ? '0 0 0 3px rgba(180,83,9,0.25)' : 'none',
-                          borderRadius: 4,
+                          boxShadow: isSelected ? '0 0 0 2px rgba(180,83,9,0.25)' : 'none',
+                          borderRadius: 3, boxSizing: 'border-box',
                           cursor: 'grab', position: 'relative',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'transform 180ms, box-shadow 180ms, border 180ms',
@@ -35176,55 +36435,38 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
                           touchAction: 'none',
                           userSelect: 'none',
                         }}>
-                        <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: zgOpt('colors.tileTintOpacity', 0.22), borderRadius: 4 }} />
+                        <div style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: zgOpt('colors.tileTintOpacity', 0.22), borderRadius: 3 }} />
                         <img src={animalImgSrc(animal.id, gender)} alt={getAnimalName(animal.id, lang) || animal.name} draggable={false}
                           onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
                           style={{ width: zgPct(zgOpt('hand.tileImageScale', 0.8)), height: zgPct(zgOpt('hand.tileImageScale', 0.8)), objectFit: 'contain', position: 'relative' }} />
-                        <div style={{ display: 'none', fontSize: 26, position: 'relative' }}>
+                        <div style={{ display: 'none', fontSize: Math.round(tile * 0.45), position: 'relative' }}>
                           {animal.emoji}
                         </div>
                         <div className="font-display" style={{
-                          position: 'absolute', bottom: 1, right: 2, fontSize: zgOpt('hand.genderSymbolSize', 11), color: symColor,
+                          position: 'absolute', bottom: 1, right: 1, fontSize: badgeSym, color: symColor,
                           background: 'var(--bg-card)', borderRadius: 2,
-                          width: zgOpt('hand.genderBadgeSize', 14), height: zgOpt('hand.genderBadgeSize', 14), display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500,
+                          width: badge, height: badge, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-soft)', lineHeight: 1, fontWeight: 500, boxSizing: 'border-box',
                         }}>{sym}</div>
                       </div>
                     );
                   })}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <div className="font-display" style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{getAnimalName(animal.id, lang) || animal.name}</div>
-                  {/* V12.27: 모바일에서 속성 chips를 세로 stack (한 행에 페어 2쌍 배치 위해 폭 축소) */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: isMobile ? 2 : 4,
-                    marginTop: 4,
-                    flexWrap: 'wrap',
-                  }}>
-                    <span title={translateValue(animal.habitat, tStr)} className="font-body" style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                      padding: isMobile ? '1px 4px' : '2px 6px', borderRadius: 2,
-                      background: HABITAT_TINT[animal.habitat],
-                      border: '1px solid var(--border-soft)',
-                      fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
-                      alignSelf: isMobile ? 'flex-start' : 'auto',  // 세로 stack 시 좌측 정렬
-                    }}>
-                      <span aria-hidden style={{ fontSize: 12 }}>{ATTR_ICON[animal.habitat]}</span>
-                      <span>{translateValue(animal.habitat, tStr)}</span>
-                    </span>
-                    <span title={translateValue(animal.diet, tStr)} className="font-body" style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                      padding: isMobile ? '1px 4px' : '2px 6px', borderRadius: 2,
-                      background: 'var(--bg-subtle)',
-                      border: '1px solid var(--border-soft)',
-                      fontSize: 11, color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
-                      alignSelf: isMobile ? 'flex-start' : 'auto',
-                    }}>
-                      <span aria-hidden style={{ fontSize: 12 }}>{ATTR_ICON[animal.diet]}</span>
-                      <span>{translateValue(animal.diet, tStr)}</span>
-                    </span>
+                  <div className="font-display" style={{ fontSize: nameFs, fontWeight: 500, color: 'var(--ink-primary)', lineHeight: 1.15, whiteSpace: 'nowrap' }}>{getAnimalName(animal.id, lang) || animal.name}</div>
+                  {/* 서식지, 식성 칩. 글자가 너무 작아지는 휴대폰에서는 그림만(이름은 title로) */}
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: attrIconOnly ? 2 : px(4, 2), marginTop: px(4, 2), flexWrap: 'wrap' }}>
+                    {[[animal.habitat, habLabel, HABITAT_TINT[animal.habitat]], [animal.diet, dietLabel, 'var(--bg-subtle)']].map(([raw, label, bg]) => (
+                      <span key={raw} title={label} aria-label={label} role={attrIconOnly ? 'img' : undefined} className="font-body" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: attrIconOnly ? 0 : px(3, 2),
+                        padding: attrIconOnly ? '1px 2px' : `${px(2, 1)}px ${px(6, 3)}px`, borderRadius: 2,
+                        background: bg, border: '1px solid var(--border-soft)',
+                        fontSize: Math.max(chipFs, 8.5), color: 'var(--ink-primary)', fontWeight: 500, lineHeight: 1,
+                      }}>
+                        <span aria-hidden style={{ fontSize: chipIcon, lineHeight: 1 }}>{ATTR_ICON[raw]}</span>
+                        {!attrIconOnly && <span>{label}</span>}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -35233,6 +36475,848 @@ function HandPool({ puzzle, placements, marks, onTokenDragStart, onDropToHand, d
         </div>
       )}
     </div>
+  );
+}
+
+// ▓▓▓ ZG-FILE core/14-play-tools.js ▓▓▓
+// ═════════════════════════════════════════════════════════════════════════════
+// SECTION 14 — 플레이 도구 (2.3)
+// ─────────────────────────────────────────────────────────────────────────────
+// 도구 막대(펜 팔레트, 되돌리기, 가정), 칸 창(놓기, 후보), 가정 메뉴, 도구 설정 창.
+// 화면 말투는 기존 그대로다: 종이 바탕, 카드(흰 바탕, 1px 테, 모서리 3~4px), 잉크색 주 버튼,
+// 금색 강조, 성별색은 ♂/♀ 기호에만. 새 색은 가정의 청록 하나(옵션 playTools.hypothesisColor).
+// 공간: 휴대폰은 보드 바로 아래 한 줄(보드가 화면보다 길면 화면 아래에 붙음, 보드 범위 안에서만),
+//   넓은 화면은 보드 오른쪽 빈 여백에 세로로. 칸 창과 메뉴는 누른 자리 옆에 떴다가 사라진다.
+// 리듀서 액션: PAINT_CELLS, CYCLE_CELL_MARK(split), SET_GENDER, TOGGLE_CANDIDATE, CLEAR_CANDIDATES,
+//   UNDO, REDO, HYPO_START, HYPO_DISCARD, HYPO_COMMIT, TOOL_EVENT(기록 전용) — core/09-state.js
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── 아이콘 (24 격자, 선 2) ─────────────────────────────────────────────────────
+function ZgIcon({ name, size = 18, color = 'currentColor', filled }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', 'aria-hidden': true, style: { display: 'block', flexShrink: 0 } };
+  const s = { fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  switch (name) {
+    case 'paw': return (<svg {...p}><g fill={color}><ellipse cx="7" cy="9" rx="1.9" ry="2.5" /><ellipse cx="12" cy="6.6" rx="1.9" ry="2.5" /><ellipse cx="17" cy="9" rx="1.9" ry="2.5" /><path d="M12 11.4c-3.2 0-5.6 3.3-5.6 5.6 0 1.6 1.3 2.4 2.8 2.4 1.1 0 1.8-.6 2.8-.6s1.7.6 2.8.6c1.5 0 2.8-.8 2.8-2.4 0-2.3-2.4-5.6-5.6-5.6z" /></g></svg>);
+    case 'cycle': return (<svg {...p}><g {...s}><path d="M20 12a8 8 0 1 1-2.6-5.9" /><path d="M20 4v4.5h-4.5" /></g></svg>);
+    case 'x': return (<svg {...p}><g {...s} strokeWidth="2.3"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></g></svg>);
+    case 'dot': return (<svg {...p}><circle cx="12" cy="12" r="4.6" fill={color} /></svg>);
+    case 'q': return (<svg {...p}><g {...s}><path d="M9.2 9.2a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1v.6" /><circle cx="12" cy="17.6" r=".6" fill={color} /></g></svg>);
+    // 있음 펜: 칸에 그려지는 모양과 같은 동그라미 안 ?
+    case 'qcircle': return (<svg {...p}><g {...s} strokeWidth="1.8"><circle cx="12" cy="12" r="8.6" /><path d="M10.1 10a2 2 0 1 1 2.9 1.8c-.6.3-1 .8-1 1.5v.4" /><circle cx="12" cy="15.9" r=".45" fill={color} /></g></svg>);
+    case 'foldRight': return (<svg {...p}><g {...s}><path d="m7 7 5 5-5 5" /><path d="m13 7 5 5-5 5" /></g></svg>);
+    case 'foldLeft': return (<svg {...p}><g {...s}><path d="m17 7-5 5 5 5" /><path d="m11 7-5 5 5 5" /></g></svg>);
+    case 'foldUp': return (<svg {...p}><g {...s}><path d="m7 17 5-5 5 5" /><path d="m7 11 5-5 5 5" /></g></svg>);
+    case 'foldDown': return (<svg {...p}><g {...s}><path d="m7 7 5 5 5-5" /><path d="m7 13 5 5 5-5" /></g></svg>);
+    case 'eraser': return (<svg {...p}><g {...s}><path d="M9 20h11" /><path d="M4.6 15.4 13.2 6.8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L10 20H7.2z" /><path d="M9.2 10.8l4 4" /></g></svg>);
+    case 'undo': return (<svg {...p}><g {...s}><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></g></svg>);
+    case 'redo': return (<svg {...p}><g {...s}><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></g></svg>);
+    case 'flag': return (<svg {...p}><g {...s}><path d="M6 21V4" /><path d="M6 4h11l-2.5 4L17 12H6" fill={filled ? color : 'none'} /></g></svg>);
+    case 'more': return (<svg {...p}><g fill={color}><circle cx="5.5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="18.5" cy="12" r="1.6" /></g></svg>);
+    case 'gear': return (<svg {...p}><g {...s}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></g></svg>);
+    case 'check': return (<svg {...p}><g {...s} strokeWidth="2.4"><path d="M5 12.5l4.2 4.2L19 7" /></g></svg>);
+    case 'plus': return (<svg {...p}><g {...s}><path d="M12 5v14M5 12h14" /></g></svg>);
+    case 'close': return (<svg {...p}><g {...s}><path d="M6 6l12 12M18 6 6 18" /></g></svg>);
+    default: return null;
+  }
+}
+
+// ── 손패에 보이는 성별(HandPool과 같은 규칙) ──────────────────────────────────────
+//   1. 자기 성별 표시  2. 짝의 반대  3. 같은 종 둘 다 손패면 순서(첫째 ♂, 둘째 ♀)  4. ♂
+//   strict: 4번(정해지지 않음)이면 null — 놓기 창은 놓았을 때 실제로 붙을 성별만 보여 준다
+//   (놓기는 손패에서 끌어 놓을 때와 같은 handleDragPlace를 쓴다: 1~3만 확정, 4는 미정 ?)
+function zg_handGenderOf(tok, puzzle, placements, marks, strict) {
+  if (marks[tok.id]) return marks[tok.id];
+  const pid = getPartnerToken(tok.id, puzzle.pairs);
+  if (pid && marks[pid]) return marks[pid] === 'male' ? 'female' : 'male';
+  const sib = puzzle.tokens.filter(t => t.animalId === tok.animalId && !placements[t.id]);
+  if (sib.length === 2) return sib[0].id === tok.id ? 'male' : 'female';
+  return strict ? null : 'male';
+}
+
+// ── 떠 있는 창의 위치: 기준 요소의 화면 위치(스크롤, 크기 변화 따라감) ───────────────
+function useAnchorRect(getEl, active, deps) {
+  const [rect, setRect] = useState(null);
+  useEffect(() => {
+    if (!active) { setRect(null); return; }
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = getEl();
+        if (!el) { setRect(null); return; }
+        const r = el.getBoundingClientRect();
+        setRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
+      });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, ...(deps || [])]);
+  return rect;
+}
+
+// 기준 요소 옆에 뜨는 작은 창. 아래 공간이 모자라면 위로. 화면 밖으로 나가지 않게 가로를 맞춘다.
+//   밖을 누르거나 Esc면 닫힘. 창 안 첫 버튼에 초점.
+function AnchoredPopover({ anchor, onClose, children, prefer = 'below', width, label, ignoreRef }) {
+  const boxRef = useRef(null);
+  const [size, setSize] = useState({ w: width || 280, h: 0 });
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const r = (el.parentElement || el).getBoundingClientRect();
+    // 높이는 잘리기 전의 본래 높이(scrollHeight)로 잰다. 잘린 높이로 재면 위아래 선택이 굳어 버린다.
+    const h = Math.max(r.height, el.scrollHeight + 2);
+    if (Math.abs(r.width - size.w) > 0.5 || Math.abs(h - size.h) > 0.5) setSize({ w: r.width, h });
+  });
+  useEffect(() => {
+    const onDown = (e) => {
+      const el = boxRef.current;
+      if (el && el.contains(e.target)) return;
+      if (ignoreRef && ignoreRef.current && ignoreRef.current.contains(e.target)) return;
+      // 보드를 눌러 창을 닫을 때 그 누름이 칸에 적히거나 타일 성별을 바꾸지 않게 삼킨다(누름과 뒤따르는 클릭)
+      if (e.target && e.target.closest && e.target.closest('[data-board-card]')) {
+        e.stopPropagation();
+        const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        window.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener('click', swallow, true), 700);
+      }
+      onClose && onClose('outside');
+    };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose && onClose('esc'); } };
+    // 여는 손동작의 pointerup/click이 곧바로 닫지 않게 한 틱 뒤에 단다
+    const tid = setTimeout(() => {
+      window.addEventListener('pointerdown', onDown, true);
+    }, 0);
+    window.addEventListener('keydown', onKey, true);
+    return () => { clearTimeout(tid); window.removeEventListener('pointerdown', onDown, true); window.removeEventListener('keydown', onKey, true); };
+  }, [onClose, ignoreRef]);
+  // 창이 처음 그려지면(기준 위치를 잰 뒤) 안의 첫 버튼에 초점
+  const shown = !!anchor;
+  useEffect(() => {
+    if (!shown) return;
+    const el = boxRef.current;
+    if (!el) return;
+    const first = el.querySelector('[aria-selected="true"], button:not([disabled]), [role="menuitem"], [tabindex="0"]');
+    if (first && typeof first.focus === 'function') { try { first.focus({ preventScroll: true }); } catch (e) {} }
+  }, [shown]);
+  if (!anchor) return null;
+  // 화면 아래에 붙은 광고 막대(--sticky-ad-h, z 90) 밑으로 창이 들어가지 않게 그만큼 뺀다
+  let adH = 0;
+  try { adH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-ad-h')) || 0; } catch (e) {}
+  const vw = window.innerWidth, vh = window.innerHeight - adH;
+  const EDGE = 8, GAP = 8;
+  const w = Math.min(size.w || width || 280, vw - EDGE * 2);
+  const spaceBelow = vh - anchor.bottom - GAP - EDGE;
+  const spaceAbove = anchor.top - GAP - EDGE;
+  let below = prefer === 'below' ? (spaceBelow >= size.h || spaceBelow >= spaceAbove) : !(spaceAbove >= size.h || spaceAbove >= spaceBelow);
+  const maxH = Math.max(120, below ? spaceBelow : spaceAbove);
+  const cx = anchor.left + anchor.width / 2;
+  const left = Math.max(EDGE, Math.min(vw - EDGE - w, cx - w / 2));
+  const top = below ? anchor.bottom + GAP : Math.max(EDGE, anchor.top - GAP - Math.min(size.h, maxH));
+  const caretX = Math.max(12, Math.min(w - 12, cx - left));
+  // 바깥 상자(꼬리 포함, 잘리지 않음) + 안쪽 스크롤 상자
+  return ReactDOM.createPortal(
+    <div role="dialog" aria-label={label} className="font-body" style={{
+      position: 'fixed', left, top, width: width ? Math.min(width, vw - EDGE * 2) : undefined, maxWidth: vw - EDGE * 2,
+      background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: 4,
+      boxShadow: '0 10px 28px -8px rgba(0,0,0,0.22)', zIndex: 70,
+      animation: 'zgPopIn 140ms cubic-bezier(0.4,0,0.2,1)',
+      transformOrigin: `${caretX}px ${below ? 0 : '100%'}`,
+    }}>
+      <span aria-hidden style={{
+        position: 'absolute', left: caretX - 6, [below ? 'top' : 'bottom']: -6, width: 10, height: 10,
+        background: 'var(--bg-card)', transform: 'rotate(45deg)', zIndex: 1,
+        borderLeft: below ? '1px solid var(--border-medium)' : 'none', borderTop: below ? '1px solid var(--border-medium)' : 'none',
+        borderRight: below ? 'none' : '1px solid var(--border-medium)', borderBottom: below ? 'none' : '1px solid var(--border-medium)',
+      }} />
+      <div ref={boxRef} style={{ position: 'relative', zIndex: 2, maxHeight: maxH - 2, overflowY: 'auto', overscrollBehavior: 'contain', borderRadius: 4 }}>{children}</div>
+    </div>,
+    document.body
+  );
+}
+
+// ── 도구 막대 ────────────────────────────────────────────────────────────────
+const ZG_PEN_KEYS = ['place', 'X', 'O', 'M', 'F', 'erase'];
+
+function zgPenGlyph(pen, { split, tapPlace, active, size = 18 }) {
+  const ink = active ? 'var(--bg-paper)' : 'var(--ink-secondary)';
+  if (pen === 'place') return <ZgIcon name={tapPlace ? 'paw' : 'cycle'} size={size} color={ink} />;
+  if (pen === 'X') return <ZgIcon name="x" size={size} color={ink} />;
+  if (pen === 'O') return <ZgIcon name={split ? 'qcircle' : 'q'} size={size} color={active ? 'var(--bg-paper)' : (split ? 'var(--ink-secondary)' : 'var(--accent-gold)')} />;
+  if (pen === 'erase') return <ZgIcon name="eraser" size={size} color={ink} />;
+  const male = pen === 'M';
+  return (
+    <span className="font-display" aria-hidden style={{
+      fontSize: size + 1, lineHeight: `${size}px`, height: size, fontWeight: 600, display: 'block',
+      color: active ? 'var(--bg-paper)' : (male ? zgOpt('colors.genderMale', '#1E3A8A') : zgOpt('colors.genderFemale', '#9D174D')),
+    }}>{male ? '♂' : '♀'}</span>
+  );
+}
+
+// 버튼 아래 작은 이름: 칸이 좁으면(긴 언어, 좁은 화면) 글자를 9, 8.5, 8px로 줄여 맞추고, 그래도 넘치면 숨긴다(그림만).
+//   같은 묶음(펜들, 동작 버튼들)은 크기를 함께 정한다(어떤 펜은 이름이 있고 어떤 펜은 없는 모습을 피한다).
+const ZG_LABEL_STEPS = [10, 9, 8.5, 8, 0];
+function FitLabel({ text, color, weight, group }) {
+  const ref = useRef(null);
+  const [own, setOwn] = useState(10);
+  const fs = group ? group.fs : own;
+  React.useLayoutEffect(() => { if (!group) setOwn(10); }, [text]);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !fs) return;
+    if (el.scrollWidth > el.clientWidth + 0.5) {
+      const i = ZG_LABEL_STEPS.indexOf(fs);
+      const next = i >= 0 && i < ZG_LABEL_STEPS.length - 1 ? ZG_LABEL_STEPS[i + 1] : 0;
+      if (group) group.report(next); else setOwn(next);
+    }
+  });
+  return (
+    <span ref={ref} aria-hidden style={{ fontSize: fs || 8, lineHeight: '11px', height: 11, fontWeight: weight, letterSpacing: fs && fs < 10 ? '-0.02em' : '-0.01em',
+      maxWidth: '100%', overflow: 'hidden', whiteSpace: 'nowrap', color, visibility: fs ? 'visible' : 'hidden', display: fs ? 'block' : 'none', textAlign: 'center' }}>{text}</span>
+  );
+}
+// 묶음 글자 크기: 언어나 화면 폭이 바뀌면 10px부터 다시 맞춘다
+function useLabelGroup(resetKey) {
+  const [fs, setFs] = useState(10);
+  useEffect(() => { setFs(10); }, [resetKey]);
+  return useMemo(() => ({ fs, report: (next) => setFs(cur => Math.min(cur, next)) }), [fs]);
+}
+
+function RailButton({ onClick, active, disabled, label, title, children, w, h = 44, ariaPressed, ariaChecked, role, ariaExpanded, tone, showLabel = true, btnRef, badge, grow, labelGroup }) {
+  const teal = zgOpt('playTools.hypothesisColor', '#0F766E');
+  const bg = active ? (tone === 'teal' ? teal + '14' : 'var(--ink-primary)') : 'transparent';
+  const color = active ? (tone === 'teal' ? teal : 'var(--bg-paper)') : 'var(--ink-secondary)';
+  return (
+    <button ref={btnRef} type="button" onClick={onClick} disabled={disabled}
+      aria-label={title || label} title={title || label}
+      role={role} aria-pressed={ariaPressed} aria-checked={ariaChecked} aria-expanded={ariaExpanded}
+      className="font-body"
+      style={{
+        position: 'relative', flex: grow ? '1 1 0' : (w ? `0 0 ${w}px` : '0 0 auto'), minWidth: 0, width: w, height: h,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+        padding: '0 2px', border: tone === 'teal' && active ? `1px solid ${teal}` : '1px solid transparent', borderRadius: 3,
+        background: bg, color, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1,
+        transition: 'background 140ms, color 140ms, opacity 140ms', WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+      }}>
+      {children}
+      {showLabel && label && <FitLabel text={label} color={color} weight={active ? 650 : 500} group={labelGroup} />}
+      {badge != null && (
+        <span className="font-mono" style={{ position: 'absolute', top: 3, right: 3, minWidth: 14, height: 14, padding: '0 3px', borderRadius: 999,
+          background: teal, color: '#fff', fontSize: 9, fontWeight: 600, lineHeight: '14px', textAlign: 'center' }}>{badge}</span>
+      )}
+    </button>
+  );
+}
+
+function PlayToolRail({ layout, tools, pen, onPen, canUndo, canRedo, onUndo, onRedo, hypoDepth, hypoChanged, onHypo, onOpenSettings,
+                        disabled, onMore, moreOpen, moreRef, hypoRef, hypoOpen, onFold, railRef, foldRef }) {
+  const t = useT();
+  const { lang } = useLang();
+  const vwNow = useViewportWidth();
+  const col = layout === 'side';
+  const split = !!tools.candSplit, tapPlace = !!tools.tapPlace;
+  // 막대의 실제 폭(처음 그릴 때는 아직 보드 폭을 모른다)이 바뀌면 이름 크기를 다시 맞춘다
+  const tbRef = useRef(null);
+  const [tbW, setTbW] = useState(0);
+  useEffect(() => {
+    const el = tbRef.current;
+    if (!el) return;
+    const upd = () => setTbW(Math.round(el.getBoundingClientRect().width));
+    upd();
+    let ro = null;
+    try { ro = new ResizeObserver(upd); ro.observe(el); } catch (e) {}
+    return () => { if (ro) ro.disconnect(); };
+  }, []);
+  const resetKey = `${lang}:${vwNow}:${tbW}:${layout}:${tools.pens}:${tools.undo}:${tools.hypothesis}:${split}:${tapPlace}:${hypoDepth > 0}`;
+  const penGroup = useLabelGroup(resetKey);
+  const actGroup = useLabelGroup(resetKey);
+  const sep = <span aria-hidden style={col
+    ? { height: 1, alignSelf: 'stretch', background: 'var(--border-soft)', margin: '4px 6px' }
+    : { width: 1, alignSelf: 'stretch', background: 'var(--border-soft)', margin: '6px 3px', flex: '0 0 1px' }} />;
+  const penLabel = (p) => t(p === 'place' ? (tapPlace ? 'pen.place' : 'pen.cycle') : p === 'O' ? (split ? 'pen.O' : 'pen.Q') : 'pen.' + p);
+  const penTitle = (p, i) => `${penLabel(p)} (${i + 1})`;
+  // 좁은 막대(360px 휴대폰 등)는 동작 버튼을 조금 좁혀 펜 칸을 지킨다
+  const narrow = !col && tbW > 0 && tbW < 400;   // 2.3.1 접기 칸이 늘어 390px 휴대폰도 좁은 막대로
+  const actW = col ? undefined : (narrow ? 40 : 46);
+  const moreW = narrow ? 30 : 34, foldW = narrow ? 24 : 26;   // 접기 칸도 눌림 영역 24px 이상
+  const pens = tools.pens ? (
+    <div role="radiogroup" aria-label={t('rail.pens')} style={{ display: 'flex', flexDirection: col ? 'column' : 'row', gap: 2, flex: col ? '0 0 auto' : '1 1 auto', minWidth: 0 }}>
+      {ZG_PEN_KEYS.map((p, i) => (
+        <RailButton key={p} onClick={() => onPen(p)} active={pen === p} disabled={disabled}
+          label={penLabel(p)} title={penTitle(p, i)} role="radio" ariaChecked={pen === p} grow={!col} h={44} labelGroup={penGroup}>
+          {zgPenGlyph(p, { split, tapPlace, active: pen === p })}
+        </RailButton>
+      ))}
+    </div>
+  ) : null;
+  const undoBtn = tools.undo ? (
+    <RailButton onClick={onUndo} disabled={disabled || !canUndo} label={t('rail.undo')} title={t('rail.undo') + ' (Ctrl+Z)'} w={actW} h={44} labelGroup={actGroup}>
+      <ZgIcon name="undo" />
+    </RailButton>
+  ) : null;
+  const redoBtn = tools.undo && col ? (
+    <RailButton onClick={onRedo} disabled={disabled || !canRedo} label={t('rail.redo')} title={t('rail.redo') + ' (Ctrl+Shift+Z)'} h={44} labelGroup={actGroup}>
+      <ZgIcon name="redo" />
+    </RailButton>
+  ) : null;
+  const hypoBtn = tools.hypothesis ? (
+    <RailButton btnRef={hypoRef} onClick={onHypo} disabled={disabled} active={hypoDepth > 0 || hypoOpen} tone="teal"
+      label={hypoDepth > 0 ? t('rail.hypoOn') : t('rail.hypo')} title={hypoDepth > 0 ? t('hypo.menuTitle', { d: hypoDepth, n: hypoChanged }) : t('hypo.start.desc')}
+      ariaExpanded={hypoDepth > 0 ? !!hypoOpen : undefined} w={actW} h={44} badge={hypoDepth > 1 ? hypoDepth : null} labelGroup={actGroup}>
+      <ZgIcon name="flag" filled={hypoDepth > 0} />
+    </RailButton>
+  ) : null;
+  // 줄 막대: 다시 하기와 설정은 더보기(⋯) 안으로. 세로 막대: 모두 바로 보인다.
+  const moreBtn = col ? (
+    <RailButton onClick={onOpenSettings} label={t('rail.settingsShort')} title={t('rail.settings')} h={44} labelGroup={actGroup}>
+      <ZgIcon name="gear" />
+    </RailButton>
+  ) : (
+    <RailButton btnRef={moreRef} onClick={onMore} active={false} label={null} showLabel={false}
+      title={tools.undo ? t('rail.more') : t('rail.settings')} ariaExpanded={!!moreOpen} w={moreW}>
+      <ZgIcon name={tools.undo ? 'more' : 'gear'} />
+    </RailButton>
+  );
+  // 2.3.1 마지막 칸: 막대 접기(줄 막대는 오른쪽 끝으로, 세로 막대는 위로 줄어든다)
+  const foldBtn = onFold ? (
+    <RailButton btnRef={foldRef} onClick={onFold} label={null} showLabel={false} title={t('rail.fold')} ariaExpanded={true}
+      w={col ? undefined : foldW} h={col ? 24 : 44}>
+      <span style={{ color: 'var(--ink-tertiary)', display: 'flex' }}><ZgIcon name={col ? 'foldUp' : 'foldRight'} size={16} /></span>
+    </RailButton>
+  ) : null;
+  const actions = (
+    <div style={{ display: 'flex', flexDirection: col ? 'column' : 'row', gap: 2, flex: '0 0 auto' }}>
+      {undoBtn}{redoBtn}{hypoBtn}{moreBtn}{foldBtn}
+    </div>
+  );
+  return (
+    <div ref={(el) => { tbRef.current = el; if (railRef) railRef.current = el; }} role="toolbar" aria-label={t('rail.label')} aria-orientation={col ? 'vertical' : 'horizontal'}
+      style={{
+        display: 'flex', flexDirection: col ? 'column' : 'row', alignItems: 'stretch', gap: 2,
+        padding: 3, background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 3,
+        width: col ? 60 : (tools.pens ? '100%' : 'auto'), boxSizing: 'border-box',
+      }}>
+      {pens}{pens && sep}{actions}
+    </div>
+  );
+}
+
+// 도구 막대 자리 정하기: 보드 카드 오른쪽에 막대가 들어갈 여백이 있고 보드가 막대보다 길면 오른쪽 세로,
+//   아니면 보드 아래 가로(보드가 화면보다 길면 화면 아래에 붙음). 옵션 playTools.rail로 고정할 수 있다.
+function usePlayToolLayout(zoneRef, deps, itemCount) {
+  const [lay, setLay] = useState({ mode: 'below', cardLeft: 0, cardTop: 0, cardW: 0, cardH: 0, zoneW: 0 });
+  useEffect(() => {
+    const zone = zoneRef.current;
+    if (!zone) return;
+    let raf = 0;
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const card = zone.querySelector('[data-board-card]');
+        if (!card) return;
+        const z = zone.getBoundingClientRect(), c = card.getBoundingClientRect();
+        const pref = zgOpt('playTools.rail', 'auto');
+        const needW = 60 + 14 + 6;
+        const needH = itemCount * 46 + 44;   // 2.3.1 세로 막대: 버튼 44 + 간격 2, 접기 칸 24, 테두리와 구분선
+        const room = (z.right - c.right) >= needW && c.height >= needH;
+        const mode = pref === 'side' ? (z.right - c.right >= needW ? 'side' : 'below') : pref === 'below' ? 'below' : (room ? 'side' : 'below');
+        const next = { mode, cardLeft: c.left - z.left, cardTop: c.top - z.top, cardW: c.width, cardH: c.height, zoneW: z.width };
+        setLay(prev => (prev.mode === next.mode && Math.abs(prev.cardLeft - next.cardLeft) < 0.5 && Math.abs(prev.cardTop - next.cardTop) < 0.5
+          && Math.abs(prev.cardW - next.cardW) < 0.5 && Math.abs(prev.cardH - next.cardH) < 0.5 && Math.abs(prev.zoneW - next.zoneW) < 0.5) ? prev : next);
+      });
+    };
+    measure();
+    let ro = null;
+    try {
+      ro = new ResizeObserver(measure);
+      ro.observe(zone);
+      const card = zone.querySelector('[data-board-card]');
+      if (card) ro.observe(card);
+    } catch (e) {}
+    window.addEventListener('resize', measure);
+    return () => { cancelAnimationFrame(raf); if (ro) ro.disconnect(); window.removeEventListener('resize', measure); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return lay;
+}
+
+// 보드 아래 막대가 화면 아래에 붙어 떠 있는지(그림자를 더해 보드 위에 떠 있음을 알린다)
+function useStuck(sentinelRef, active) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!active || !el || typeof IntersectionObserver === 'undefined') { setStuck(false); return; }
+    let adH = 0;
+    try { adH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-ad-h')) || 0; } catch (e) {}
+    const io = new IntersectionObserver((ents) => {
+      const e = ents[0];
+      if (!e) return;
+      setStuck(!e.isIntersecting && e.boundingClientRect.top > (e.rootBounds ? e.rootBounds.bottom : window.innerHeight) - 2);
+    }, { rootMargin: `0px 0px -${Math.round(adH + 8)}px 0px`, threshold: [0, 1] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [sentinelRef, active]);
+  return stuck;
+}
+
+// ── 칸 창: 놓기(그 칸에 놓을 동물 고르기) / 후보(종 후보 켜고 끄기) ─────────────────
+function CellPopover({ open, puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity, tools, onPlace, onToggleCand, onClearCands, onTab, onClose }) {
+  const t = useT();
+  const { lang } = useLang();
+  const key = open ? `${open.r},${open.c}` : null;
+  const anchor = useAnchorRect(() => key ? document.querySelector(`[data-board-card] [data-drop-cell="${key}"]`) : null, !!open, [key]);
+  if (!open || !puzzle) return null;
+  const mark = cellMarks[key];
+  const tabs = [];
+  if (tools.tapPlace || tools.longPlace) tabs.push('place');
+  if (tools.candSplit) tabs.push('cand');
+  if (!tabs.length) return null;
+  const tab = tabs.includes(open.tab) ? open.tab : tabs[0];
+  const noteG = mark === 'M' ? 'male' : mark === 'F' ? 'female' : null;
+  const vw = window.innerWidth;
+  const tile = vw < 400 ? 42 : 46;
+
+  // 손패의 종(동물 번호 순 = 손패와 같은 순서)
+  const unplaced = puzzle.tokens.filter(tk => !placements[tk.id]);
+  const species = [...new Set(puzzle.tokens.map(tk => tk.animalId))].sort((a, b) => a - b);
+  const cands = qCandidates[key] || [];
+  const candIds = new Set(cands.filter(c => !c.gender).map(c => c.animalId));
+  const cap = qMarkCapacity || 4;
+
+  const tileBtn = ({ animal, gender, onClick, selected, dim, title, k }) => (
+    <button key={k} type="button" onClick={onClick} title={title} aria-label={title} aria-pressed={selected}
+      style={{
+        width: tile, height: tile, padding: 0, position: 'relative', borderRadius: 4, cursor: 'pointer',
+        border: selected ? '2px solid var(--accent-gold)' : '1px solid var(--border-medium)',
+        boxShadow: selected ? '0 0 0 2px rgba(180,83,9,0.18)' : 'none',
+        background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        opacity: dim ? 0.42 : 1, touchAction: 'manipulation',
+      }}>
+      <span aria-hidden style={{ position: 'absolute', inset: 0, background: HABITAT_TINT[animal.habitat], opacity: zgOpt('colors.tileTintOpacity', 0.22) }} />
+      <img src={animalImgSrc(animal.id, gender || 'male')} alt="" draggable={false}
+        onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+        style={{ position: 'relative', width: '80%', height: '80%', objectFit: 'contain' }} />
+      <span aria-hidden style={{ display: 'none', position: 'relative', fontSize: tile * 0.46 }}>{animal.emoji}</span>
+      {gender && (
+        <span aria-hidden className="font-display" style={{
+          position: 'absolute', bottom: 1, right: 2, width: 13, height: 13, borderRadius: 2, background: 'var(--bg-card)',
+          border: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, lineHeight: 1, fontWeight: 600,
+          color: gender === 'male' ? zgOpt('colors.genderMale', '#1E3A8A') : zgOpt('colors.genderFemale', '#9D174D'),
+        }}>{gender === 'male' ? '♂' : '♀'}</span>
+      )}
+      {selected && (
+        <span aria-hidden style={{ position: 'absolute', top: 1, left: 1, width: 14, height: 14, borderRadius: 999, background: 'var(--accent-gold)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ZgIcon name="check" size={10} color="#fff" /></span>
+      )}
+    </button>
+  );
+  const attr = (a) => (
+    <span aria-hidden style={{ fontSize: 10, lineHeight: 1, opacity: 0.9 }}>{ATTR_ICON[a.habitat]}{ATTR_ICON[a.diet]}</span>
+  );
+  const nameOf = (a) => getAnimalName(a.id, lang) || a.name;
+
+  let body;
+  if (tab === 'place') {
+    const groups = species.map(aid => ({ aid, toks: unplaced.filter(tk => tk.animalId === aid) })).filter(g => g.toks.length);
+    body = groups.length === 0 ? (
+      <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-tertiary)' }}>{t('pop.handEmpty')}</div>
+    ) : (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, groups.length)}, auto)`, gap: '8px 10px', padding: '10px 10px 12px', justifyContent: 'start' }}>
+        {groups.map(({ aid, toks }) => {
+          const a = animalById(aid);
+          const opts = toks.map(tk => ({ tk, g: zg_handGenderOf(tk, puzzle, placements, marks, true) }))
+            .sort((x, y) => (x.g === 'male' ? 0 : 1) - (y.g === 'male' ? 0 : 1));
+          return (
+            <div key={aid} style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 3 }}>
+                {opts.map(({ tk, g }) => tileBtn({
+                  k: tk.id, animal: a, gender: g, dim: !!(noteG && g && g !== noteG),
+                  title: `${nameOf(a)}${g ? ' ' + (g === 'male' ? '♂' : '♀') : ''}`,
+                  onClick: () => onPlace(tk.id),
+                }))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--ink-secondary)', lineHeight: 1.1, maxWidth: tile * 2 + 3, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a)}</span>{attr(a)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  } else {
+    const list = species.filter(aid => unplaced.some(tk => tk.animalId === aid) || candIds.has(aid));
+    body = (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, Math.max(1, list.length))}, auto)`, gap: '8px 8px', padding: '10px 10px 8px', justifyContent: 'start' }}>
+          {list.map(aid => {
+            const a = animalById(aid);
+            const sel = candIds.has(aid);
+            return (
+              <div key={aid} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: tile + 8 }}>
+                {tileBtn({ k: aid, animal: a, gender: noteG, selected: sel, title: nameOf(a), onClick: () => onToggleCand(aid) })}
+                <div style={{ fontSize: 10.5, color: 'var(--ink-secondary)', maxWidth: tile + 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.1 }}>{nameOf(a)}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 10px 10px', borderTop: '1px dashed var(--border-soft)' }}>
+          <span className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>{t('pop.candCount', { n: candIds.size, cap })}</span>
+          <button type="button" onClick={onClearCands} disabled={!cands.length} className="font-body" style={{
+            border: '1px solid var(--border-medium)', background: 'var(--bg-card)', borderRadius: 2, padding: '6px 10px', minHeight: 32,
+            fontSize: 12, color: 'var(--ink-secondary)', cursor: cands.length ? 'pointer' : 'default', opacity: cands.length ? 1 : 0.45,
+          }}>{t('pop.clear')}</button>
+        </div>
+      </div>
+    );
+  }
+  const head = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 8px 0 10px' }}>
+      {tabs.length > 1 ? (
+        <div role="tablist" style={{ display: 'flex', border: '1px solid var(--border-medium)', borderRadius: 3, overflow: 'hidden' }}>
+          {tabs.map(tb => (
+            <button key={tb} role="tab" type="button" aria-selected={tab === tb} onClick={() => onTab(tb)} className="font-body" style={{
+              padding: '6px 12px', minHeight: 30, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: tab === tb ? 650 : 500,
+              background: tab === tb ? 'var(--ink-primary)' : 'var(--bg-card)', color: tab === tb ? 'var(--bg-paper)' : 'var(--ink-secondary)',
+            }}>{t(tb === 'place' ? 'pop.place' : 'pop.cand')}</button>
+          ))}
+        </div>
+      ) : (
+        <span style={{ fontSize: 12, fontWeight: 650, color: 'var(--ink-primary)' }}>{t(tab === 'place' ? 'pop.place' : 'pop.cand')}</span>
+      )}
+      <span className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginLeft: 2 }}>{t('pop.cell', { r: open.r + 1, c: open.c + 1 })}</span>
+      {noteG && <span className="font-display" style={{ fontSize: 13, fontWeight: 600, color: noteG === 'male' ? zgOpt('colors.genderMale', '#1E3A8A') : zgOpt('colors.genderFemale', '#9D174D') }}>{noteG === 'male' ? '♂' : '♀'}</span>}
+      <button type="button" onClick={() => onClose('close')} aria-label={t('tools.close')} style={{
+        marginLeft: 'auto', width: 32, height: 32, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink-tertiary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3,
+      }}><ZgIcon name="close" size={16} /></button>
+    </div>
+  );
+  return (
+    <AnchoredPopover anchor={anchor} onClose={onClose} prefer="below" label={t(tab === 'place' ? 'pop.place' : 'pop.cand')}>
+      {head}{body}
+    </AnchoredPopover>
+  );
+}
+
+// ── 메뉴(가정, 더보기) ──────────────────────────────────────────────────────────
+function MenuItem({ icon, title, desc, onClick, tone, disabled }) {
+  const teal = zgOpt('playTools.hypothesisColor', '#0F766E');
+  return (
+    <button type="button" role="menuitem" onClick={onClick} disabled={disabled} className="font-body" style={{
+      width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', minHeight: 44,
+      border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', textAlign: 'left', borderRadius: 3,
+      opacity: disabled ? 0.45 : 1,
+    }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'var(--bg-subtle)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+      <span style={{ marginTop: 1, color: tone === 'teal' ? teal : 'var(--ink-secondary)' }}>{icon}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-primary)' }}>{title}</span>
+        {desc && <span style={{ fontSize: 11.5, color: 'var(--ink-tertiary)', lineHeight: 1.35 }}>{desc}</span>}
+      </span>
+    </button>
+  );
+}
+
+function HypoMenu({ anchorRef, open, depth, changed, maxDepth, onDiscard, onCommit, onNest, onClose }) {
+  const t = useT();
+  const anchor = useAnchorRect(() => anchorRef.current, !!open, []);
+  if (!open) return null;
+  const teal = zgOpt('playTools.hypothesisColor', '#0F766E');
+  return (
+    <AnchoredPopover anchor={anchor} onClose={onClose} prefer="above" width={272} label={t('hypo.menuTitle', { d: depth, n: changed })} ignoreRef={anchorRef}>
+      <div role="menu" style={{ padding: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 6px', color: teal, fontSize: 12, fontWeight: 650 }}>
+          <ZgIcon name="flag" size={14} color={teal} filled />{t('hypo.menuTitle', { d: depth, n: changed })}
+        </div>
+        <MenuItem icon={<ZgIcon name="undo" size={18} />} title={t('hypo.discard')} desc={t('hypo.discard.desc')} onClick={onDiscard} />
+        <MenuItem icon={<ZgIcon name="check" size={18} />} title={t('hypo.commit')} desc={t('hypo.commit.desc')} onClick={onCommit} />
+        {depth < maxDepth && <MenuItem icon={<ZgIcon name="plus" size={18} />} title={t('hypo.nest')} desc={t('hypo.nest.desc')} onClick={onNest} tone="teal" />}
+      </div>
+    </AnchoredPopover>
+  );
+}
+
+function RailMoreMenu({ anchorRef, open, canRedo, undoOn, onRedo, onSettings, onClose }) {
+  const t = useT();
+  const anchor = useAnchorRect(() => anchorRef.current, !!open, []);
+  if (!open) return null;
+  return (
+    <AnchoredPopover anchor={anchor} onClose={onClose} prefer="above" width={232} label={t('rail.more')} ignoreRef={anchorRef}>
+      <div role="menu" style={{ padding: 4 }}>
+        {undoOn && <MenuItem icon={<ZgIcon name="redo" size={18} />} title={t('rail.redo')} desc={t('rail.redo.desc')} onClick={onRedo} disabled={!canRedo} />}
+        <MenuItem icon={<ZgIcon name="gear" size={18} />} title={t('rail.settings')} onClick={onSettings} />
+      </div>
+    </AnchoredPopover>
+  );
+}
+
+// ── 도구 설정 창 ──────────────────────────────────────────────────────────────
+function ZgSwitch({ on, onChange, label, id }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-labelledby={id} onClick={() => onChange(!on)} style={{
+      flex: '0 0 auto', width: 44, height: 26, borderRadius: 999, padding: 2, border: 'none', cursor: 'pointer',
+      background: on ? 'var(--ink-primary)' : 'var(--border-medium)', transition: 'background 160ms', position: 'relative',
+    }}>
+      <span aria-hidden style={{
+        display: 'block', width: 22, height: 22, borderRadius: 999, background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+        transform: `translateX(${on ? 18 : 0}px)`, transition: 'transform 160ms cubic-bezier(0.4,0,0.2,1)',
+      }} />
+    </button>
+  );
+}
+
+function PlayToolsSheet({ open, onClose, tools, onChange, onReset }) {
+  const t = useT();
+  const vw = useViewportWidth();
+  const isMobile = vw < 640;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  const groups = [
+    { title: t('tools.group.mark'), keys: ['pens', 'dragPaint', 'candSplit'] },
+    { title: t('tools.group.place'), keys: ['tapPlace', 'longPlace', 'undo', 'hypothesis'] },
+    { title: t('tools.group.board'), keys: ['lineRecede', 'pairBond'] },
+  ];
+  // 탭 배치는 길게 눌러 놓기와 갈음하는 선택이라 '모두 켜기'에 넣지 않는다(켜면 첫 펜이 놓기 도구로 바뀐다)
+  const allOn = ZG.tools.KEYS.filter(k => k !== 'tapPlace').every(k => tools[k]);
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.45)', zIndex: 1000,
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
+      padding: isMobile ? 0 : 24, animation: 'fadeInUp 200ms',
+    }}>
+      <ZGScrollLock />
+      <div role="dialog" aria-modal="true" aria-labelledby="zg-tools-title" onClick={e => e.stopPropagation()} style={{
+        width: '100%', maxWidth: 520, background: 'var(--bg-paper)', border: '1px solid var(--border-medium)',
+        borderRadius: isMobile ? '10px 10px 0 0' : 4, boxShadow: '0 24px 60px -20px rgba(0,0,0,0.3)',
+        padding: isMobile ? '18px 18px calc(16px + env(safe-area-inset-bottom, 0px))' : '26px 30px 24px',
+        maxHeight: isMobile ? '88vh' : '90vh', ...ZG_OVERLAY_SCROLL,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div id="zg-tools-title" className="font-display" style={{ fontSize: isMobile ? 24 : 28, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.05, color: 'var(--ink-primary)' }}>{t('tools.title')}</div>
+            <div className="font-body" style={{ fontSize: 12.5, color: 'var(--ink-tertiary)', marginTop: 6, lineHeight: 1.45 }}>{t('tools.desc')}</div>
+          </div>
+          <button type="button" onClick={onClose} aria-label={t('tools.close')} style={{
+            width: 36, height: 36, borderRadius: 999, border: '1px solid var(--border-medium)', background: 'var(--bg-card)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink-secondary)', flex: '0 0 auto',
+          }}><ZgIcon name="close" size={16} /></button>
+        </div>
+        {groups.map(gr => (
+          <div key={gr.title}>
+            <div className="font-body" style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-tertiary)',
+              marginTop: 18, marginBottom: 6, paddingBottom: 6, borderBottom: '1px dashed var(--border-soft)',
+            }}>{gr.title}</div>
+            {gr.keys.map(k => (
+              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div id={'zg-tool-' + k} className="font-body" style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)', lineHeight: 1.3 }}>{t('tools.' + k)}</div>
+                  <div className="font-body" style={{ fontSize: 12, color: 'var(--ink-secondary)', lineHeight: 1.45, marginTop: 2 }}>{t('tools.' + k + '.desc')}</div>
+                </div>
+                <ZgSwitch id={'zg-tool-' + k} on={!!tools[k]} onChange={(v) => onChange(k, v)} />
+              </div>
+            ))}
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => onReset(allOn)} className="font-body" style={{
+            padding: '10px 14px', minHeight: 44, background: 'var(--bg-card)', color: 'var(--ink-secondary)', border: '1px solid var(--border-medium)',
+            borderRadius: 2, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          }}>{allOn ? t('tools.allOff') : t('tools.allOn')}</button>
+          <button type="button" onClick={onClose} className="font-body" style={{
+            padding: '10px 18px', minHeight: 44, background: 'var(--ink-primary)', color: 'var(--bg-paper)', border: '1px solid var(--ink-primary)',
+            borderRadius: 2, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          }}>{t('tools.done')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 도구 막대 자리(보드 영역 안): 아래 가로(붙음) 또는 오른쪽 세로 ────────────────────
+// 접힌 막대: 지금 든 펜(과 가정 중 표시)만 보이는 작은 알약. 누르면 펼친다.
+function RailPill({ layout, tools, pen, hypoDepth, onUnfold, btnRef }) {
+  const t = useT();
+  const col = layout === 'side';
+  const teal = zgOpt('playTools.hypothesisColor', '#0F766E');
+  const glyph = tools.pens ? zgPenGlyph(pen, { split: !!tools.candSplit, tapPlace: !!tools.tapPlace, active: false, size: 17 }) : <ZgIcon name="gear" size={16} />;
+  return (
+    <button ref={btnRef} type="button" onClick={onUnfold} aria-label={t('rail.unfold')} title={t('rail.unfold')} aria-expanded={false}
+      className="font-body" style={{
+        display: 'flex', flexDirection: col ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: col ? 4 : 6,
+        width: '100%', height: '100%', padding: col ? '8px 0' : '0 10px 0 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+        color: 'var(--ink-secondary)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+      }}>
+      <span style={{ position: 'relative', display: 'flex' }}>
+        {glyph}
+        {hypoDepth > 0 && <span aria-hidden style={{ position: 'absolute', top: -3, right: -5, width: 7, height: 7, borderRadius: 999, background: teal, boxShadow: '0 0 0 1.5px var(--bg-card)' }} />}
+      </span>
+      <span aria-hidden style={col ? { height: 1, width: 22, background: 'var(--border-soft)' } : { width: 1, height: 18, background: 'var(--border-soft)' }} />
+      <span style={{ display: 'flex', color: 'var(--ink-tertiary)' }}><ZgIcon name={col ? 'foldDown' : 'foldLeft'} size={16} /></span>
+    </button>
+  );
+}
+
+// 접고 펴는 상자: 크기만 부드럽게 줄고 늘며(스퀴즈), 줄어드는 동안은 막대가 오른쪽 끝(세로는 위)을 붙든 채 잘린다.
+//   phase: open(자연 크기) → preclose(지금 크기를 숫자로 고정) → closing(알약 크기로) → closed(알약)
+//          closed → preopen(알약 크기, 막대를 그림) → opening(펼친 크기로) → open
+//   auto 크기는 전환 애니메이션이 안 되므로 한 프레임 동안 숫자 크기를 먼저 준다.
+function useFold(railProps) {
+  const [folded, setFolded] = useState(() => ZG.tools.railFolded());
+  const [phase, setPhase] = useState(() => (ZG.tools.railFolded() ? 'closed' : 'open'));
+  const tid = useRef(null), raf = useRef(0);
+  useEffect(() => () => { clearTimeout(tid.current); cancelAnimationFrame(raf.current); }, []);
+  const ms = Math.max(0, zgOpt('playTools.foldMs', 240));
+  const toggle = useCallback((next) => {
+    clearTimeout(tid.current); cancelAnimationFrame(raf.current);
+    setFolded(next);
+    ZG.tools.setRailFolded(next);
+    setPhase(next ? 'preclose' : 'preopen');
+    raf.current = requestAnimationFrame(() => {
+      raf.current = requestAnimationFrame(() => {
+        setPhase(next ? 'closing' : 'opening');
+        tid.current = setTimeout(() => setPhase(next ? 'closed' : 'open'), ms + 30);
+      });
+    });
+    if (railProps.onFoldChange) railProps.onFoldChange(next);
+  }, [ms, railProps.onFoldChange]);
+  // 크기: auto | full | pill
+  const size = phase === 'open' ? 'auto' : (phase === 'preclose' || phase === 'opening') ? 'full' : 'pill';
+  const pillShape = phase === 'closing' || phase === 'closed' || phase === 'preopen';
+  return { folded, phase, toggle, ms, size, pillShape, showPill: phase === 'closed' };
+}
+
+// ── 도구 막대 자리(보드 영역 안): 아래 가로(붙음) 또는 오른쪽 세로 ────────────────────
+function PlayToolDock({ zoneRef, puzzleKey, railProps, coach, onCoachClose }) {
+  const t = useT();
+  const tools = railProps.tools;
+  const visible = !!(tools.pens || tools.undo || tools.hypothesis);
+  const itemCount = (tools.pens ? 6 : 0) + (tools.undo ? 2 : 0) + (tools.hypothesis ? 1 : 0) + 1;
+  const lay = usePlayToolLayout(zoneRef, [puzzleKey, visible, itemCount], itemCount);
+  const sentinelRef = useRef(null);
+  const sticky = zgOpt('playTools.stickyRail', true);
+  const below = lay.mode !== 'side';
+  const stuck = useStuck(sentinelRef, visible && below && sticky);
+  const fold = useFold(railProps);
+  const railRef = useRef(null), foldBtnRef = useRef(null), pillRef = useRef(null), wantFocus = useRef(null);
+  // 키보드로 접고 펴면 초점을 알약 / 접기 버튼으로 옮긴다(버튼이 사라져 초점이 문서 처음으로 가지 않게)
+  const toggleFold = (next) => {
+    const a = document.activeElement;
+    const inDock = !!a && (a === foldBtnRef.current || a === pillRef.current || (railRef.current && railRef.current.contains(a)));
+    wantFocus.current = inDock ? (next ? 'pill' : 'fold') : null;
+    fold.toggle(next);
+  };
+  // 펼친 막대의 자연 크기(줄 막대 폭, 세로 막대 높이). 접는 동안 이 크기로 그려 두고 상자만 줄인다.
+  const [natural, setNatural] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    if (fold.phase !== 'open') return;
+    const el = railRef.current;
+    if (!el) return;
+    const upd = () => { const r = el.getBoundingClientRect(); setNatural(n => (Math.abs(n.w - r.width) < 0.5 && Math.abs(n.h - r.height) < 0.5) ? n : { w: r.width, h: r.height }); };
+    upd();
+    let ro = null;
+    try { ro = new ResizeObserver(upd); ro.observe(el); } catch (e) {}
+    return () => { if (ro) ro.disconnect(); };
+  }, [fold.phase, below, visible]);
+  // 펴기 직전(preopen) 막대는 이미 그려져 있다: 지금 자리(줄 / 세로)와 도구 구성의 크기를 다시 잰다.
+  //   접힌 동안 자리가 바뀌었거나(화면 회전) 도구를 켜고 끈 경우에도 펼침 애니메이션이 맞는 크기로 간다.
+  React.useLayoutEffect(() => {
+    if (fold.phase === 'preopen') {
+      const el = railRef.current;
+      if (el) { const r = el.getBoundingClientRect(); setNatural(n => (Math.abs(n.w - r.width) < 0.5 && Math.abs(n.h - r.height) < 0.5) ? n : { w: r.width, h: r.height }); }
+      if (wantFocus.current === 'fold' && foldBtnRef.current) { try { foldBtnRef.current.focus({ preventScroll: true }); } catch (e) {} wantFocus.current = null; }
+    }
+    if (fold.phase === 'closed' && wantFocus.current === 'pill' && pillRef.current) { try { pillRef.current.focus({ preventScroll: true }); } catch (e) {} wantFocus.current = null; }
+  }, [fold.phase]);
+  const coachLine = coach ? (
+    <div className="font-body" style={{
+      display: 'flex', alignItems: 'flex-start', gap: 6, justifyContent: 'center', margin: '6px auto 0', padding: '0 8px',
+      maxWidth: lay.cardW || 520, fontSize: 11.5, lineHeight: 1.45, color: 'var(--ink-tertiary)',
+    }}>
+      <span style={{ minWidth: 0 }}>{coach}</span>
+      <button type="button" onClick={onCoachClose} aria-label={t('tools.close')} style={{
+        flex: '0 0 auto', width: 22, height: 22, marginTop: -2, border: 'none', background: 'transparent', color: 'var(--ink-tertiary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+      }}><ZgIcon name="close" size={13} /></button>
+    </div>
+  ) : null;
+  if (!visible) return coachLine ? <div style={{ marginTop: -14, marginBottom: 14 }}>{coachLine}</div> : null;
+  const showPill = fold.showPill;
+  const showRail = !showPill;
+  const ease = `${fold.ms}ms cubic-bezier(0.4,0,0.2,1)`;
+  const fullProps = Object.assign({}, railProps, { onFold: () => toggleFold(true), railRef, foldRef: foldBtnRef });
+  const pill = <RailPill btnRef={pillRef} layout={below ? 'row' : 'side'} tools={tools} pen={railProps.pen} hypoDepth={railProps.hypoDepth} onUnfold={() => toggleFold(false)} />;
+  // 접고 펴는 동안 막대는 누를 수 없다(반쯤 잘린 더보기, 접기 버튼을 잘못 누르지 않게)
+  const railHit = fold.phase === 'open' ? 'auto' : 'none';
+  const boxSkin = (shadow) => ({
+    background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: fold.pillShape ? 999 : 4,
+    boxShadow: shadow, overflow: 'hidden', boxSizing: 'border-box', pointerEvents: 'auto',
+  });
+  if (!below) {
+    const PILL_H = 84;
+    const fullH = natural.h || (itemCount * 46 + 43);
+    return (
+      <>
+        <div style={{ position: 'absolute', left: lay.cardLeft + lay.cardW + 12, top: lay.cardTop, height: lay.cardH, width: 60, zIndex: 20 }}>
+          <div style={{ position: 'sticky', top: 12 }}>
+            <div data-rail-box={fold.folded ? 'folded' : 'open'} style={{
+              ...boxSkin('0 1px 0 rgba(0,0,0,0.02), 0 8px 20px -16px rgba(60,50,30,0.25)'), border: 'none',
+              width: 60, height: fold.size === 'auto' ? 'auto' : (fold.size === 'pill' ? PILL_H : fullH),
+              transition: `height ${ease}, border-radius ${ease}`,
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
+              borderRadius: fold.pillShape ? 30 : 3,
+            }}>
+              {showRail && <div style={{ flex: '0 0 auto', pointerEvents: railHit }}><PlayToolRail {...fullProps} layout="side" /></div>}
+              {showPill && <div style={{ height: PILL_H, border: '1px solid var(--border-soft)', borderRadius: 30, boxSizing: 'border-box', background: 'var(--bg-card)', animation: 'zgPopIn 140ms ease-out' }}>{pill}</div>}
+            </div>
+          </div>
+        </div>
+        {coachLine && <div style={{ marginTop: -14, marginBottom: 14 }}>{coachLine}</div>}
+      </>
+    );
+  }
+  // 펜이 있으면 보드 폭에 맞춘 한 줄(최대 560px), 펜이 없으면 버튼 몇 개만 가운데에
+  const w = tools.pens && lay.cardW ? Math.min(lay.cardW, (lay.zoneW || lay.cardW) - 8, 560) : undefined;
+  const fullW = w || natural.w || 180;
+  const PILL_W = 78, PILL_H = 36, FULL_H = natural.h || 52;
+  const shadow = stuck ? '0 10px 28px -10px rgba(0,0,0,0.30), 0 0 0 1px rgba(0,0,0,0.02)' : '0 1px 0 rgba(0,0,0,0.02), 0 8px 20px -16px rgba(60,50,30,0.25)';
+  return (
+    <>
+      <div style={{
+        position: sticky ? 'sticky' : 'relative', bottom: sticky ? 'calc(var(--sticky-ad-h, 0px) + 6px)' : undefined,
+        zIndex: 30, display: 'flex', justifyContent: 'center', marginTop: -14, padding: '0 4px', pointerEvents: 'none',
+      }}>
+        {/* 자리(펼친 막대 폭) 안에서 상자를 오른쪽 끝에 붙여 줄인다 */}
+        {/* 펜이 없는 짧은 막대는 펼친 동안 제 폭(auto)으로 둔다: 자리가 재어 둔 폭에 묶이면 버튼이 늘 때 잘린다 */}
+        <div style={{ width: (fold.size === 'auto' && !w) ? 'auto' : fullW, maxWidth: '100%', display: 'flex', justifyContent: 'flex-end', pointerEvents: 'none' }}>
+          <div data-rail-box={fold.folded ? 'folded' : 'open'} style={{
+            ...boxSkin(shadow), border: 'none',
+            width: fold.size === 'auto' ? (w ? '100%' : 'auto') : (fold.size === 'pill' ? PILL_W : fullW),
+            height: fold.size === 'auto' ? 'auto' : (fold.size === 'pill' ? PILL_H : FULL_H),
+            maxWidth: '100%',
+            transition: `width ${ease}, height ${ease}, border-radius ${ease}, box-shadow 180ms`,
+            display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+            borderRadius: fold.pillShape ? 999 : 4,
+          }}>
+            {showRail && <div style={{ flex: '0 0 auto', width: w ? fullW : 'auto', maxWidth: fold.size === 'auto' ? '100%' : 'none', pointerEvents: railHit }}><PlayToolRail {...fullProps} layout="row" /></div>}
+            {showPill && <div style={{ width: PILL_W, height: PILL_H, border: '1px solid var(--border-soft)', borderRadius: 999, boxSizing: 'border-box', background: 'var(--bg-card)', animation: 'zgPopIn 140ms ease-out', flex: '0 0 auto' }}>{pill}</div>}
+          </div>
+        </div>
+      </div>
+      <div ref={sentinelRef} aria-hidden style={{ height: 1 }} />
+      {coachLine}
+      <div style={{ height: fold.folded ? 4 : 10, transition: `height ${ease}` }} />
+    </>
   );
 }
 
@@ -36379,7 +38463,7 @@ function ZoogramsApp() {
         && !savedFinalRef.current.has(prev.playSessionId)) {
       const acted = (prev.playLog || []).some(e => {
         const c = zg_logCategory(e && e.action);
-        return c === 'placement' || c === 'gender' || c === 'forbid' || c === 'candidate';
+        return c === 'placement' || c === 'gender' || c === 'forbid' || c === 'candidate' || c === 'note';
       });
       saveSnapshot(prev, acted ? 'abandoned' : 'skipped', 'next-puzzle');
       savedFinalRef.current.add(prev.playSessionId);
@@ -36430,7 +38514,9 @@ function ZoogramsApp() {
   // via onSelectionChange so cell-click handlers can see it.
   // ──────────────────────────────────────────────────────────
   const selectionRef = useRef(null);
-  const handleSelectionChange = useCallback((id) => { selectionRef.current = id; }, []);
+  // 2.3: 손패에서 고른 타일(탭 배치 안내에 쓴다)
+  const [selTok, setSelTok] = useState(null);
+  const handleSelectionChange = useCallback((id) => { selectionRef.current = id; setSelTok(id); }, []);
 
   // Ref to DragProvider's internal deselect function. Allows the app to
   // clear the tap-selection highlight after a tap-and-place placement,
@@ -36470,13 +38556,233 @@ function ZoogramsApp() {
     }
   }, [state.placements]);
 
+  // ═══ 2.3 플레이 도구 ═══════════════════════════════════════════════════════
+  const tools = useZGTools();
+  const split = !!tools.candSplit;
+  const [pen, setPenRaw] = useState('place');       // 'place'(놓기 또는 순환) | 'X' | 'O' | 'M' | 'F' | 'erase'
+  const [cellPop, setCellPop] = useState(null);     // { r, c, tab: 'place' | 'cand' }
+  const [nope, setNope] = useState(null);           // { key, ts } 할 수 없는 손동작의 작은 흔들림
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [hypoOpen, setHypoOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [coachDone, setCoachDone] = useState(() => !zgOpt('playTools.coachHint', true) || ZG.tools.coachDone());
+  const hypoBtnRef = useRef(null);
+  const moreBtnRef = useRef(null);
+  const boardZoneRef = useRef(null);
+  // 펜은 ref에도 바로 적는다(펜을 고른 직후의 칸 탭이 다시 그리기 전에도 새 펜을 보게)
+  const penRef = useRef('place');
+  const liveRef = useRef(null);
+  liveRef.current = { state, pen: penRef.current, tools, split };
+  const applyPen = (next) => { penRef.current = next; if (liveRef.current) liveRef.current.pen = next; setPenRaw(next); };
+  const setPen = useCallback((p) => {
+    const prev = penRef.current;
+    const next = (p === prev && p !== 'place') ? 'place' : p;   // 든 펜을 다시 누르면 내려놓기
+    if (next !== prev) {
+      applyPen(next);
+      dispatch({ type: 'TOOL_EVENT', event: 'pen-select', detail: { pen: next } });
+    }
+    if (deselectRef.current) deselectRef.current();
+  }, []);
+  // 새 판: 펜을 내려놓고 창을 닫는다. 펜 팔레트를 끄면 펜도 내려놓는다.
+  useEffect(() => { applyPen('place'); setCellPop(null); setHypoOpen(false); setMoreOpen(false); }, [state.playSessionId]);
+  useEffect(() => { if (!tools.pens) applyPen('place'); }, [tools.pens]);
+  useEffect(() => { if (state.isSolved || state.isGenerating) { setCellPop(null); setHypoOpen(false); setMoreOpen(false); } }, [state.isSolved, state.isGenerating]);
+  const nopeAt = useCallback((key) => {
+    setNope({ key, ts: Date.now() });
+    setTimeout(() => setNope(n => (n && n.key === key) ? null : n), 260);
+  }, []);
+  const paintOpFor = useCallback((key) => {
+    const L = liveRef.current;
+    const cur = L.state.cellMarks[key];
+    if (L.tools.pens && L.pen !== 'place') {
+      if (L.pen === 'erase') return { pen: 'erase', op: 'add' };
+      const pm = L.pen === 'O' ? (L.split ? 'O' : 'Q') : L.pen;
+      return { pen: pm, op: zg_penHas(pm, cur) ? 'remove' : 'add' };
+    }
+    // 펜이 없으면(또는 펜 팔레트가 꺼져 있으면) 순환 끌기: 첫 칸이 바뀌는 상태로 모두 맞춘다.
+    //   펜 팔레트가 켜진 상태의 놓기 도구는 칠하지 않는다(누르면 놓을 동물을 고르는 창).
+    if (L.tools.pens && L.tools.tapPlace) return null;
+    return { pen: 'set', mark: zg_cycleNext(cur, L.split) };
+  }, []);
+  const handlePaintCommit = useCallback((tool, keys) => {
+    dispatch({ type: 'PAINT_CELLS', pen: tool.pen, op: tool.op, mark: tool.mark, keys, split: liveRef.current.split });
+  }, []);
+  const openCellPop = useCallback((r, c, tab) => {
+    setCellPop({ r, c, tab });
+    setHypoOpen(false); setMoreOpen(false);
+  }, []);
+  const handleCellTap = useCallback((r, c) => {
+    const L = liveRef.current;
+    const st = L.state;
+    if (!st.puzzle || st.isSolved || st.isGenerating || (st.timerPaused && st.timerFinalElapsedMs === null)) return;
+    const key = `${r},${c}`;
+    const cur = st.cellMarks[key];
+    // 고른 타일(손패, 또는 다른 타일을 고른 뒤 누른 보드 타일)이 있으면 그 칸에 놓는다(펜보다 먼저, 이전과 같음)
+    const tid = selectionRef.current;
+    if (tid) {
+      if (cur === 'X') { nopeAt(key); return; }
+      handleDragPlace({ tokenId: tid, row: r, col: c });
+      if (deselectRef.current) deselectRef.current();
+      return;
+    }
+    if (L.tools.pens && L.pen !== 'place') {
+      if (L.pen === 'erase') {
+        if (!cur && !st.qCandidates[key]) { nopeAt(key); return; }
+        dispatch({ type: 'PAINT_CELLS', pen: 'erase', op: 'add', keys: [key], split: L.split });
+        return;
+      }
+      const pm = L.pen === 'O' ? (L.split ? 'O' : 'Q') : L.pen;
+      dispatch({ type: 'PAINT_CELLS', pen: pm, op: zg_penHas(pm, cur) ? 'remove' : 'add', keys: [key], split: L.split });
+      return;
+    }
+    if (L.tools.pens && L.tools.tapPlace) {
+      // 놓기 도구: 그 칸에 놓을 동물을 고르는 창
+      if (cur === 'X') { nopeAt(key); return; }
+      openCellPop(r, c, 'place');
+      return;
+    }
+    dispatch({ type: 'CYCLE_CELL_MARK', row: r, col: c, split: L.split });
+  }, [handleDragPlace, nopeAt, openCellPop]);
+  const handleCellLongPress = useCallback((r, c) => {
+    const L = liveRef.current;
+    const st = L.state;
+    if (!st.puzzle || st.isSolved || st.isGenerating || (st.timerPaused && st.timerFinalElapsedMs === null)) return;
+    const key = `${r},${c}`;
+    const cur = st.cellMarks[key];
+    if (cur === 'X') { nopeAt(key); return; }
+    // 2.3.1 어느 창이 먼저 뜨나
+    //   빈 칸(표시도 후보도 없음): 순환 모드(놓기 도구가 탭을 맡지 않음)에서 길게 눌러 놓기가 켜져 있으면 놓기.
+    //     펜 팔레트가 꺼진 채 탭 배치만 켠 이전 조합도 놓기.
+    //   ♂, ♀, (?)(또는 Q), 후보가 적힌 칸: 후보가 먼저(후보 분리가 꺼져 있으면 놓기뿐).
+    const hasCands = !!(st.qCandidates[key] && st.qCandidates[key].length);
+    const isEmpty = !cur && !hasCands;
+    const tapOwnsPlace = !!(L.tools.pens && L.tools.tapPlace);
+    const placeFirst = isEmpty && ((L.tools.longPlace && !tapOwnsPlace) || (!L.tools.pens && L.tools.tapPlace));
+    const tab = (placeFirst || !L.tools.candSplit) ? 'place' : 'cand';
+    openCellPop(r, c, tab);
+    if (!coachDone) { setCoachDone(true); ZG.tools.setCoachDone(); }
+  }, [nopeAt, openCellPop, coachDone]);
+  // 창에서 고른 타일은 손패에서 끌어 놓은 것과 똑같이 놓는다(성별도 같은 규칙: 정해진 것만 확정)
+  const handlePopPlace = useCallback((tokenId) => {
+    const L = liveRef.current;
+    if (!cellPop) return;
+    const tok = L.state.puzzle && L.state.puzzle.tokens.find(t => t.id === tokenId);
+    if (!tok) return;
+    handleDragPlace({ tokenId, row: cellPop.r, col: cellPop.c });
+    setCellPop(null);
+  }, [cellPop, handleDragPlace]);
+  const handlePopCand = useCallback((animalId) => {
+    if (!cellPop) return;
+    dispatch({ type: 'TOGGLE_CANDIDATE', row: cellPop.r, col: cellPop.c, animalId, gender: null });
+  }, [cellPop]);
+  const handlePopClear = useCallback(() => {
+    if (!cellPop) return;
+    dispatch({ type: 'CLEAR_CANDIDATES', row: cellPop.r, col: cellPop.c });
+  }, [cellPop]);
+  const closeTransient = () => { setCellPop(null); setHypoOpen(false); setMoreOpen(false); if (deselectRef.current) deselectRef.current(); };
+  const handleUndo = useCallback(() => { closeTransient(); dispatch({ type: 'UNDO' }); }, []);
+  const handleRedo = useCallback(() => { closeTransient(); dispatch({ type: 'REDO' }); }, []);
+  const hypoDepth = (state.hypo || []).length;
+  const hypoTopSnap = hypoDepth ? state.hypo[hypoDepth - 1] : null;
+  const hypoTop = useMemo(() => hypoTopSnap ? Object.assign({}, hypoTopSnap, { depth: hypoDepth }) : null, [hypoTopSnap, hypoDepth]);
+  const hypoChanged = hypoTop && state.puzzle ? zg_hypoDiffKeys(hypoTop, state, state.puzzle.tokens).size : 0;
+  const handleHypoButton = useCallback(() => {
+    const L = liveRef.current;
+    setCellPop(null); setMoreOpen(false);
+    if (!(L.state.hypo || []).length) { dispatch({ type: 'HYPO_START' }); setHypoOpen(false); return; }
+    setHypoOpen(o => !o);
+  }, []);
+  const handleToolChange = useCallback((k, v) => {
+    ZG.tools.set({ [k]: v });
+    dispatch({ type: 'TOOL_EVENT', event: 'tools-change', detail: { key: k, value: !!v } });
+  }, []);
+  // 모두 켜져 있으면 "모두 끄기"(이전 화면으로), 아니면 "모두 켜기"
+  const handleToolsReset = useCallback((allOn) => {
+    const patch = {}; for (const k of ZG.tools.KEYS) if (k !== 'tapPlace' || allOn) patch[k] = !allOn;   // 모두 켜기는 탭 배치를 그대로 둔다
+    ZG.tools.set(patch);
+    dispatch({ type: 'TOOL_EVENT', event: 'tools-change', detail: { key: '*', value: !allOn } });
+  }, []);
+  const openTools = useCallback(() => { setMoreOpen(false); setHypoOpen(false); setCellPop(null); setToolsOpen(true); }, []);
+  // 2.3.1 도구 막대 접기/펴기(기록: 화면 맥락)
+  const handleFoldChange = useCallback((folded) => {
+    setMoreOpen(false); setHypoOpen(false);
+    dispatch({ type: 'TOOL_EVENT', event: 'rail-fold', detail: { folded: !!folded } });
+  }, []);
+  // 키보드: Ctrl/⌘+Z 되돌리기, Ctrl/⌘+Shift+Z 또는 Ctrl+Y 다시 하기, 1~6 펜, Esc 펜 내려놓기
+  useEffect(() => {
+    const onKey = (e) => {
+      const L = liveRef.current;
+      const st = L.state;
+      if (!st.puzzle || st.isSolved || st.isGenerating || st.showWin || st.showRules || st.showCustom || toolsOpen) return;
+      if (st.timerPaused && st.timerFinalElapsedMs === null) return;   // 일시정지 화면 아래 보드는 건드리지 않는다
+      const tg = e.target;
+      if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable)) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+        if (!L.tools.undo) return;
+        e.preventDefault();
+        if (e.shiftKey) handleRedo(); else handleUndo();
+        return;
+      }
+      if (mod && !e.altKey && (e.key === 'y' || e.key === 'Y')) { if (!L.tools.undo) return; e.preventDefault(); handleRedo(); return; }
+      if (mod || e.altKey) return;
+      if (L.tools.pens && /^[1-6]$/.test(e.key)) { e.preventDefault(); setPen(ZG_PEN_KEYS[Number(e.key) - 1]); return; }
+      if (e.key === 'Escape' && L.pen !== 'place') { setPen('place'); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toolsOpen, handleUndo, handleRedo, setPen]);
+  // 사용법 한 줄: 켜 둔 도구에 맞는 문장
+  const longPlaceActive = !!(tools.longPlace && !(tools.pens && tools.tapPlace));
+  const coachKey = tools.pens
+    ? (longPlaceActive ? (tools.candSplit ? 'coach.pensLong' : 'coach.pensLongNoCand') : (tools.candSplit ? 'coach.pens' : 'coach.pensNoCand'))
+    : (longPlaceActive && tools.candSplit ? 'coach.noPensLong' : 'coach.noPens');
+  const coachText = (!coachDone && state.puzzle && !state.isSolved && (tools.pens || tools.candSplit || tools.tapPlace || tools.longPlace))
+    ? tApp(coachKey) : null;
+  const closeCoach = useCallback(() => { setCoachDone(true); ZG.tools.setCoachDone(); }, []);
+  // 한 판을 도구와 함께 끝까지 풀었으면 사용법 한 줄은 다시 보이지 않는다
+  useEffect(() => { if (state.isSolved && !coachDone && !state.solutionRevealed) closeCoach(); }, [state.isSolved]);
+  // 칸 창을 닫으면 초점을 그 칸으로 돌려준다(키보드로 연 경우 이어서 방향키로 움직일 수 있게)
+  const closeCellPop = useCallback((why) => {
+    const cp = cellPop;
+    setCellPop(null);
+    if (cp && why !== 'outside') {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-board-card] [data-drop-cell="${cp.r},${cp.c}"]`);
+        const target = el && (el.getAttribute('tabindex') === '0' ? el : el.querySelector('[tabindex="0"]'));
+        const ae = document.activeElement;
+        if (target && (!ae || ae === document.body || !document.body.contains(ae))) { try { target.focus({ preventScroll: true }); } catch (e) {} }
+      }, 0);
+    }
+  }, [cellPop]);
+  const toolsAny = ZG.tools.KEYS.some(k => tools[k]);
+  const inputLocked = !!(state.isSolved || state.isGenerating || (state.timerPaused && state.timerFinalElapsedMs === null));
+
   // Tap on a tile — toggle gender mark if board tile, else handled by provider (select)
   const handleTapTile = useCallback(({ tokenId, source }) => {
     if (!tokenId || !state.puzzle) return;
     if (source !== 'board') return; // hand taps handled by provider (select)
     const isFixed = !!(state.puzzle.preMarks && state.puzzle.preMarks[tokenId]);
+    // 2.3 펜을 든 채 타일을 누르면: ♂/♀ 펜은 성별을 바로 정하고(같은 성별이면 미정으로),
+    //   지움 펜은 손패로 되돌린다. X, (?) 펜은 타일에 쓸 수 없다(작은 흔들림).
+    const L = liveRef.current;
+    if (L.tools.pens && L.pen !== 'place') {
+      const p = state.placements[tokenId];
+      const key = p ? `${p.row},${p.col}` : null;
+      if (isFixed) { if (key) nopeAt(key); return; }
+      if (L.pen === 'M' || L.pen === 'F') {
+        const g = L.pen === 'M' ? 'male' : 'female';
+        const partnerId = getPartnerToken(tokenId, state.puzzle.pairs);
+        if (partnerId && state.puzzle.preMarks && state.puzzle.preMarks[partnerId]) { if (key) nopeAt(key); return; }
+        dispatch({ type: 'SET_GENDER', tokenId, gender: state.marks[tokenId] === g ? null : g });
+        return;
+      }
+      if (L.pen === 'erase') { dispatch({ type: 'RETURN_TO_HAND', tokenId }); return; }
+      if (key) nopeAt(key);
+      return;
+    }
     if (!isFixed) dispatch({ type: 'TOGGLE_MARK', tokenId });
-  }, [state.puzzle]);
+  }, [state.puzzle, state.placements, state.marks, nopeAt]);
 
   // Tap on empty cell — if a tile is selected, place it; else cycle cell mark
   const handleEmptyCellClickWrapped = useCallback((r, c) => {
@@ -36519,9 +38825,12 @@ function ZoogramsApp() {
       }} />
       {/* V12.28→V12.29: 사용자 정정 — 사이드(floating) 광고 제거됨, 인라인으로 이동.
           하단 광고는 그대로 유지. */}
-      <div style={{ position: 'relative', maxWidth: 960, margin: '0 auto', overflowX: 'hidden' }}>
+      {/* 2.3: 가로 넘침 자르기는 zg-main(overflow-x: clip, 지원 안 되면 hidden). hidden은 스크롤 상자를 만들어
+          도구 막대가 화면 아래에 붙지(sticky) 못한다. */}
+      <div className="zg-main" style={{ position: 'relative', maxWidth: 960, margin: '0 auto' }}>
         <Header
           onHelp={() => dispatch({ type: 'SHOW_RULES' })}
+          onOpenTools={ZG.FEATURES.playTools ? openTools : undefined}
           level={state.level}
           onChangeLevel={handleLevelChange}
           disabled={state.isGenerating}
@@ -36554,6 +38863,8 @@ function ZoogramsApp() {
               timerPaused={state.timerPaused}
               timerFinalElapsedMs={state.timerFinalElapsedMs}
               onPauseTimer={() => dispatch({ type: 'TIMER_PAUSE' })} />
+            {/* 2.3: 보드 영역 = 보드 + 도구 막대(막대가 화면 아래에 붙어도 이 영역 밖으로는 나가지 않는다) */}
+            <div ref={boardZoneRef} style={{ position: 'relative' }}>
             <Grid puzzle={state.puzzle} placements={state.placements} marks={state.marks}
               cellMarks={state.cellMarks} qCandidates={state.qCandidates} qMarkCapacity={state.qMarkCapacity}
               onCellClick={handleCellClick}
@@ -36561,7 +38872,40 @@ function ZoogramsApp() {
               onCellDrop={handleCellDrop} onTokenDragStart={handleTokenDragStart}
               recentTokenId={state.recentTokenId} partnerTokenId={state.partnerTokenId}
               winAnimating={state.isSolved} dragState={state.dragState}
-              hintTokenIds={state.hintTokenIds} />
+              hintTokenIds={state.hintTokenIds}
+              tools={toolsAny ? tools : null} pen={tools.pens ? pen : 'place'}
+              onCellTap={handleCellTap} onCellLongPress={handleCellLongPress}
+              paintOpFor={paintOpFor} onPaintCommit={handlePaintCommit}
+              hypoTop={hypoTop} popoverKey={cellPop ? `${cellPop.r},${cellPop.c}` : null}
+              tapTargets={!!((tools.tapPlace || tools.longPlace) && selTok && !state.placements[selTok])}
+              nope={nope} inputLocked={inputLocked} />
+            {toolsAny && (
+              <PlayToolDock zoneRef={boardZoneRef} puzzleKey={state.playSessionId + ':' + (state.puzzle ? state.puzzle.n : 0)}
+                coach={coachText} onCoachClose={closeCoach}
+                railProps={{
+                  tools, pen, onPen: setPen,
+                  canUndo: !!(state.history && state.history.length), canRedo: !!(state.future && state.future.length),
+                  onUndo: handleUndo, onRedo: handleRedo,
+                  hypoDepth, hypoChanged, onHypo: handleHypoButton, hypoRef: hypoBtnRef, hypoOpen,
+                  onOpenSettings: openTools,
+                  onMore: () => { setCellPop(null); setHypoOpen(false); setMoreOpen(o => !o); }, moreOpen, moreRef: moreBtnRef,
+                  disabled: inputLocked,
+                  onFoldChange: handleFoldChange,
+                }} />
+            )}
+            </div>
+            <CellPopover open={cellPop} puzzle={state.puzzle} placements={state.placements} marks={state.marks}
+              cellMarks={state.cellMarks} qCandidates={state.qCandidates} qMarkCapacity={state.qMarkCapacity} tools={tools}
+              onPlace={handlePopPlace} onToggleCand={handlePopCand} onClearCands={handlePopClear}
+              onTab={(tab) => setCellPop(p => p ? { ...p, tab } : p)} onClose={closeCellPop} />
+            <HypoMenu anchorRef={hypoBtnRef} open={hypoOpen && hypoDepth > 0} depth={hypoDepth} changed={hypoChanged}
+              maxDepth={Math.max(1, zgOpt('playTools.hypothesisMaxDepth', 3))}
+              onDiscard={() => { setHypoOpen(false); dispatch({ type: 'HYPO_DISCARD' }); }}
+              onCommit={() => { setHypoOpen(false); dispatch({ type: 'HYPO_COMMIT' }); }}
+              onNest={() => { setHypoOpen(false); dispatch({ type: 'HYPO_START' }); }}
+              onClose={() => setHypoOpen(false)} />
+            <RailMoreMenu anchorRef={moreBtnRef} open={moreOpen} canRedo={!!(state.future && state.future.length)} undoOn={!!tools.undo}
+              onRedo={() => { setMoreOpen(false); handleRedo(); }} onSettings={openTools} onClose={() => setMoreOpen(false)} />
             <HandPool puzzle={state.puzzle} placements={state.placements} marks={state.marks}
               onTokenDragStart={handleTokenDragStart} onDropToHand={handleDropToHand}
               dragState={state.dragState} onHandTapReturn={handleHandTapReturn} />
@@ -36604,6 +38948,8 @@ function ZoogramsApp() {
         <InvalidSeedBanner onDismiss={() => setInvalidSeedShown(false)} />
       )}
       <RulesModal show={state.showRules} onClose={() => dispatch({ type: 'CLOSE_RULES' })} />
+      <PlayToolsSheet open={toolsOpen} onClose={() => setToolsOpen(false)} tools={tools}
+        onChange={handleToolChange} onReset={handleToolsReset} />
       <WinDialog
         show={state.showWin}
         level={state.level}
@@ -38733,6 +41079,33 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
         return `${tStr} | ◉ ${t('playlog.pageVisible')}`;
       case 'lab-view':
         return `${tStr} | 🔬 ${t('playlog.labView')} (${d.tool || ''})`;
+      // 2.3 플레이 도구
+      case 'exist-mark':
+        return `${tStr} | ● ${t('playlog.existMark')} ${cellTag(d.row, d.col)}`;
+      case 'exist-clear':
+        return `${tStr} | ○ ${t('playlog.existClear')} ${cellTag(d.row, d.col)}`;
+      case 'gender-note':
+        return `${tStr} | ${d.gender === 'male' ? '♂' : '♀'} ${t('playlog.genderNote')} ${cellTag(d.row, d.col)}`;
+      case 'gender-note-clear':
+        return `${tStr} | ○ ${t('playlog.genderNoteClear')} ${cellTag(d.row, d.col)}`;
+      case 'note-change':
+        return `${tStr} | ⟳ ${t('playlog.noteChange')} ${cellTag(d.row, d.col)} ${d.from}→${d.to}`;
+      case 'undo':
+        return `${tStr} | ↶ ${t('playlog.undo')}`;
+      case 'redo':
+        return `${tStr} | ↷ ${t('playlog.redo')}`;
+      case 'hypo-start':
+        return `${tStr} | ⚑ ${t('playlog.hypoStart')} (${d.depth})`;
+      case 'hypo-discard':
+        return `${tStr} | ⚑↶ ${t('playlog.hypoDiscard')} (${d.depth}, ${d.changed})`;
+      case 'hypo-commit':
+        return `${tStr} | ⚑✓ ${t('playlog.hypoCommit')} (${d.depth}, ${d.changed})`;
+      case 'paint':
+        return `${tStr} | ≋ ${t('playlog.paint')} ${d.pen || ''}${d.mark ? '=' + d.mark : ''} ×${d.cells}`;
+      case 'pen-select':
+        return `${tStr} | ✎ ${t('playlog.penSelect')} ${d.pen}`;
+      case 'tools-change':
+        return `${tStr} | ⚙ ${t('playlog.toolsChange')} ${d.key}=${d.value}`;
       default:
         return `${tStr} | ${e.action}: ${JSON.stringify(d)}`;
     }
@@ -38973,6 +41346,8 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
     { id: 'gender',    label: t('playlog.filter.gender') },
     { id: 'forbid',    label: t('playlog.filter.forbid') },
     { id: 'candidate', label: t('playlog.filter.candidate') },
+    { id: 'note',      label: t('playlog.filter.note') },      // 2.3 펜 메모(●, ♂/♀)
+    { id: 'tool',      label: t('playlog.filter.tool') },      // 2.3 되돌리기, 가정, 끌기, 펜
     { id: 'system',    label: t('playlog.filter.system') },
   ];
 
@@ -43573,7 +45948,16 @@ function StickyMobileAd() {
     } else {
       root.style.removeProperty('--sticky-ad-h');
     }
-    return () => root.style.removeProperty('--sticky-ad-h');
+    // 2.3: 그려진 뒤 실제 높이로 바로잡는다(머리줄과 여백 때문에 위 추정보다 크다). 광고가 늦게 채워져
+    //   높이가 바뀌어도 따라간다. 보드 아래 도구 막대가 이 높이 위에 붙는다.
+    let ro = null;
+    const el = (isMobile && !dismissed && cfg) ? document.getElementById('sticky-mobile-ad') : null;
+    if (el) {
+      const upd = () => { const h = el.offsetHeight; if (h > 0) root.style.setProperty('--sticky-ad-h', `${h}px`); };
+      upd();
+      try { ro = new ResizeObserver(upd); ro.observe(el); } catch (e) {}
+    }
+    return () => { if (ro) ro.disconnect(); root.style.removeProperty('--sticky-ad-h'); };
   }, [isMobile, dismissed, cfg]);
 
   if (!isMobile || dismissed || !cfg) return null;
