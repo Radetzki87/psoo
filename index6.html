@@ -8335,15 +8335,15 @@ Object.assign(STRINGS, {
   },
   'tools.candSplit': { ko: '후보 분리', en: 'Separate candidates', es: 'Candidatos aparte', pt: 'Candidatos à parte', fr: 'Candidats séparés', de: 'Kandidaten getrennt', ru: 'Отдельные кандидаты', zh: '候选分离', ja: '候補を分ける' },
   'tools.candSplit.desc': {
-    ko: '칸을 길게 눌러 동물 후보를 적어요. 타일을 놓지 않아요. 순환에서는 후보칸 대신 있음 (?)이 들어가요.',
-    en: 'Long-press a cell to note candidate animals without placing tiles. In the cycle, Animal (?) replaces the Maybe cell.',
-    es: 'Mantén pulsada una casilla para anotar animales candidatos sin colocar fichas. En el ciclo, Animal (?) sustituye a Quizá.',
-    pt: 'Segure uma casa para anotar animais candidatos sem colocar peças. No ciclo, Animal (?) substitui Talvez.',
-    fr: 'Appui long sur une case pour noter des animaux candidats sans poser de tuile. Dans le cycle, Animal (?) remplace Peut-être.',
-    de: 'Feld lange drücken, um Kandidaten zu notieren, ohne Steine zu legen. Im Wechsel ersetzt Tier (?) das Vielleicht-Feld.',
-    ru: 'Долгое нажатие на клетку записывает кандидатов, не кладя фишки. В цикле вместо «Может» ставится Есть (?).',
-    zh: '长按格子记下候选动物，无需放置牌。循环中以 有 (?) 代替候选格。',
-    ja: 'マスを長押しで候補の動物をメモ。タイルは置きません。循環では候補マスの代わりに あり (?) が入ります。',
+    ko: '켜면 있음 (?), ♂, ♀ 표시와 종 후보를 따로 적어요. 끄면 변형 후보: 후보칸 ?, ♂, ♀ 세 가지에 종과 성별을 함께 적어요(칸을 길게 눌러 적고, ♂/♀ 펜을 대면 다른 성별 후보는 빠져요). 어느 쪽이든 타일을 끌어 놓아도 후보로 등록되지 않아요.',
+    en: 'On: mark Animal (?), ♂, ♀ and note species candidates separately. Off (variant candidates): three candidate cells ?, ♂, ♀ that hold species with sex (long-press to note; a ♂/♀ pen drops candidates of the other sex). Either way, dropping a tile does not register a candidate.',
+    es: 'Activado: marca Animal (?), ♂, ♀ y anota especies candidatas por separado. Desactivado (candidatos variantes): tres casillas de candidatos ?, ♂, ♀ con especie y sexo (mantén pulsado para anotar; un lápiz ♂/♀ quita los candidatos del otro sexo). En ambos casos, soltar una ficha no registra un candidato.',
+    pt: 'Ligado: marque Animal (?), ♂, ♀ e anote espécies candidatas à parte. Desligado (candidatos variantes): três casas de candidatos ?, ♂, ♀ com espécie e sexo (segure para anotar; uma caneta ♂/♀ tira os candidatos do outro sexo). Em ambos os casos, soltar uma peça não registra candidato.',
+    fr: 'Activé : marquez Animal (?), ♂, ♀ et notez les espèces candidates à part. Désactivé (candidats variantes) : trois cases candidates ?, ♂, ♀ avec espèce et sexe (appui long pour noter ; un stylo ♂/♀ retire les candidats de l’autre sexe). Dans les deux cas, déposer une tuile n’enregistre pas de candidat.',
+    de: 'An: Tier (?), ♂, ♀ markieren und Arten-Kandidaten getrennt notieren. Aus (Varianten-Kandidaten): drei Kandidatenfelder ?, ♂, ♀ mit Art und Geschlecht (lange drücken zum Notieren; ein ♂/♀-Stift entfernt Kandidaten des anderen Geschlechts). In beiden Fällen registriert das Ablegen eines Steins keinen Kandidaten.',
+    ru: 'Вкл: отмечайте Есть (?), ♂, ♀ и отдельно записывайте виды-кандидаты. Выкл (вариант): три клетки кандидатов ?, ♂, ♀ с видом и полом (долгое нажатие записывает; ручка ♂/♀ убирает кандидатов другого пола). В обоих случаях положенная фишка не становится кандидатом.',
+    zh: '开启：分别标记 有 (?)、♂、♀ 并记下候选物种。关闭（变体候选）：候选格 ?、♂、♀ 三种，记物种和性别（长按记录；用 ♂/♀ 笔会去掉另一性别的候选）。两种方式下拖放牌都不会登记为候选。',
+    ja: 'オン：あり (?)、♂、♀ のしるしと候補の種を別々にメモ。オフ（変形候補）：候補マス ?、♂、♀ の3種に種と性別をメモ（長押しで記入、♂/♀ ペンを当てると別の性別の候補は外れます）。どちらでもタイルを置いても候補にはなりません。',
   },
   'tools.tapPlace': { ko: '탭 배치', en: 'Tap to place', es: 'Tocar para colocar', pt: 'Toque para colocar', fr: 'Toucher pour poser', de: 'Tippen zum Setzen', ru: 'Размещение касанием', zh: '点击放置', ja: 'タップで配置' },
   'tools.tapPlace.desc': {
@@ -8487,6 +8487,7 @@ Object.assign(STRINGS, {
     ko: ({ n, cap }) => `후보 ${n}/${cap}`, en: ({ n, cap }) => `${n}/${cap} noted`, es: ({ n, cap }) => `${n}/${cap} anotados`, pt: ({ n, cap }) => `${n}/${cap} anotados`,
     fr: ({ n, cap }) => `${n}/${cap} notés`, de: ({ n, cap }) => `${n}/${cap} notiert`, ru: ({ n, cap }) => `${n}/${cap}`, zh: ({ n, cap }) => `已记 ${n}/${cap}`, ja: ({ n, cap }) => `候補 ${n}/${cap}`,
   },
+  'pop.candNoneGender': { ko: '이 성별로 적을 동물이 손패에 없어요', en: 'No animal of this sex left in your hand', es: 'No quedan animales de este sexo en la mano', pt: 'Não há animais deste sexo na mão', fr: 'Plus d’animal de ce sexe dans la main', de: 'Kein Tier dieses Geschlechts mehr in der Hand', ru: 'В руке нет животных этого пола', zh: '手牌中没有该性别的动物', ja: 'この性別の動物は手札にありません' },
   'pop.clear': { ko: '후보 지우기', en: 'Clear', es: 'Borrar', pt: 'Limpar', fr: 'Effacer', de: 'Leeren', ru: 'Очистить', zh: '清除', ja: 'クリア' },
   'pop.handEmpty': { ko: '손패가 비었어요', en: 'Your hand is empty', es: 'La mano está vacía', pt: 'A mão está vazia', fr: 'La main est vide', de: 'Die Hand ist leer', ru: 'Рука пуста', zh: '手牌已空', ja: '手札は空です' },
   'cell.aria': {
@@ -8534,6 +8535,17 @@ Object.assign(STRINGS, {
     ru: 'Выберите ручку на панели (Пусто X, Есть (?), ♂, ♀, Ластик) и касайтесь клеток или тяните вдоль линии. Повторное касание той же пометки убирает её. Долгое нажатие (правый клик) на пустую клетку — выбрать животное, на клетку с ♂, ♀, (?) или кандидатами — записать кандидатов; в окне можно переключить. С ручкой касание фишки задаёт пол (♂/♀) или возвращает её в руку (Ластик). Последняя кнопка сворачивает панель.',
     zh: '在工具栏选一支笔（无 X、有 (?)、♂、♀、擦除），点格子或沿一行拖动即可写上。再点同一标记即可去掉。长按空格（鼠标右键）选择要放的动物，长按标有 ♂、♀、(?) 或候选的格子记候选，窗口内可切换。拿着笔点已放的牌：♂/♀ 笔设定性别，擦除笔放回手牌。最后一个按钮可收起工具栏。',
     ja: 'ツールバーでペン（なし X、あり (?)、♂、♀、消す）を選び、マスをタップまたは列をなぞって記入。同じしるしをもう一度で消えます。空きマスの長押し（マウスは右クリック）で置く動物、♂、♀、(?)、候補のあるマスの長押しで候補を選ぶ窓が開きます（窓の中で切替可）。ペンで置いたタイルをタップすると ♂/♀ は性別を決め、消すは手札に戻します。最後のボタンでバーを畳めます。',
+  },
+  'rules.ctl.pens.bodyVariant': {
+    ko: '도구 막대에서 펜(없음 X, 후보칸 ?, ♂, ♀, 지움)을 고르면 칸을 누르거나 줄을 따라 끌어 바로 적어요. 같은 표시를 다시 누르면 지워져요. 후보칸(?, ♂, ♀)을 길게 누르면(마우스는 오른쪽 클릭) 동물 후보를 종과 성별로 적어요. ♂ 칸에는 ♂, ♀ 칸에는 ♀ 후보만 적히고, ? 칸에 ♂/♀ 펜을 대면 다른 성별 후보는 빠져요. 빈 칸을 길게 누르면 놓을 동물을 고르는 창이 먼저 뜨고, 거기서 후보를 적으면 후보칸이 돼요. 타일을 후보칸에 끌어 놓아도 후보로 등록되지는 않아요. 막대 끝 단추로 막대를 접고 펼 수 있어요.',
+    en: 'Pick a pen on the tool bar (None X, Maybe ?, ♂, ♀, Erase), then tap cells or drag along a line. Tap the same mark again to remove it. Long-press (right-click) a candidate cell (?, ♂, ♀) to note candidate animals by species and sex. A ♂ cell takes only ♂ candidates and a ♀ cell only ♀; putting a ♂/♀ pen on a ? cell drops candidates of the other sex. Long-pressing an empty cell opens the place picker first; noting a candidate there makes it a candidate cell. Dropping a tile on a candidate cell does not register it. The last button folds the bar.',
+    es: 'Elige un lápiz en la barra (Nada X, Quizá ?, ♂, ♀, Borrar) y toca casillas o arrastra por una línea. Toca la misma marca otra vez para quitarla. Mantén pulsada (clic derecho) una casilla de candidatos (?, ♂, ♀) para anotar animales por especie y sexo. Una casilla ♂ solo admite candidatos ♂ y una ♀ solo ♀; poner un lápiz ♂/♀ en una casilla ? quita los del otro sexo. En una casilla vacía se abre primero la selección de animal; anotar ahí un candidato la convierte en casilla de candidatos. Soltar una ficha en una casilla de candidatos no la registra. El último botón pliega la barra.',
+    pt: 'Escolha uma caneta na barra (Nada X, Talvez ?, ♂, ♀, Apagar) e toque nas casas ou arraste por uma linha. Toque a mesma marca de novo para tirar. Segure (clique direito) uma casa de candidatos (?, ♂, ♀) para anotar animais por espécie e sexo. Uma casa ♂ aceita só candidatos ♂ e uma ♀ só ♀; pôr uma caneta ♂/♀ numa casa ? tira os do outro sexo. Numa casa vazia abre primeiro a escolha do animal; anotar ali um candidato a torna casa de candidatos. Soltar uma peça numa casa de candidatos não a registra. O último botão recolhe a barra.',
+    fr: 'Choisissez un stylo dans la barre (Vide X, Peut-être ?, ♂, ♀, Gomme), puis touchez des cases ou glissez le long d’une ligne. Retouchez la même marque pour l’enlever. Appui long (clic droit) sur une case candidate (?, ♂, ♀) pour noter des animaux par espèce et sexe. Une case ♂ n’accepte que des candidats ♂, une case ♀ que des ♀ ; poser un stylo ♂/♀ sur une case ? retire ceux de l’autre sexe. Sur une case vide, le choix de l’animal s’ouvre d’abord ; y noter un candidat en fait une case candidate. Déposer une tuile sur une case candidate ne l’enregistre pas. Le dernier bouton replie la barre.',
+    de: 'Wähle in der Leiste einen Stift (Leer X, Vielleicht ?, ♂, ♀, Löschen), dann Felder antippen oder entlang einer Linie ziehen. Dieselbe Markierung erneut tippen entfernt sie. Langes Drücken (Rechtsklick) auf ein Kandidatenfeld (?, ♂, ♀) notiert Tiere nach Art und Geschlecht. Ein ♂-Feld nimmt nur ♂-Kandidaten, ein ♀-Feld nur ♀; ein ♂/♀-Stift auf einem ?-Feld entfernt die des anderen Geschlechts. Auf einem leeren Feld öffnet sich zuerst die Tierauswahl; ein dort notierter Kandidat macht es zum Kandidatenfeld. Ein auf ein Kandidatenfeld gelegter Stein wird nicht registriert. Die letzte Taste klappt die Leiste ein.',
+    ru: 'Выберите ручку на панели (Пусто X, Может ?, ♂, ♀, Ластик) и касайтесь клеток или тяните вдоль линии. Повторное касание той же пометки убирает её. Долгое нажатие (правый клик) на клетку кандидатов (?, ♂, ♀) записывает животных по виду и полу. В клетку ♂ попадают только кандидаты ♂, в ♀ только ♀; ручка ♂/♀ на клетке ? убирает кандидатов другого пола. На пустой клетке сначала открывается выбор животного; записанный там кандидат делает её клеткой кандидатов. Фишка, положенная на клетку кандидатов, не записывается. Последняя кнопка сворачивает панель.',
+    zh: '在工具栏选一支笔（无 X、候选 ?、♂、♀、擦除），点格子或沿一行拖动即可写上。再点同一标记即可去掉。长按候选格（?、♂、♀，鼠标右键）按物种和性别记候选。♂ 格只记 ♂ 候选，♀ 格只记 ♀；在 ? 格用 ♂/♀ 笔会去掉另一性别的候选。长按空格先打开放置选择，在那里记候选会让它成为候选格。把牌放到候选格不会登记为候选。最后一个按钮可收起工具栏。',
+    ja: 'ツールバーでペン（なし X、候補 ?、♂、♀、消す）を選び、マスをタップまたは列をなぞって記入。同じしるしをもう一度で消えます。候補マス（?、♂、♀）の長押し（マウスは右クリック）で種と性別の候補をメモ。♂ マスには ♂、♀ マスには ♀ の候補だけが入り、? マスに ♂/♀ ペンを当てると別の性別の候補は外れます。空きマスの長押しでは置く動物の選択が先に開き、そこで候補をメモすると候補マスになります。タイルを候補マスに置いても候補にはなりません。最後のボタンでバーを畳めます。',
   },
   'rules.ctl.undo.title': { ko: '되돌리기와 가정', en: 'Undo and hypotheses', es: 'Deshacer e hipótesis', pt: 'Desfazer e hipóteses', fr: 'Annuler et hypothèses', de: 'Rückgängig und Annahmen', ru: 'Отмена и предположения', zh: '撤销与假设', ja: '元に戻すと仮定' },
   'rules.ctl.undo.body': {
@@ -8598,6 +8610,7 @@ Object.assign(STRINGS, {
   'playlog.paint': { ko: '끌어 칠하기', en: 'Drag paint' },
   'playlog.penSelect': { ko: '펜', en: 'Pen' },
   'playlog.toolsChange': { ko: '도구 설정', en: 'Tools setting' },
+  'playlog.candMode': { ko: '후보 방식', en: 'Candidate mode' },
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -9093,6 +9106,15 @@ const ZG_OPTIONS = {
     imageScale: 0.86,              // 미니 타일 안 그림 크기 (0~1)
     paddingRatio: 0.07,            // 칸 가장자리와 후보 묶음 사이 (칸 대비)
     genderSymbolScale: 0.276,      // 미니 타일 ♂/♀ 크기 (미니 타일 대비)
+    // 2.3.2 변형 후보(후보 분리 끔)의 ♂/♀ 후보칸: 큰 "?" 자리에 성별 기호를 그 성별색으로 옅게
+    genderGlyphScale: 0.8,         // 큰 ♂/♀ 크기 (칸 대비, "?"는 0.72. 기호 획이 가늘어 조금 더 크게)
+    genderGlyphOpacityOnEmpty: 0.42,
+    genderGlyphOpacityOnTile: 0.32,
+    // 2.3.2 변형 후보 칸에 타일이 놓였을 때: 동물 그림이 앞에 나서도록 흰 기운을 걷어 낸다(빈 자리 틀 없음, 흰 번짐 없음)
+    variantOpacityOnTile: 0.5,     // 후보 묶음 투명도 (이전 후보칸은 opacityOnTile 0.55)
+    variantPlateBgOnTile: 'rgba(255,255,255,0.5)',   // 미니 타일 받침 (기본 받침 0.75)
+    variantQuestionOpacityOnTile: 0.26,              // 큰 "?" (이전 후보칸 0.38)
+    variantGlyphOpacityOnTile: 0.22,                 // 큰 ♂/♀ (0.32)
   },
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -9155,7 +9177,8 @@ const ZG_OPTIONS = {
     defaults: {
       pens: true,                  // 펜 팔레트: 없음 X, 있음 (?), ♂, ♀, 지움을 골라 칸에 바로 적기
       dragPaint: true,             // 끌어 칠하기: 펜을 든 채 줄을 따라 끌면 지나간 칸에 같은 표시 (마우스는 펜 없이도)
-      candSplit: true,             // 후보 분리: 후보는 칸을 길게 눌러 적고(타일을 놓지 않음), 순환의 Q 자리는 (?) 있음
+      candSplit: true,             // 후보 분리(두 방식의 스위치). 켬: 있음 (?), ♂, ♀ 표시와 종 후보를 따로(6가지 칸).
+                                   //   끔: 변형 후보. 후보칸 ?, ♂, ♀ 세 가지에 종 + 성별 후보(길게 눌러 적음, ♂/♀ 펜은 다른 성별 후보를 뺌)
       tapPlace: false,             // 탭 배치: 놓기 도구로 빈 칸을 누르면 그 칸에 놓을 동물을 고르는 창. 끄면(기본) 첫 도구가 순환
       longPlace: true,             // 길게 눌러 놓기: 순환 모드에서 빈 칸을 길게 누르면 놓기 창이 먼저(후보로 전환 가능).
                                    //   ♂, ♀, (?), 후보가 적힌 칸은 후보 창이 먼저. 탭 배치와 이 설정 중 하나라도 켜면 손패 선택 시 놓을 칸 안내
@@ -9245,7 +9268,7 @@ const { useState, useEffect, useMemo, useCallback, useReducer, useRef } = React;
 const ZG = (window.ZG = window.ZG || {});
 (function (ZG) {
   // 2단계(권장 5): 플레이로그 출처 기록용 빌드 식별자 (판정 기준이 바뀔 때 올린다)
-  ZG.VERSION = 'stage2.3.1-2026.10.12';   // 플레이 도구 9종(2.3 + 길게 눌러 놓기), 탭 배치 기본 끔, 막대 접기, 손패 75%. 판정 기준은 2.1과 같음
+  ZG.VERSION = 'stage2.3.2-2026.10.13';   // 2.3.1 + 후보 분리 끔 = 변형 후보(후보칸 ?, ♂, ♀). 판정 기준은 2.1과 같음
   // 현재 화면 보조 수준(국소 검증 정보). 지금은 고정이고 설정 노출은 다음 순위다.
   //   lineDone 줄 충족 색, violation 규칙 위반 표시, genderSync 짝 성별 자동 동기,
   //   oppFull 반대 성별 정원 표시(63판 수집 이후 추가된 보조).
@@ -28772,6 +28795,12 @@ function checkWinV2(puzzle, placements, marks) {
 // 칸 표시 cellMarks["r,c"]
 //   'X' 없음 | 'Q' 후보 칸(이전 방식: 타일을 놓아 후보 등록) | 'O' 있음 (?) | 'M' 있음 + 수컷 | 'F' 있음 + 암컷
 //   O, M, F는 플레이어의 메모다. 승리 판정, 단서 충족, 힌트는 이 표시를 보지 않는다.
+// 2.3.2 후보 방식(state.candMode, 화면의 도구 설정이 CAND_MODE로 알린다)
+//   'split'   후보 분리 켬: 있음 (?), ♂, ♀ 표시와 종 후보(성별 없음)를 따로 적는다(6가지 칸).
+//   'variant' 후보 분리 끔(변형 후보): 후보칸 Q(?), M(♂), F(♀) 세 가지. 후보는 종 + 성별이고 칸에 묶인다.
+//             M/F 칸의 후보는 그 성별만. 타일을 끌어 놓아도 후보로 등록하지 않고, 길게 눌러 적는다.
+//   'legacy'  플레이 도구를 모두 끔(이전 화면): Q 칸에 성별이 정해진 타일을 놓으면 후보로 등록된다.
+//   null      아직 모름(리듀서만 쓰는 시험 등) = legacy와 같다.
 // 펜 한 번(또는 끌기 한 번)의 결과는 아래 순수 함수 하나로 정한다. 화면의 끌기 미리보기와
 // 리듀서가 같은 함수를 쓰므로 미리보기와 결과가 어긋나지 않는다.
 
@@ -28791,14 +28820,70 @@ function zg_paintResult(tool, cur, split) {
   if (tool.pen === 'erase') next = undefined;
   else if (tool.pen === 'set') next = tool.mark || undefined;
   else if (tool.op === 'remove') {
-    if (tool.pen === 'M' || tool.pen === 'F') next = cur === tool.pen ? 'O' : cur;
+    // ♂/♀를 지우면 성별만 빠진다: 후보 분리는 있음 (?), 변형 후보는 후보칸 (?)
+    if (tool.pen === 'M' || tool.pen === 'F') next = cur === tool.pen ? (split ? 'O' : 'Q') : cur;
     else next = cur === tool.pen ? undefined : cur;
   } else {
     if (tool.pen === 'O' || tool.pen === 'Q') next = (cur === 'M' || cur === 'F') ? cur : tool.pen;
     else next = tool.pen;
   }
-  const clearCand = tool.pen === 'erase' || next === 'X' || (!split && ((cur === 'Q') !== (next === 'Q')));
-  return { mark: next, clearCand };
+  // 후보 분리: 후보는 표시와 따로 있어 X가 되거나 지울 때만 지운다.
+  // 변형 후보(와 이전 방식): 후보는 후보칸(?, ♂, ♀)에 묶여 있어 그 칸이 아니게 되면 지운다.
+  const clearCand = tool.pen === 'erase' || next === 'X' || (!split && !zg_isCandCell(next));
+  // 변형 후보: ♂/♀ 칸이 되면 다른 성별 후보는 빠진다(성별 없는 후보는 그 성별이 된다)
+  const keepGender = (!split && next !== cur && (next === 'M' || next === 'F')) ? (next === 'M' ? 'male' : 'female') : null;
+  return { mark: next, clearCand, keepGender };
+}
+// 변형 후보(와 이전 방식)에서 후보가 묶일 수 있는 칸
+function zg_isCandCell(m) { return m === 'Q' || m === 'O' || m === 'M' || m === 'F'; }
+// 변형 후보: 칸의 성별에 맞는 후보만 남긴다. 성별 없는 후보는 그 성별로 바꾸고, 같은 것이 겹치면 하나만.
+function zg_candsForGender(list, gender) {
+  if (!Array.isArray(list) || !gender) return list;
+  const out = [], seen = new Set();
+  for (const c of list) {
+    if (!c || (c.gender && c.gender !== gender)) continue;
+    const sig = c.animalId + ':' + gender;
+    if (seen.has(sig)) continue;
+    seen.add(sig); out.push(c.gender ? c : { animalId: c.animalId, gender });
+  }
+  return out;
+}
+// 후보 방식을 바꿀 때 보드 한 장을 옮긴다(되돌리기 기록, 가정 체크포인트도 같은 함수로)
+//   → split: 후보칸 Q는 있음 O로, 후보는 종만(같은 종은 하나로). ♂/♀ 칸의 성별은 칸 표시가 맡는다.
+//   → variant, legacy: 있음 O는 후보칸 Q로, 후보만 적힌 칸도 Q로. ♂/♀ 칸의 성별 없는 후보는 그 성별로.
+//   바뀐 것이 없으면 같은 객체를 돌려준다.
+function zg_convertCandBoard(cellMarks, qCandidates, mode) {
+  const cm0 = cellMarks || {}, qc0 = qCandidates || {};
+  let cm = null, qc = null;
+  const changed = new Set();
+  const setMark = (k, v) => { cm = cm || { ...cm0 }; if (v === undefined) delete cm[k]; else cm[k] = v; changed.add(k); };
+  const setCands = (k, v) => { qc = qc || { ...qc0 }; if (v && v.length) qc[k] = v; else delete qc[k]; changed.add(k); };
+  if (mode === 'split') {
+    for (const k of Object.keys(cm0)) if (cm0[k] === 'Q') setMark(k, 'O');
+    for (const k of Object.keys(qc0)) {
+      const list = qc0[k] || [];
+      if (!list.some(c => c && c.gender)) continue;
+      const seen = new Set(), out = [];
+      for (const c of list) { if (!c || seen.has(c.animalId)) continue; seen.add(c.animalId); out.push({ animalId: c.animalId, gender: null }); }
+      setCands(k, out);
+    }
+  } else {
+    for (const k of Object.keys(cm0)) if (cm0[k] === 'O') setMark(k, 'Q');
+    for (const k of Object.keys(qc0)) {
+      const list = qc0[k] || [];
+      if (!list.length) continue;
+      const m = cm0[k];
+      if (m === 'X') { setCands(k, []); continue; }
+      if (!m) setMark(k, 'Q');
+      if (m === 'M' || m === 'F') {
+        const f = zg_candsForGender(list, m === 'M' ? 'male' : 'female');
+        if (JSON.stringify(f) !== JSON.stringify(list)) setCands(k, f);
+      }
+    }
+    // 이전 화면에는 ♂/♀ 후보칸이 없다: 후보칸 Q로(후보는 이미 그 성별을 지니고 있다)
+    if (mode === 'legacy') for (const k of Object.keys(cm0)) if (cm0[k] === 'M' || cm0[k] === 'F') setMark(k, 'Q');
+  }
+  return { cellMarks: cm || cm0, qCandidates: qc || qc0, changed: changed.size };
 }
 // 펜 없이 칸을 누를 때의 순환. 이전 방식: 빈 칸 → X → Q → 빈 칸. 후보 분리: 빈 칸 → X → (?) → 빈 칸.
 //   펜으로 적은 ♂, ♀, (?)(또는 남아 있는 Q)는 한 번 누르면 지워진다.
@@ -28985,7 +29070,8 @@ function zg_logCategory(action) {
   // 2.3: 되돌리기, 가정, 끌기 묶음, 펜 고르기
   if (action === 'undo' || action === 'redo' || action === 'hypo-start' || action === 'hypo-discard' || action === 'hypo-commit'
       || action === 'paint' || action === 'pen-select') return 'tool';
-  if (action === 'page-hidden' || action === 'page-visible' || action === 'lab-view' || action === 'tools-change' || action === 'rail-fold') return 'context';
+  if (action === 'page-hidden' || action === 'page-visible' || action === 'lab-view' || action === 'tools-change' || action === 'rail-fold'
+      || action === 'cand-mode') return 'context';
   if (action === 'reset' || action === 'hint-use' || action === 'hint-denied' || action === 'solution-revealed'
       || action === 'puzzle-start' || action === 'puzzle-solved' || action === 'timer-pause' || action === 'timer-resume') return 'system';
   return 'other';
@@ -29037,6 +29123,12 @@ function recordPlayLogDiff(state, next, action) {
   // 이미 풀린 판에서 정답 창을 다시 여는 것은 플레이 행동이 아니다. 판이 바뀌어 정답
   // 배치로 되돌리더라도 그 복원을 배치/성별 기록으로 남기지 않는다.
   if (action.type === 'SHOW_SOLUTION' && state.isSolved) return entries;
+  // 2.3.2 후보 방식 바꾸기: 표시가 옮겨져도 플레이어의 손동작이 아니다(칸마다의 기록을 남기지 않는다)
+  if (action.type === 'CAND_MODE') {
+    //   처음 알리는 것(from null)과 다 푼 뒤의 바꾸기는 남기지 않는다
+    if (state.candMode && !state.isSolved) entries.push({ action: 'cand-mode', detail: { mode: next.candMode, from: state.candMode, cells: next.candModeChanged || 0 } });
+    return entries;
+  }
 
   // 1. Token placement changes (PLACE_TOKEN, RETURN_TO_HAND, RESET, SHOW_SOLUTION)
   const tokens = state.puzzle.tokens || [];
@@ -29105,9 +29197,10 @@ function recordPlayLogDiff(state, next, action) {
       entries.push({ action: 'exist-mark', detail: { row, col } });
     } else if (before === 'O' && !after) {
       entries.push({ action: 'exist-clear', detail: { row, col } });
-    } else if ((after === 'M' || after === 'F') && before !== 'M' && before !== 'F' && before !== 'X' && before !== 'Q') {
+    } else if ((after === 'M' || after === 'F') && before !== 'M' && before !== 'F' && before !== 'X') {
+      // 2.3.2: 변형 후보의 후보칸(?)에 ♂/♀를 적는 것도 성별 메모(from: 'Q')
       entries.push({ action: 'gender-note', detail: { row, col, gender: after === 'M' ? 'male' : 'female', from: before || null } });
-    } else if ((before === 'M' || before === 'F') && (after === 'O' || !after)) {
+    } else if ((before === 'M' || before === 'F') && (after === 'O' || after === 'Q' || !after)) {
       entries.push({ action: 'gender-note-clear', detail: { row, col, prevGender: before === 'M' ? 'male' : 'female', to: after || null } });
     } else if (before && after && (isNote(before) || isNote(after))) {
       entries.push({ action: 'note-change', detail: { row, col, from: before, to: after } });
@@ -29437,6 +29530,7 @@ function reducerCore(state, action) {
     case 'GENERATION_PROGRESS':
       return { ...state, generationProgress: action.progress };
     case 'CYCLE_CELL_MARK': {
+      if (state.isSolved) return state;   // 2.3.2 다 푼 보드에는 적지 않는다(창을 닫은 뒤의 칸 누름)
       // 3-state cycle: empty → X → Q → empty
       // 2.3: action.split(후보 분리)이면 empty → X → (?) → empty. 펜 표시((?), ♂, ♀)는 한 번에 지운다.
       const key = `${action.row},${action.col}`;
@@ -29475,6 +29569,13 @@ function reducerCore(state, action) {
         if (res.clearCand && state.qCandidates[key]) {
           qc = qc || { ...state.qCandidates };
           delete qc[key];
+        } else if (res.keepGender && state.qCandidates[key]) {
+          // 변형 후보: ♂/♀ 칸이 되면 다른 성별 후보는 빠진다
+          const f = zg_candsForGender(state.qCandidates[key], res.keepGender);
+          if (JSON.stringify(f) !== JSON.stringify(state.qCandidates[key])) {
+            qc = qc || { ...state.qCandidates };
+            if (f.length) qc[key] = f; else delete qc[key];
+          }
         }
       }
       if (!cm && !qc) return state;
@@ -29507,7 +29608,15 @@ function reducerCore(state, action) {
       const key = `${action.row},${action.col}`;
       const forb = new Set((state.puzzle.forbiddenCells || []).map(([r, c]) => `${r},${c}`));
       if (forb.has(key) || state.cellMarks[key] === 'X') return state;
-      const g = action.gender === 'male' || action.gender === 'female' ? action.gender : null;
+      let g = action.gender === 'male' || action.gender === 'female' ? action.gender : null;
+      // 2.3.2 변형 후보(split === false): 후보는 종 + 성별. ♂/♀ 칸에는 그 성별만 적히고,
+      //   표시 없는 칸에 적으면 그 칸이 후보칸(?)이 된다(후보는 후보칸에 묶인다).
+      const variant = action.split === false;
+      const mark = state.cellMarks[key];
+      if (variant) {
+        const cellG = mark === 'M' ? 'male' : mark === 'F' ? 'female' : null;
+        if (cellG) { if (g && g !== cellG) return state; g = cellG; }
+      }
       const cur = state.qCandidates[key] || [];
       const i = cur.findIndex(c => c.animalId === action.animalId && (c.gender || null) === g);
       let list;
@@ -29519,6 +29628,9 @@ function reducerCore(state, action) {
       }
       const qc = { ...state.qCandidates };
       if (list.length) qc[key] = list; else delete qc[key];
+      if (variant && i < 0 && (!mark || mark === 'O')) {
+        return { ...state, qCandidates: qc, cellMarks: { ...state.cellMarks, [key]: 'Q' } };
+      }
       return { ...state, qCandidates: qc };
     }
     case 'CLEAR_CANDIDATES': {
@@ -29528,6 +29640,41 @@ function reducerCore(state, action) {
       const qc = { ...state.qCandidates };
       delete qc[key];
       return { ...state, qCandidates: qc };
+    }
+    case 'CAND_MODE': {
+      // 2.3.2 후보 방식이 바뀌었다(도구 설정 후보 분리, 또는 플레이 도구 모두 끔). 지금 보드와 되돌리기 기록,
+      //   가정 체크포인트를 모두 새 방식으로 옮긴다. 되돌리기 단위가 아니다(설정 바꾸기는 손동작이 아니다).
+      const mode = action.mode === 'split' || action.mode === 'variant' || action.mode === 'legacy' ? action.mode : null;
+      if (!mode || state.candMode === mode) return state;
+      if (!state.puzzle) return { ...state, candMode: mode };
+      const memo = new Map();
+      let cells = 0;
+      const conv = (snap, top) => {
+        if (!snap || typeof snap !== 'object') return snap;
+        if (memo.has(snap)) return memo.get(snap);
+        const r = zg_convertCandBoard(snap.cellMarks, snap.qCandidates, mode);
+        if (top) cells = r.changed;
+        const hy = Array.isArray(snap.hypo) ? snap.hypo.map(h => conv(h, false)) : snap.hypo;
+        const hyChanged = Array.isArray(snap.hypo) && hy.some((h, i) => h !== snap.hypo[i]);
+        const out = (r.cellMarks === snap.cellMarks && r.qCandidates === snap.qCandidates && !hyChanged)
+          ? snap : { ...snap, cellMarks: r.cellMarks, qCandidates: r.qCandidates, ...(Array.isArray(snap.hypo) ? { hypo: hy } : {}) };
+        memo.set(snap, out);
+        return out;
+      };
+      const board = conv({ cellMarks: state.cellMarks, qCandidates: state.qCandidates, hypo: state.hypo || [] }, true);
+      const cur = { ...zg_boardSnap(state), cellMarks: board.cellMarks, qCandidates: board.qCandidates, hypo: board.hypo };
+      // 옮긴 뒤 같아진 이웃 단계(예: 후보만 적은 칸과 그 칸에 ?를 더한 칸)는 하나로: 아무것도 바꾸지 않는 되돌리기를 남기지 않는다
+      const hist = [];
+      for (const h of (state.history || []).map(x => conv(x, false))) if (!hist.length || !zg_sameBoard(hist[hist.length - 1], h)) hist.push(h);
+      while (hist.length && zg_sameBoard(hist[hist.length - 1], cur)) hist.pop();
+      const futRev = [];
+      let prev = cur;
+      for (const f of (state.future || []).map(x => conv(x, false)).reverse()) { if (!zg_sameBoard(prev, f)) { futRev.push(f); prev = f; } }
+      return {
+        ...state, candMode: mode, candModeChanged: cells,
+        cellMarks: board.cellMarks, qCandidates: board.qCandidates, hypo: board.hypo,
+        history: hist, future: futRev.reverse(),
+      };
     }
     case 'UNDO':
     case 'REDO': {
@@ -29691,11 +29838,15 @@ function reducerCore(state, action) {
       const QCAP = state.qMarkCapacity || 4;
       const droppedAnimal = state.puzzle.tokens.find(t => t.id === tokenId);
       const droppedGender = newMarks[tokenId]; // only register if gender is confirmed
-      if (state.cellMarks[destKey] === 'Q' && droppedAnimal && droppedGender) {
-        const curList = newQCandidates[destKey] || [];
+      // 2.3.2: 끌어 놓기로 후보를 등록하는 것은 이전 화면(플레이 도구 모두 끔)뿐이다.
+      //   변형 후보(후보 분리 끔)의 후보칸은 길게 눌러 적고, 타일은 그냥 놓인다.
+      const qRegister = state.candMode !== 'split' && state.candMode !== 'variant';
+      if (qRegister && state.cellMarks[destKey] === 'Q' && droppedAnimal && droppedGender) {
+        // 2.3.2: 후보 분리에서 옮겨 온 종만의 후보(gender null)는 같은 종의 성별 후보로 바뀐다
+        const curList = (newQCandidates[destKey] || []).filter(c => !(c.animalId === droppedAnimal.animalId && !c.gender));
         const alreadyExists = curList.some(c => c.animalId === droppedAnimal.animalId && c.gender === droppedGender);
-        if (!alreadyExists) {
-          const nextList = [...curList, { animalId: droppedAnimal.animalId, gender: droppedGender }];
+        if (!alreadyExists || curList.length !== (newQCandidates[destKey] || []).length) {
+          const nextList = alreadyExists ? curList : [...curList, { animalId: droppedAnimal.animalId, gender: droppedGender }];
           while (nextList.length > QCAP) nextList.shift();
           newQCandidates[destKey] = nextList;
         }
@@ -29704,14 +29855,14 @@ function reducerCore(state, action) {
       // register displaced animal (with its gender) there — only if gender confirmed
       if (displaced && prev) {
         const prevKey = `${prev.row},${prev.col}`;
-        if (state.cellMarks[prevKey] === 'Q') {
+        if (qRegister && state.cellMarks[prevKey] === 'Q') {
           const dispAnimal = state.puzzle.tokens.find(t => t.id === displaced);
           const dispGender = state.marks[displaced]; // only register if confirmed
           if (dispAnimal && dispGender) {
-            const curList = newQCandidates[prevKey] || [];
+            const curList = (newQCandidates[prevKey] || []).filter(c => !(c.animalId === dispAnimal.animalId && !c.gender));
             const alreadyExists = curList.some(c => c.animalId === dispAnimal.animalId && c.gender === dispGender);
-            if (!alreadyExists) {
-              const nextList = [...curList, { animalId: dispAnimal.animalId, gender: dispGender }];
+            if (!alreadyExists || curList.length !== (newQCandidates[prevKey] || []).length) {
+              const nextList = alreadyExists ? curList : [...curList, { animalId: dispAnimal.animalId, gender: dispGender }];
               while (nextList.length > QCAP) nextList.shift();
               newQCandidates[prevKey] = nextList;
             }
@@ -29928,6 +30079,7 @@ const initialState = {
   hypo: [],            // 2.3: 가정 체크포인트 스택(보드 맡김)
   histTag: null,       // 2.3: 손패 놓기 두 액션(DRAG_START + PLACE_TOKEN)을 한 단위로 묶는 표지
   qMarkCapacity: 4,    // 2x2 grid (can be 9 for 3x3)
+  candMode: null,      // 2.3.2 후보 방식: 'split' | 'variant' | 'legacy' (null = legacy와 같음). 화면이 CAND_MODE로 알린다
   generationProgress: null,
   dragState: { tokenId: null, over: null, overHand: false },
   engine: getInitialEngine(),  // V5: 'classic' | 'cdg-v4-loose' | 'cdg-v4-strict' | 'cdg-v5-strict'
@@ -32516,10 +32668,11 @@ function RulesModal({ show, onClose }) {
             title={t('rules.ctl.return.title')}
             body={t('rules.ctl.return.body')} />
           {/* 2.3 플레이 도구(켜 둔 것만) */}
-          {rulesTools && (rulesTools.pens || rulesTools.candSplit || rulesTools.tapPlace || rulesTools.longPlace) && (
+          {/* 2.3.2 후보 분리를 끄면(변형 후보) 펜과 후보 설명이 바뀐다 */}
+          {rulesTools && ZG.tools.KEYS.some(k => rulesTools[k]) && (rulesTools.pens || rulesTools.candSplit || rulesTools.tapPlace || rulesTools.longPlace || !rulesTools.candSplit) && (
             <RuleCard accent="var(--ink-secondary)"
               title={t('rules.ctl.pens.title')}
-              body={t('rules.ctl.pens.body')} />
+              body={t(rulesTools.candSplit ? 'rules.ctl.pens.body' : 'rules.ctl.pens.bodyVariant')} />
           )}
           {rulesTools && (rulesTools.undo || rulesTools.hypothesis) && (
             <RuleCard accent={zgOpt('playTools.hypothesisColor', '#0F766E')}
@@ -35039,7 +35192,7 @@ function ForbiddenCell({ size }) {
   );
 }
 
-function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly }) {
+function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly, plateBg, zIndex }) {
   const { lang } = useLang();
   // Determine grid dimensions from capacity (4 = 2x2, 9 = 3x3)
   const dim = Math.ceil(Math.sqrt(capacity));
@@ -35055,7 +35208,7 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly }
   for (let i = 0; i < candidates.length && i < capacity; i++) slots[i] = candidates[i];
   return (
     <div style={{
-      position: 'absolute', inset: padding, zIndex: 4,
+      position: 'absolute', inset: padding, zIndex: zIndex != null ? zIndex : 4,
       display: 'grid',
       gridTemplateColumns: `repeat(${dim}, 1fr)`,
       gridTemplateRows: `repeat(${dim}, 1fr)`,
@@ -35083,7 +35236,7 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly }
         const genderColor = gender === 'male' ? zgOpt('colors.genderMale', '#1E3A8A') : zgOpt('colors.genderFemale', '#9D174D');
         return (
           <div key={i} style={{
-            background: zgOpt('candidates.tileBg', 'rgba(255,255,255,0.75)'),
+            background: plateBg || zgOpt('candidates.tileBg', 'rgba(255,255,255,0.75)'),
             border: zgOpt('candidates.tileBorder', '1px solid rgba(120,113,108,0.5)'),
             borderRadius: 2,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -35116,24 +35269,50 @@ function QCandidateGrid({ candidates, capacity, cellSize, opacity, speciesOnly }
   );
 }
 
-function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile }) {
+// 후보칸의 큰 기호(? 또는 2.3.2 변형 후보의 ♂/♀)
+function QGlyph({ cellSize, gender, hasPlacedTile, zIndex, light }) {
+  const g = gender === 'male' || gender === 'female' ? gender : null;
+  // light: 변형 후보 칸 위의 타일. 동물 그림이 앞에 나서도록 기호를 더 옅게, 흰 번짐 없이 그린다(표시는 남는다).
+  const glyphOpacity = light
+    ? (g ? zgOpt('candidates.variantGlyphOpacityOnTile', 0.22) : zgOpt('candidates.variantQuestionOpacityOnTile', 0.26))
+    : g
+    ? (hasPlacedTile ? zgOpt('candidates.genderGlyphOpacityOnTile', 0.32) : zgOpt('candidates.genderGlyphOpacityOnEmpty', 0.42))
+    : (hasPlacedTile ? zgOpt('candidates.questionOpacityOnTile', 0.38) : zgOpt('candidates.questionOpacityOnEmpty', 0.48));
+  const glyphColor = g === 'male' ? zgOpt('colors.genderMale', '#1E3A8A') : g === 'female' ? zgOpt('colors.genderFemale', '#9D174D')
+    : zgOpt('candidates.questionColor', 'var(--accent-gold)');
+  return (
+    <div className="font-display" aria-hidden data-q-glyph={g ? (g === 'male' ? 'M' : 'F') : 'Q'} style={{
+      position: 'absolute', inset: 0, zIndex,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: cellSize * (g ? zgOpt('candidates.genderGlyphScale', 0.8) : 0.72), fontStyle: g ? 'normal' : 'italic', fontWeight: g ? 700 : 600,
+      WebkitTextStroke: g ? `${Math.max(0.6, cellSize * 0.012)}px currentColor` : undefined,
+      color: glyphColor, opacity: glyphOpacity,
+      pointerEvents: 'none', userSelect: 'none', lineHeight: 1,
+      textShadow: light ? 'none' : '0 0 8px rgba(255, 253, 247, 0.8)',
+    }}>{g === 'male' ? '♂' : g === 'female' ? '♀' : '?'}</div>
+  );
+}
+
+function QMarkOverlay({ candidates, capacity, cellSize, hasPlacedTile, gender, variant }) {
   // Unified overlay: renders over either empty Q-cell or Q-cell with placed tile.
   // V12.41: 사용자 요청 — opacity 추가 상승 (V12.40 대비 +0.06~0.08)
   //   empty Q-cell:        candidates 0.92 → 1.00 (full), "?" 0.40 → 0.48
   //   tile-occupied Q-cell: candidates 0.45 → 0.55,        "?" 0.30 → 0.38
-  const candidatesOpacity = hasPlacedTile ? zgOpt('candidates.opacityOnTile', 0.55) : zgOpt('candidates.opacityOnEmpty', 1.00);
-  const questionOpacity = hasPlacedTile ? zgOpt('candidates.questionOpacityOnTile', 0.38) : zgOpt('candidates.questionOpacityOnEmpty', 0.48);
+  // 2.3.2 변형 후보: ♂/♀ 후보칸은 같은 틀에서 큰 "?" 자리에 성별 기호를 그 성별색으로 옅게 그린다.
+  //   후보는 모두 그 성별이므로 미니 타일의 작은 성별 기호는 생략한다.
+  // 2.3.2 변형 후보 칸에 타일이 놓이면 동물 그림이 앞에 나선다: 흰 기운을 걷어 낸다.
+  //   빈 자리 틀(흰 바탕)은 그리지 않고, 후보 받침과 묶음은 조금 옅게, 큰 기호는 더 옅게 흰 번짐 없이.
+  //   이전 화면(플레이 도구 모두 끔)의 후보칸은 그대로.
+  const onTileFront = !!(variant && hasPlacedTile);
+  const candidatesOpacity = onTileFront ? zgOpt('candidates.variantOpacityOnTile', 0.5)
+    : hasPlacedTile ? zgOpt('candidates.opacityOnTile', 0.55) : zgOpt('candidates.opacityOnEmpty', 1.00);
+  const g = gender === 'male' || gender === 'female' ? gender : null;
+  const list = g ? (candidates || []).map(c => ({ ...c, _noteGender: true })) : (candidates || []);
   return (
     <>
-      <QCandidateGrid candidates={candidates || []} capacity={capacity || 4} cellSize={cellSize} opacity={candidatesOpacity} />
-      <div className="font-display" style={{
-        position: 'absolute', inset: 0, zIndex: 5,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: cellSize * 0.72, fontStyle: 'italic', fontWeight: 600,
-        color: zgOpt('candidates.questionColor', 'var(--accent-gold)'), opacity: questionOpacity,
-        pointerEvents: 'none', userSelect: 'none', lineHeight: 1,
-        textShadow: '0 0 8px rgba(255, 253, 247, 0.8)',
-      }}>?</div>
+      <QCandidateGrid candidates={list} capacity={capacity || 4} cellSize={cellSize} opacity={candidatesOpacity}
+        speciesOnly={onTileFront} plateBg={onTileFront ? zgOpt('candidates.variantPlateBgOnTile', 'rgba(255,255,255,0.5)') : undefined} />
+      <QGlyph cellSize={cellSize} gender={g} hasPlacedTile={hasPlacedTile} zIndex={5} light={onTileFront} />
     </>
   );
 }
@@ -35175,8 +35354,11 @@ function HypoRing() {
 function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapacity, onClick,
                     split, isTapTarget, hypo, popoverOpen, nopeKey, touchLock, gestureHandlers, keyHandler, ariaLabel }) {
   const isX = markState === 'X';
-  const isQ = markState === 'Q';
-  const isNote = markState === 'O' || markState === 'M' || markState === 'F';
+  // 2.3.2 변형 후보(후보 분리 끔)와 이전 화면: 후보칸 ?, ♂, ♀ 세 가지가 모두 후보칸 틀(큰 기호 + 후보 묶음)이다.
+  //   후보 분리에서는 ? 있음, ♂, ♀가 동그라미 메모이고 후보는 따로 적힌다.
+  const isQ = markState === 'Q' || (!split && (markState === 'O' || markState === 'M' || markState === 'F'));
+  const qGender = !split && markState === 'M' ? 'male' : !split && markState === 'F' ? 'female' : null;
+  const isNote = !isQ && (markState === 'O' || markState === 'M' || markState === 'F');
   // 2.3 후보 분리: 후보는 표시와 따로 적힌다(Q 없이도). 이전 방식은 Q 칸에서만 보인다.
   const splitCands = split && !isX && !isQ && qCandidates && qCandidates.length > 0;
 
@@ -35227,7 +35409,7 @@ function DropCell({ size, row, col, isDropTarget, markState, qCandidates, qCapac
         </svg>
       )}
       {isQ && (
-        <QMarkOverlay candidates={qCandidates} capacity={qCapacity} cellSize={size} hasPlacedTile={false} />
+        <QMarkOverlay candidates={qCandidates} capacity={qCapacity} cellSize={size} hasPlacedTile={false} gender={qGender} />
       )}
       {splitCands && (
         <>
@@ -35559,6 +35741,7 @@ function useCellGestures(opts) {
       const res = zg_paintResult(tool, L.cellMarks[k], L.split);
       pv[k] = res.mark;
       if (res.clearCand) pv['~' + k] = true;   // 미리보기에서도 지워질 후보는 감춘다
+      else if (res.keepGender) pv['~g' + k] = res.keepGender;   // 변형 후보: 빠질 다른 성별 후보도 미리 감춘다
     }
     return { pv, valid };
   };
@@ -36021,7 +36204,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     enabled: toolsOn && !inputLocked,
     split, cellMarks: cellMarks || {}, placedMap, forbiddenSet,
     paintEnabled: !!T.dragPaint, touchLock, axisLock: zgOpt('playTools.paintAxisLock', true),
-    longPressEnabled: !!(T.candSplit || T.tapPlace || T.longPlace),
+    longPressEnabled: true,   // 2.3.2 후보는 두 방식 모두 길게 눌러 적는다(분리: 종 후보, 변형: 종 + 성별)
     longPressMs: (pen && pen !== 'place') ? Math.max(500, zgOpt('motion.longPressMs', 350)) : zgOpt('motion.longPressMs', 350),
     paintOpFor, onPaintCommit, onCellTap, onCellLongPress,
     onLegacyClick: (r, c) => onEmptyCellClick && onEmptyCellClick(r, c),
@@ -36061,7 +36244,10 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
       const isHinted = hintTokenIds && hintTokenIds.indexOf(tok.id) !== -1;
       const isFixed = !!(puzzle.preMarks && puzzle.preMarks[tok.id]);
       const adj = pairAdj[tok.id];
-      const cellIsQ = cellMarks && cellMarks[key] === 'Q';
+      // 2.3.2 변형 후보: ♂/♀ 후보칸도 타일 위에 옅게 남는다(이전 후보칸과 같은 모습)
+      const cm0 = cellMarks ? cellMarks[key] : undefined;
+      const cellIsQ = cm0 === 'Q' || (!split && (cm0 === 'O' || cm0 === 'M' || cm0 === 'F'));
+      const cellQGender = !split && cm0 === 'M' ? 'male' : !split && cm0 === 'F' ? 'female' : null;
       const cellQCands = cellIsQ && qCandidates ? qCandidates[key] : undefined;
       const isSelected = drag.selectedTokenId === tok.id;
       const isDraggingThis = drag.draggingTokenId === tok.id;
@@ -36099,7 +36285,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
             isDraggingThis={isDraggingThis}
           />
           {cellIsQ && (
-            <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} />
+            <QMarkOverlay candidates={cellQCands} capacity={qMarkCapacity} cellSize={cellSize} hasPlacedTile={true} gender={cellQGender} variant={toolsOn && !split} />
           )}
           {inHypo && <HypoRing />}
           {isHinted && (
@@ -36123,7 +36309,8 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
     const baseMark = cellMarks ? cellMarks[key] : undefined;
     // 끌기 미리보기가 있으면 그 결과로 그린다(손을 떼면 같은 결과가 적힌다)
     const markState = strokePv && Object.prototype.hasOwnProperty.call(strokePv, key) ? strokePv[key] : baseMark;
-    const qCands = (strokePv && strokePv['~' + key]) ? undefined : (qCandidates ? qCandidates[key] : undefined);
+    let qCands = (strokePv && strokePv['~' + key]) ? undefined : (qCandidates ? qCandidates[key] : undefined);
+    if (qCands && strokePv && strokePv['~g' + key]) qCands = zg_candsForGender(qCands, strokePv['~g' + key]);
     if (!toolsOn) {
       return (
         <DropCell
@@ -36136,7 +36323,10 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         />
       );
     }
-    const markName = markState === 'X' ? 'X' : markState === 'Q' ? '?' : markState === 'O' ? tAria('pen.O') : markState === 'M' ? '♂' : markState === 'F' ? '♀' : '';
+    const markName = markState === 'X' ? 'X'
+      : (markState === 'Q' || (!split && markState === 'O')) ? tAria('pen.Q')
+      : markState === 'O' ? tAria('pen.O')
+      : markState === 'M' ? (split ? '♂' : tAria('pen.Q') + ' ♂') : markState === 'F' ? (split ? '♀' : tAria('pen.Q') + ' ♀') : '';
     return (
       <DropCell
         size={cellSize} row={r} col={c}
@@ -36154,7 +36344,7 @@ function Grid({ puzzle, placements, marks, cellMarks, qCandidates, qMarkCapacity
         onClick={gestures.onClickFor(r, c)}
         keyHandler={(e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCellTap && onCellTap(r, c); }
-          else if ((e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey) || e.key === 'c' || e.key === 'C') && onCellLongPress && (T.candSplit || T.tapPlace || T.longPlace)) {
+          else if ((e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey) || e.key === 'c' || e.key === 'C') && onCellLongPress) {
             e.preventDefault(); onCellLongPress(r, c);
           }
         }}
@@ -36872,8 +37062,8 @@ function CellPopover({ open, puzzle, placements, marks, cellMarks, qCandidates, 
   const mark = cellMarks[key];
   const tabs = [];
   if (tools.tapPlace || tools.longPlace) tabs.push('place');
-  if (tools.candSplit) tabs.push('cand');
-  if (!tabs.length) return null;
+  tabs.push('cand');   // 2.3.2 후보 분리 켬: 종 후보, 끔(변형 후보): 종 + 성별 후보
+  const variant = !tools.candSplit;
   const tab = tabs.includes(open.tab) ? open.tab : tabs[0];
   const noteG = mark === 'M' ? 'male' : mark === 'F' ? 'female' : null;
   const vw = window.innerWidth;
@@ -36884,6 +37074,7 @@ function CellPopover({ open, puzzle, placements, marks, cellMarks, qCandidates, 
   const species = [...new Set(puzzle.tokens.map(tk => tk.animalId))].sort((a, b) => a - b);
   const cands = qCandidates[key] || [];
   const candIds = new Set(cands.filter(c => !c.gender).map(c => c.animalId));
+  const candSig = new Set(cands.map(c => c.animalId + ':' + (c.gender || '-')));
   const cap = qMarkCapacity || 4;
 
   const tileBtn = ({ animal, gender, onClick, selected, dim, title, k }) => (
@@ -36947,6 +37138,64 @@ function CellPopover({ open, puzzle, placements, marks, cellMarks, qCandidates, 
         })}
       </div>
     );
+  } else if (variant) {
+    // 2.3.2 변형 후보: 종마다 손패에 남은 성별(놓기 창과 같은 규칙, 정해지지 않은 한 마리는 ♂ ♀ 둘 다)과
+    //   이미 적은 후보를 고른다. ♂/♀ 후보칸에서는 그 성별만.
+    const gendersFor = (aid) => {
+      const gs = new Set();
+      for (const tk of unplaced.filter(x => x.animalId === aid)) {
+        const g = zg_handGenderOf(tk, puzzle, placements, marks, true);
+        if (g) gs.add(g); else { gs.add('male'); gs.add('female'); }
+      }
+      for (const c of cands) if (c.animalId === aid) { if (c.gender) gs.add(c.gender); }
+      return ['male', 'female'].filter(g => gs.has(g) && (!noteG || g === noteG));
+    };
+    const groups = species.map(aid => ({ aid, gs: gendersFor(aid), nullSel: cands.some(c => c.animalId === aid && !c.gender) }))
+      .filter(x => x.gs.length || x.nullSel);
+    // ♂/♀ 후보칸: 종마다 한 칸(후보 분리의 후보 창과 같은 모양). ? 후보칸: 종마다 ♂ ♀ 두 칸(놓기 창과 같은 모양)
+    const single = !!noteG;
+    const cols = single ? Math.min(4, Math.max(1, groups.length)) : Math.min(3, Math.max(1, groups.length));
+    body = (
+      <div>
+        {groups.length === 0 ? (
+          <div style={{ padding: '14px 12px', fontSize: 12.5, color: 'var(--ink-tertiary)' }}>{t(noteG ? 'pop.candNoneGender' : 'pop.handEmpty')}</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, auto)`, gap: single ? '8px 8px' : '8px 10px', padding: '10px 10px 8px', justifyContent: 'start' }}>
+            {groups.map(({ aid, gs, nullSel }) => {
+              const a = animalById(aid);
+              const btns = [
+                ...(nullSel ? [tileBtn({ k: aid + ':-', animal: a, gender: null, selected: true, title: nameOf(a), onClick: () => onToggleCand(aid, null) })] : []),
+                ...gs.map(g => tileBtn({
+                  k: aid + ':' + g, animal: a, gender: g, selected: candSig.has(aid + ':' + g),
+                  title: `${nameOf(a)} ${g === 'male' ? '♂' : '♀'}`, onClick: () => onToggleCand(aid, g),
+                })),
+              ];
+              if (single) return (
+                <div key={aid} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: tile + 8 }}>
+                  <div style={{ display: 'flex', gap: 3 }}>{btns}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink-secondary)', maxWidth: tile + 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.1 }}>{nameOf(a)}</div>
+                </div>
+              );
+              return (
+                <div key={aid} style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 3 }}>{btns}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--ink-secondary)', lineHeight: 1.1, maxWidth: tile * 2 + 3, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{nameOf(a)}</span>{attr(a)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 10px 10px', borderTop: '1px dashed var(--border-soft)' }}>
+          <span className="font-mono" style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>{t('pop.candCount', { n: cands.length, cap })}</span>
+          <button type="button" onClick={onClearCands} disabled={!cands.length} className="font-body" style={{
+            border: '1px solid var(--border-medium)', background: 'var(--bg-card)', borderRadius: 2, padding: '6px 10px', minHeight: 32,
+            fontSize: 12, color: 'var(--ink-secondary)', cursor: cands.length ? 'pointer' : 'default', opacity: cands.length ? 1 : 0.45,
+          }}>{t('pop.clear')}</button>
+        </div>
+      </div>
+    );
   } else {
     const list = species.filter(aid => unplaced.some(tk => tk.animalId === aid) || candIds.has(aid));
     body = (
@@ -36957,7 +37206,7 @@ function CellPopover({ open, puzzle, placements, marks, cellMarks, qCandidates, 
             const sel = candIds.has(aid);
             return (
               <div key={aid} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: tile + 8 }}>
-                {tileBtn({ k: aid, animal: a, gender: noteG, selected: sel, title: nameOf(a), onClick: () => onToggleCand(aid) })}
+                {tileBtn({ k: aid, animal: a, gender: noteG, selected: sel, title: nameOf(a), onClick: () => onToggleCand(aid, null) })}
                 <div style={{ fontSize: 10.5, color: 'var(--ink-secondary)', maxWidth: tile + 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.1 }}>{nameOf(a)}</div>
               </div>
             );
@@ -38559,6 +38808,12 @@ function ZoogramsApp() {
   // ═══ 2.3 플레이 도구 ═══════════════════════════════════════════════════════
   const tools = useZGTools();
   const split = !!tools.candSplit;
+  // 2.3.2 후보 방식: 후보 분리 켬 = split, 끔 = variant(변형 후보), 플레이 도구 모두 끔 = legacy(이전 화면)
+  const toolsAnyOn = ZG.tools.KEYS.some(k => tools[k]);
+  const candMode = !toolsAnyOn ? 'legacy' : (split ? 'split' : 'variant');
+  useEffect(() => {
+    if (state.candMode !== candMode) dispatch({ type: 'CAND_MODE', mode: candMode });
+  }, [candMode, state.candMode, state.playSessionId]);
   const [pen, setPenRaw] = useState('place');       // 'place'(놓기 또는 순환) | 'X' | 'O' | 'M' | 'F' | 'erase'
   const [cellPop, setCellPop] = useState(null);     // { r, c, tab: 'place' | 'cand' }
   const [nope, setNope] = useState(null);           // { key, ts } 할 수 없는 손동작의 작은 흔들림
@@ -38658,7 +38913,8 @@ function ZoogramsApp() {
     const isEmpty = !cur && !hasCands;
     const tapOwnsPlace = !!(L.tools.pens && L.tools.tapPlace);
     const placeFirst = isEmpty && ((L.tools.longPlace && !tapOwnsPlace) || (!L.tools.pens && L.tools.tapPlace));
-    const tab = (placeFirst || !L.tools.candSplit) ? 'place' : 'cand';
+    // 2.3.2 후보 분리를 꺼도(변형 후보) 후보 창이 있다: 표시한 칸은 늘 후보가 먼저
+    const tab = placeFirst ? 'place' : 'cand';
     openCellPop(r, c, tab);
     if (!coachDone) { setCoachDone(true); ZG.tools.setCoachDone(); }
   }, [nopeAt, openCellPop, coachDone]);
@@ -38671,9 +38927,11 @@ function ZoogramsApp() {
     handleDragPlace({ tokenId, row: cellPop.r, col: cellPop.c });
     setCellPop(null);
   }, [cellPop, handleDragPlace]);
-  const handlePopCand = useCallback((animalId) => {
+  // 후보 분리: 종만(gender null). 변형 후보: 종 + 성별(split false가 칸의 성별 규칙과 후보칸 만들기를 맡는다)
+  const handlePopCand = useCallback((animalId, gender) => {
     if (!cellPop) return;
-    dispatch({ type: 'TOGGLE_CANDIDATE', row: cellPop.r, col: cellPop.c, animalId, gender: null });
+    const sp = !!liveRef.current.split;
+    dispatch({ type: 'TOGGLE_CANDIDATE', row: cellPop.r, col: cellPop.c, animalId, gender: sp ? null : (gender || null), split: sp });
   }, [cellPop]);
   const handlePopClear = useCallback(() => {
     if (!cellPop) return;
@@ -38734,9 +38992,10 @@ function ZoogramsApp() {
   }, [toolsOpen, handleUndo, handleRedo, setPen]);
   // 사용법 한 줄: 켜 둔 도구에 맞는 문장
   const longPlaceActive = !!(tools.longPlace && !(tools.pens && tools.tapPlace));
+  // 2.3.2 후보는 두 방식 모두 길게 눌러 적으므로 후보 분리 켬/끔과 상관없이 같은 문장
   const coachKey = tools.pens
-    ? (longPlaceActive ? (tools.candSplit ? 'coach.pensLong' : 'coach.pensLongNoCand') : (tools.candSplit ? 'coach.pens' : 'coach.pensNoCand'))
-    : (longPlaceActive && tools.candSplit ? 'coach.noPensLong' : 'coach.noPens');
+    ? (longPlaceActive ? 'coach.pensLong' : 'coach.pens')
+    : (longPlaceActive ? 'coach.noPensLong' : 'coach.noPens');
   const coachText = (!coachDone && state.puzzle && !state.isSolved && (tools.pens || tools.candSplit || tools.tapPlace || tools.longPlace))
     ? tApp(coachKey) : null;
   const closeCoach = useCallback(() => { setCoachDone(true); ZG.tools.setCoachDone(); }, []);
@@ -41106,6 +41365,8 @@ function PlayLogModal({ playLog, solveTimeMs, puzzle, level, hintsUsed, wasRevea
         return `${tStr} | ✎ ${t('playlog.penSelect')} ${d.pen}`;
       case 'tools-change':
         return `${tStr} | ⚙ ${t('playlog.toolsChange')} ${d.key}=${d.value}`;
+      case 'cand-mode':
+        return `${tStr} | ⚙ ${t('playlog.candMode')} ${d.from || '-'} → ${d.mode} (${d.cells})`;
       default:
         return `${tStr} | ${e.action}: ${JSON.stringify(d)}`;
     }
